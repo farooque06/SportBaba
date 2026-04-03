@@ -13,9 +13,7 @@ export function formatCurrency(amount: any) {
   return `NRS ${num.toLocaleString()}`;
 }
 export function getWhatsAppLink(phone: string, message: string) {
-  // Remove non-numeric characters from phone
   const cleanPhone = phone.replace(/\D/g, "");
-  // If phone doesn't have country code, assume Nepal (+977)
   const finalPhone = cleanPhone.length === 10 ? `977${cleanPhone}` : cleanPhone;
   return `https://wa.me/${finalPhone}?text=${encodeURIComponent(message)}`;
 }
