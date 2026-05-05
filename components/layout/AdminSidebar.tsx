@@ -7,7 +7,7 @@ import {
   Settings, LogOut, Activity, BarChart3,
   ChevronLeft, ChevronRight, Package, Trophy
 } from "lucide-react"
-import { UserButton, useClerk } from "@clerk/nextjs"
+import { useSession, signOut } from "next-auth/react"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { useState, useEffect } from "react"
 import { cn } from "@/lib/utils"
@@ -25,7 +25,7 @@ export function AdminSidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
-  const { signOut } = useClerk()
+  const { data: session } = useSession()
 
   useEffect(() => {
     setMounted(true)
@@ -96,20 +96,18 @@ export function AdminSidebar() {
       <div className={cn("p-4 border-t border-border space-y-6 transition-all", isCollapsed && "items-center")}>
         <div className={cn("flex items-center justify-between gap-3 px-2", isCollapsed && "flex-col")}>
           <div className="flex items-center gap-3">
-            <UserButton
-               appearance={{
-                elements: {
-                  userButtonAvatarBox: "h-9 w-9 ring-2 ring-primary/20",
-                }
-              }}
-            />
+            {session?.user && (
+               <div className="h-9 w-9 rounded-xl bg-primary/20 flex items-center justify-center text-xs font-black text-primary ring-2 ring-primary/10">
+                  {session.user.name?.[0].toUpperCase()}
+               </div>
+            )}
             {!isCollapsed && <span className="text-xs font-black text-muted-foreground italic">ADMIN GATE</span>}
           </div>
           <ThemeToggle />
         </div>
 
         <button
-          onClick={() => signOut({ redirectUrl: '/' })}
+          onClick={() => signOut({ callbackUrl: '/' })}
           className={cn(
             "w-full flex items-center gap-3 h-12 rounded-2xl text-[10px] font-black transition-all group cursor-pointer border border-transparent hover:bg-red-500/10 hover:border-red-500/20 text-muted-foreground hover:text-red-500",
             isCollapsed ? "justify-center" : "px-4"

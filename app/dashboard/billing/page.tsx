@@ -1,16 +1,16 @@
-import { auth } from "@clerk/nextjs/server"
 import { supabase } from "@/lib/supabase"
 import { CreditCard, CheckCircle2, Clock, Zap, ShieldCheck, ArrowRight, Activity } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { formatCurrency } from "@/lib/utils"
+import { getFacilityId } from "@/lib/get-facility-id"
 
 export default async function BillingPage() {
-  const { orgId } = await auth()
+  const facilityId = await getFacilityId()
   
   const { data: facility } = await supabase
     .from('facilities')
     .select('*')
-    .eq('id', orgId)
+    .eq('id', facilityId)
     .single()
 
   const daysLeft = facility?.trial_end 

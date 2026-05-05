@@ -1,19 +1,23 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Plus, Package, Trash2, Edit2, Search, Filter, Loader2, DollarSign, Tag, Archive, X, ChevronDown } from "lucide-react"
+import { Plus, Package, Trash2, Edit2, Search, Filter, Loader2, DollarSign, Tag, Archive, X, ChevronDown, Lock } from "lucide-react"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { formatCurrency } from "@/lib/utils"
-import { useUser } from "@clerk/nextjs"
+import { useSession } from "next-auth/react"
+import Cookies from "js-cookie"
 import { fetchProducts, upsertProduct, deleteProduct } from "@/lib/actions/inventory"
 import { ArtisanSelect } from "@/components/ui/ArtisanSelect"
 import { EmptyState } from "@/components/ui/EmptyState"
 import { getCurrentUserRole } from "@/lib/actions/auth"
-import { Lock } from "lucide-react"
+import { useSport } from "@/components/providers/SportProvider"
+import { Toast, ToastType } from "@/components/ui/Toast"
 
 export default function InventoryPage() {
-  const { user } = useUser()
+  const { data: session } = useSession()
+  const { facilityId } = useSport()
+  
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -22,6 +26,7 @@ export default function InventoryPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [role, setRole] = useState<string | null>(null)
   const [isVerifying, setIsVerifying] = useState(true)
+  const [toast, setToast] = useState<{ message: string, type: ToastType } | null>(null)
 
   // Form State
   const [formData, setFormData] = useState({
@@ -32,25 +37,32 @@ export default function InventoryPage() {
 
   useEffect(() => {
     async function checkAuth() {
-      const userRole = await getCurrentUserRole()
-      setRole(userRole)
+      if (facilityId) {
+        const userRole = await getCurrentUserRole(facilityId)
+        setRole(userRole)
+      }
       setIsVerifying(false)
     }
-    checkAuth()
-  }, [])
+    if (session?.user && facilityId) {
+        checkAuth()
+    }
+  }, [session, facilityId])
 
   useEffect(() => {
-    if ((role === 'owner' || role === 'manager' || role === 'staff') && (user?.publicMetadata?.orgId || user?.organizationMemberships?.[0]?.organization?.id)) {
+    if (facilityId && (role === 'owner' || role === 'manager' || role === 'staff')) {
        loadProducts()
     }
-  }, [user, role])
+  }, [role, facilityId])
+
+  const showToast = (message: string, type: ToastType = "success") => {
+    setToast({ message, type })
+  }
 
   const loadProducts = async () => {
+    if (!facilityId) return
     setLoading(true)
-    const orgId = (user?.publicMetadata?.orgId as string) || user?.organizationMemberships?.[0]?.organization?.id
-    if (!orgId) return
-    const data = await fetchProducts(orgId)
-    setProducts(data)
+    const data = await fetchProducts(facilityId)
+    setProducts(data || [])
     setLoading(false)
   }
 
@@ -71,6 +83,11 @@ export default function InventoryPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!facilityId) {
+        showToast("Session Error: Facility ID not found.", "error")
+        return
+    }
+
     setIsSaving(true)
     try {
       const result = await upsertProduct({
@@ -78,28 +95,32 @@ export default function InventoryPage() {
         name: formData.name,
         price: parseFloat(formData.price),
         category: formData.category
-      })
+      }, facilityId)
 
       if (result.success) {
+        showToast(editingProduct ? "Product updated" : "Product added")
         await loadProducts()
         setIsModalOpen(false)
       } else {
-        alert(result.error || "Failed to save product")
+        showToast(result.error || "Failed to save product", "error")
       }
     } catch (error) {
-       alert("An error occurred")
+       showToast("An unexpected error occurred", "error")
     } finally {
       setIsSaving(false)
     }
   }
 
   const handleDelete = async (id: string) => {
+    if (!facilityId) return
+
     if (!confirm("Are you sure you want to deactivate this product?")) return
-    const result = await deleteProduct(id)
+    const result = await deleteProduct(id, facilityId)
     if (result.success) {
+      showToast("Product deactivated")
       loadProducts()
     } else {
-      alert(result.error || "Failed to delete product")
+      showToast(result.error || "Failed to delete product", "error")
     }
   }
 
@@ -337,6 +358,14 @@ export default function InventoryPage() {
               </form>
            </Card>
         </div>
+      )}
+      {/* Toast Feedback */}
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
       )}
     </div>
   )

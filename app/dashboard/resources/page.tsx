@@ -5,21 +5,23 @@ import { Plus, LandPlot, Trash2, Edit2, Search, Loader2, DollarSign, Activity, S
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { formatCurrency } from "@/lib/utils"
-import { useUser, useAuth } from "@clerk/nextjs"
+import { useSession } from "next-auth/react"
+import Cookies from "js-cookie"
 import { fetchResourceUnits, createResourceUnit, deleteResourceUnit } from "@/lib/actions/resources"
 import { useSport } from "@/components/providers/SportProvider"
 import { ArtisanSelect } from "@/components/ui/ArtisanSelect"
+import { Toast, ToastType } from "@/components/ui/Toast"
 
 export default function ResourcesPage() {
-  const { user } = useUser()
-  const { orgId } = useAuth()
-  const { sport } = useSport()
+  const { data: session } = useSession()
+  const { sport, facilityId } = useSport()
   
   const [resources, setResources] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [toast, setToast] = useState<{ message: string, type: ToastType } | null>(null)
 
   // Form State
   const [formData, setFormData] = useState({
@@ -29,19 +31,19 @@ export default function ResourcesPage() {
   })
 
   useEffect(() => {
-    // Only load if we have a valid org context (meaning the user is acting as a facility)
-    if (orgId || user?.publicMetadata?.orgId) {
-       loadResources()
-    } else if (user) {
-       setLoading(false)
+    if (session?.user && facilityId) {
+        loadResources()
     }
-  }, [user, orgId])
+  }, [session, facilityId])
+
+  const showToast = (message: string, type: ToastType = "success") => {
+    setToast({ message, type })
+  }
 
   const loadResources = async () => {
+    if (!facilityId) return
     setLoading(true)
-    const activeOrgId = orgId || (user?.publicMetadata?.orgId as string)
-    if (!activeOrgId) return
-    const data = await fetchResourceUnits(activeOrgId)
+    const data = await fetchResourceUnits(facilityId)
     setResources(data || [])
     setLoading(false)
   }
@@ -55,37 +57,46 @@ export default function ResourcesPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!facilityId) {
+        showToast("Session Error: Facility ID not found. Please refresh.", "error")
+        return
+    }
+
     setIsSaving(true)
     try {
-      const data = new FormData()
-      data.append("name", formData.name)
-      data.append("base_price", formData.base_price)
-      data.append("unit_type", formData.unit_type)
-
-      const result = await createResourceUnit(data)
+      const result = await createResourceUnit({
+        name: formData.name,
+        base_price: parseFloat(formData.base_price) || 0,
+        unit_type: formData.unit_type
+      }, facilityId)
 
       if (result.success) {
+        showToast("Resource created successfully")
         await loadResources()
         setIsModalOpen(false)
       } else {
-        alert(result.error || "Failed to create resource")
+        showToast(result.error || "Failed to create resource", "error")
       }
     } catch (error) {
-       alert("An error occurred")
+       showToast("An unexpected error occurred", "error")
     } finally {
       setIsSaving(false)
     }
   }
 
   const handleDelete = async (id: string) => {
+    if (!facilityId) return
+
     if (!confirm("Are you sure you want to delete this resource unit? This will disable future bookings for this unit.")) return
     
     // We visually remove it instantly for snappy UI
     setResources(resources.filter(r => r.id !== id))
     
-    const result = await deleteResourceUnit(id)
-    if (!result.success) {
-      alert(result.error || "Failed to delete resource")
+    const result = await deleteResourceUnit(id, facilityId)
+    if (result.success) {
+      showToast("Resource removed")
+    } else {
+      showToast(result.error || "Failed to delete resource", "error")
       loadResources() // Revert if failed
     }
   }
@@ -267,6 +278,14 @@ export default function ResourcesPage() {
               </form>
            </Card>
         </div>
+      )}
+      {/* Toast Feedback */}
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
       )}
     </div>
   )

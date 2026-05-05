@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { ClerkProvider } from "@clerk/nextjs"
 import { ThemeProvider } from "@/components/ThemeProvider"
 import { CommandPalette } from "@/components/ui/CommandPalette"
 
@@ -36,6 +35,15 @@ export const metadata: Metadata = {
   keywords: ["sports facility management", "futsal booking", "cricket booking", "court booking system", "sports SaaS"],
   authors: [{ name: "SportBaba" }],
   creator: "SportBaba",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "SportBaba",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
   openGraph: {
     type: "website",
@@ -55,21 +63,23 @@ export const metadata: Metadata = {
   },
 };
 
+import { SessionProvider } from "next-auth/react"
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
-        <body className={`${geistSans.variable} ${geistMono.variable} h-full antialiased min-h-full flex flex-col bg-background text-foreground`}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} h-full antialiased min-h-full flex flex-col bg-background text-foreground`}>
+        <SessionProvider>
           <ThemeProvider>
             <CommandPalette />
             {children}
           </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+        </SessionProvider>
+      </body>
+    </html>
   );
 }

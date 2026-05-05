@@ -1,65 +1,56 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileNav } from "@/components/layout/MobileNav";
 import { supabase } from "@/lib/supabase";
 import { AlertCircle, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { OrganizationSwitcher } from "@clerk/nextjs";
 import { SportProvider } from "@/components/providers/SportProvider";
 import { QuickActionFab } from "@/components/ui/QuickActionFab";
+import { cookies } from "next/headers";
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  let authData: any = { orgId: null, userId: null };
-  try {
-    authData = await auth();
-  } catch (e) {
-    console.error("Clerk Auth Fetch Failed:", e);
+  const session = await auth();
+  if (!session?.user) redirect("/login");
+
+  const userId = session.user.id;
+  const email = session.user.email;
+
+  // 0. Superadmin Redirect
+  const isAdminEmail = (email === 'far00queapril17@gmail.com');
+  // Add other superadmin IDs here if needed
+  const isSuperAdmin = isAdminEmail || userId === '48c52067-23b6-412c-a17b-1e7de8bc4f98';
+
+  if (isSuperAdmin) {
+    redirect("/admin"); 
   }
 
-  const { orgId, userId, sessionClaims } = authData as any;
+  // Get active facility from cookie or first membership
+  const cookieStore = await cookies();
+  let facilityId = cookieStore.get("active_facility_id")?.value;
 
-  // 0. Superadmin Redirect: If platform owner, bypass facility dashboard and go to Admin Hub
-  // We use currentUser() for a more reliable check of Metadata and Email than auth()
-  const user = await currentUser();
-  
-  if (userId && user) {
-    const role = (user.publicMetadata as any)?.role || (sessionClaims?.metadata as any)?.role;
-    const email = user.primaryEmailAddress?.emailAddress;
-    const isAdminEmail = (email === 'far00queapril17@gmail.com');
-    const isSuperAdmin = role === 'superadmin' || isAdminEmail || userId === '48c52067-23b6-412c-a17b-1e7de8bc4f98';
-
-    if (isSuperAdmin) {
-      console.log(`[DashboardLayout] Admin detected (${email}). Redirecting to /admin`);
-      redirect("/admin");
-    }
-
-    // 1. Sync user profile to Supabase (Safe check)
-    try {
-      await supabase.from('profiles').upsert({
-        id: userId,
-        clerk_id: userId,
-        email: email,
-        full_name: `${user.firstName} ${user.lastName}`,
-        avatar_url: user.imageUrl,
-        role: role || (isAdminEmail ? 'superadmin' : 'user')
-      }, { onConflict: 'id' });
-    } catch (e) {
-      console.error("Supabase Profile Sync failed:", e);
-    }
+  if (!facilityId) {
+    const { data: membership } = await supabase
+      .from('memberships')
+      .select('facility_id')
+      .eq('profile_id', userId)
+      .limit(1)
+      .maybeSingle();
+    
+    facilityId = membership?.facility_id;
   }
 
-  if (!orgId) redirect("/onboarding");
+  if (!facilityId) redirect("/onboarding");
 
   // 2. Fetch facility status
   const { data: facility } = await supabase
     .from('facilities')
-    .select('subscription_status, trial_end, sport_type, status')
-    .eq('id', orgId)
+    .select('name, subscription_status, trial_end, sport_type, status')
+    .eq('id', facilityId)
     .maybeSingle();
 
   if (!facility) redirect("/onboarding");
@@ -68,11 +59,10 @@ export default async function DashboardLayout({
   const isPending = facility?.status === 'pending';
   const isSuspended = facility?.status === 'suspended';
 
-  if (isPending || isSuspended) {
+  if (!isSuperAdmin && (isPending || isSuspended)) {
     return (
       <div className="flex h-screen items-center justify-center bg-background p-8 font-sans overflow-hidden">
         <div className="relative max-w-lg w-full text-center space-y-10 animate-in fade-in zoom-in duration-1000">
-           {/* Animated Background Element */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-primary/10 rounded-full blur-[100px] animate-pulse-soft -z-10" />
 
           <div className="space-y-6">
@@ -104,16 +94,9 @@ export default async function DashboardLayout({
             <div className="space-y-4 pt-4 border-t border-border/50">
                <div className="flex flex-col items-center gap-4">
                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] mb-2">Authenticated As</p>
-                <OrganizationSwitcher 
-                  afterCreateOrganizationUrl="/dashboard"
-                  afterSelectOrganizationUrl="/dashboard"
-                  appearance={{
-                    elements: {
-                      rootBox: "w-full",
-                      organizationSwitcherTrigger: "w-full justify-center h-12 rounded-[20px] bg-background border-border/50",
-                    }
-                  }}
-                />
+                <div className="w-full py-4 px-6 rounded-2xl bg-background border border-border/50 text-sm font-bold">
+                    {email}
+                </div>
               </div>
               <a href="mailto:support@sportbaba.com" className="block py-4 text-[10px] font-bold uppercase tracking-widest text-primary hover:underline">
                 Contact Support Hub
@@ -130,8 +113,8 @@ export default async function DashboardLayout({
                         new Date(facility.trial_end) > new Date();
   const isSubscribed = facility?.subscription_status === 'active';
 
-  // Hard Gate
-  if (!isTrialActive && !isSubscribed && facility) {
+  // Hard Gate (Bypassed for Superadmins)
+  if (!isSuperAdmin && !isTrialActive && !isSubscribed && facility) {
     return (
       <div className="flex h-screen items-center justify-center bg-background p-8 font-sans">
         <div className="max-w-md w-full text-center space-y-8 animate-in fade-in zoom-in duration-500">
@@ -150,13 +133,6 @@ export default async function DashboardLayout({
               <CreditCard className="h-4 w-4 group-hover:scale-110 transition-transform" />
               Unlock Dashboard
             </Button>
-            <div className="pt-4 border-t border-border flex flex-col items-center gap-4">
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Switch Organization</p>
-              <OrganizationSwitcher 
-                afterCreateOrganizationUrl="/dashboard"
-                afterSelectOrganizationUrl="/dashboard"
-              />
-            </div>
           </div>
         </div>
       </div>
@@ -164,11 +140,15 @@ export default async function DashboardLayout({
   }
 
   return (
-    <SportProvider facilityType={facility?.sport_type}>
+    <SportProvider facilityType={facility?.sport_type} facilityId={facilityId}>
       <div className="flex h-screen overflow-hidden bg-background">
         <Sidebar 
           subscriptionStatus={facility?.subscription_status} 
           trialEnd={facility?.trial_end} 
+          user={{
+            ...session.user,
+            facilityName: (facility as any)?.name || "Facility Hub"
+          }}
         />
         <MobileNav />
         <main className="flex-1 overflow-y-auto w-full max-w-[1600px] mx-auto p-4 md:p-6 lg:p-8 pb-32 md:pb-12 bg-muted/10">

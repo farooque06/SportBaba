@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAuth } from "@clerk/nextjs"
+import { useSession } from "next-auth/react"
+import Cookies from "js-cookie"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Trophy, Plus, Calendar, Users, MapPin, Clock, Loader2, Play, CheckCircle2 } from "lucide-react"
@@ -9,22 +10,28 @@ import { fetchTournaments, updateTournamentStatus } from "@/lib/actions/tourname
 import { CreateTournamentModal } from "@/components/tournament/CreateTournamentModal"
 
 export default function TournamentsPage() {
-  const { orgId } = useAuth()
+  const { data: session } = useSession()
+  const facilityId = Cookies.get("active_facility_id")
   const [tournaments, setTournaments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState("all")
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const loadTournaments = async () => {
-    if (!orgId) return
-    const data = await fetchTournaments(orgId as string)
+    if (!facilityId) {
+        setLoading(false)
+        return
+    }
+    const data = await fetchTournaments(facilityId)
     setTournaments(data)
     setLoading(false)
   }
 
   useEffect(() => {
-    loadTournaments()
-  }, [orgId])
+    if (session?.user) {
+        loadTournaments()
+    }
+  }, [session, facilityId])
 
   const handleStatusUpdate = async (id: string, newStatus: any) => {
     const result = await updateTournamentStatus(id, newStatus)
@@ -159,7 +166,7 @@ export default function TournamentsPage() {
       <CreateTournamentModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        facilityId={orgId as string}
+        facilityId={facilityId as string}
         onSuccess={loadTournaments}
       />
     </div>

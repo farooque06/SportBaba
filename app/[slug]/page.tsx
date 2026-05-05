@@ -3,8 +3,9 @@ import { getPublicFacility } from "@/lib/actions/public"
 import { MapPin, Phone, Star, ArrowRight, ShieldCheck, Trophy, Clock } from "lucide-react"
 import { PublicBookingEngine } from "@/components/booking/PublicBookingEngine"
 
-export default async function PublicStorefrontPage({ params }: { params: { slug: string } }) {
-  const facility = await getPublicFacility(params.slug)
+export default async function PublicStorefrontPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params
+  const facility = await getPublicFacility(slug)
 
   if (!facility) {
     return notFound()

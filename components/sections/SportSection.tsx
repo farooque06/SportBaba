@@ -1,99 +1,134 @@
-import { Button } from "@/components/ui/Button"
-import { Trophy, Activity, ArrowRight, Star, Zap } from "lucide-react"
-import Link from "next/link"
-import { cn } from "@/lib/utils"
+"use client"
 
-export function SportSection({ isLoggedIn }: { isLoggedIn?: boolean }) {
+import { Button } from "@/components/ui/Button"
+import { ArrowRight, Star, Users, Zap, Trophy } from "lucide-react"
+import Link from "next/link"
+import Image from "next/image"
+import { useSession } from "next-auth/react"
+
+export function SportSection({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean }) {
+  const { status } = useSession()
+  const isLoggedIn = status === "authenticated"
+  const sports = [
+    {
+      title: "Futsal & Indoor Football",
+      subtitle: "Pitch Management",
+      description: "Manage multiple courts, automate time-slot bookings, handle walk-ins, and track usage metrics — all with zero friction.",
+      image: "/images/footshall_card_bg.png",
+      features: ["Multi-court management", "Walk-in & online bookings", "Peak-hour pricing"],
+      cta: isLoggedIn ? "Open Football Dashboard" : "Explore Football Tools",
+      rating: "4.9",
+      facilities: "200+",
+    },
+    {
+      title: "Cricket Nets & Arenas",
+      subtitle: "Net Management",
+      description: "Streamline net bookings, manage bowling machines, coordinate umpire schedules, and automate billing for every session.",
+      image: "/images/cricshall_card_bg.png",
+      features: ["Net & lane allocation", "Equipment tracking", "Session billing automation"],
+      cta: isLoggedIn ? "Open Cricket Dashboard" : "Explore Cricket Tools",
+      rating: "4.8",
+      facilities: "150+",
+    },
+  ]
+
   return (
-    <section className="py-40 px-8 relative overflow-hidden">
-      {/* Background Accents */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[120px] -z-10 opacity-50"></div>
+    <section id="sports" className="py-20 sm:py-28 md:py-36 px-5 sm:px-8 relative overflow-hidden bg-background">
+      {/* Ambient */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] glow-orb -z-10 opacity-40 animate-pulse-soft" />
+      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] glow-orb -z-10 opacity-25 animate-pulse-soft" style={{ animationDelay: '3s' }} />
       
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-20 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-widest">
-            <Trophy className="h-3 w-3" />
-            <span>Select Your Arena</span>
+      <div className="mx-auto max-w-6xl">
+        {/* Section Header */}
+        <div className="reveal-up mb-14 sm:mb-20 text-center space-y-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 text-xs font-medium text-primary">
+            <Zap className="h-3.5 w-3.5" />
+            <span>Built for Every Sport</span>
           </div>
-          <h2 className="text-5xl sm:text-7xl font-black tracking-tighter italic uppercase text-foreground leading-[0.85]">
-            Engineered for <br/><span className="text-primary">Every Arena.</span>
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-tight max-w-3xl mx-auto">
+            One platform, every{" "}
+            <span className="text-primary">indoor sport</span>
           </h2>
+          <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            Whether you run football pitches, cricket nets, or multi-sport complexes — SportBaba adapts to your exact workflow.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 sm:gap-16">
-          {/* Footshall Portal */}
-          <div className="group relative h-[650px] sm:h-[750px] overflow-hidden rounded-[48px] sm:rounded-[64px] border border-border/50 shadow-2xl transition-all duration-700 hover:-translate-y-4">
+        {/* Sport Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
+          {sports.map((sport, idx) => (
             <div 
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110 opacity-40 grayscale group-hover:grayscale-0 group-hover:opacity-60"
-              style={{ backgroundImage: `url('/images/football_bg.png')` }}
-            ></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
-            
-            <div className="absolute inset-0 p-10 sm:p-16 flex flex-col justify-end">
-              <div className="space-y-8 relative z-10">
-                <div className="flex items-center gap-4">
-                  <div className="px-4 py-2 rounded-xl bg-primary text-background text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20">FOOTSHALL</div>
-                  <div className="flex items-center gap-1">
-                    {[1,2,3,4,5].map(i => <Star key={i} className="h-3 w-3 fill-primary text-primary" />)}
+              key={idx} 
+              className={`reveal-up ${idx === 1 ? 'delay-200' : ''} group relative overflow-hidden rounded-3xl border border-border/40 bg-card/40 backdrop-blur-xl shadow-sm hover:shadow-lg transition-all duration-500 hover:-translate-y-1 border-shimmer`}
+            >
+              {/* Image */}
+              <div className="relative h-56 sm:h-64 overflow-hidden">
+                <Image 
+                  src={sport.image} 
+                  alt={sport.title} 
+                  fill 
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-cover opacity-70 group-hover:opacity-85 group-hover:scale-105 transition-all duration-700"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-card via-card/40 to-transparent" />
+                
+                {/* Floating badges */}
+                <div className="absolute top-4 left-4 flex gap-2">
+                  <div className="px-3 py-1 rounded-lg bg-primary/90 text-primary-foreground text-xs font-semibold shadow-lg shadow-primary/20">
+                    {sport.subtitle}
                   </div>
                 </div>
+                <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1 rounded-lg bg-background/80 backdrop-blur-md border border-border/30 text-xs font-medium">
+                  <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                  {sport.rating}
+                </div>
+              </div>
 
-                <div className="space-y-4">
-                  <h3 className="text-5xl sm:text-7xl font-black text-foreground tracking-[-0.04em] italic uppercase leading-[0.85]">Elite Football <br/>Execution.</h3>
-                  <p className="text-lg sm:text-xl text-muted-foreground max-w-md font-medium tracking-tight opacity-80">Built for pitch owners who demand pure automation, peak occupancy, and absolute performance.</p>
+              {/* Content */}
+              <div className="p-6 sm:p-8 space-y-5">
+                <div>
+                  <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground mb-2">{sport.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{sport.description}</p>
                 </div>
 
-                <Link href={isLoggedIn ? "/dashboard" : "/sign-up"}>
-                  <Button variant="primary" size="lg" className="w-full gap-4 h-24 text-2xl rounded-[32px] shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all group border-4 border-white/10 uppercase font-black italic">
-                    {isLoggedIn ? "Open Football Portal" : "Deploy Football Engine"} 
-                    <ArrowRight className="h-8 w-8 group-hover:translate-x-2 transition-transform" />
-                  </Button>
-                </Link>
+                {/* Feature pills */}
+                <div className="flex flex-wrap gap-2">
+                  {sport.features.map((feat, i) => (
+                    <span key={i} className="px-3 py-1 rounded-lg bg-muted/60 text-xs font-medium text-muted-foreground border border-border/30">
+                      {feat}
+                    </span>
+                  ))}
+                </div>
+
+                {/* Bottom bar */}
+                <div className="flex items-center justify-between pt-3 border-t border-border/40">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Users className="h-4 w-4 text-primary" />
+                    <span className="font-medium">{sport.facilities} facilities</span>
+                  </div>
+                  <Link href={isLoggedIn ? "/dashboard" : "/register"}>
+                    <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/8 font-medium group/btn text-sm">
+                      {sport.cta}
+                      <ArrowRight className="ml-1.5 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
+                </div>
               </div>
             </div>
+          ))}
+        </div>
 
-            {/* Decorative Overlay Badge */}
-            <div className="absolute top-10 right-10 h-24 w-24 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 flex flex-col items-center justify-center rotate-12 group-hover:rotate-0 transition-transform duration-700">
-               <Zap className="h-8 w-8 text-primary mb-1 animate-pulse" />
-               <span className="text-[8px] font-black uppercase tracking-widest text-primary">Live</span>
-            </div>
-          </div>
-
-          {/* Cricshall Portal */}
-          <div className="group relative h-[650px] sm:h-[750px] overflow-hidden rounded-[48px] sm:rounded-[64px] border border-border/50 shadow-2xl transition-all duration-700 hover:-translate-y-4">
-            <div 
-              className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 group-hover:scale-110 opacity-30 grayscale group-hover:grayscale-0 group-hover:opacity-50"
-              style={{ backgroundImage: `url('/images/cricket_bg.png')` }}
-            ></div>
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent"></div>
-            
-            <div className="absolute inset-0 p-10 sm:p-16 flex flex-col justify-end">
-              <div className="space-y-8 relative z-10">
-                <div className="flex items-center gap-4">
-                  <div className="px-4 py-2 rounded-xl bg-primary text-background text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20">CRICSHALL</div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-primary italic opacity-80">Premium Standard</span>
-                </div>
-
-                <div className="space-y-4">
-                  <h3 className="text-5xl sm:text-7xl font-black text-foreground tracking-[-0.04em] italic uppercase leading-[0.85]">Absolute Cricket <br/>Precision.</h3>
-                  <p className="text-lg sm:text-xl text-muted-foreground max-w-md font-medium tracking-tight opacity-80">Manage nets, elite umpires, and real-time scorecards with the industry's most precise management stack.</p>
-                </div>
-
-                <Link href={isLoggedIn ? "/dashboard" : "/sign-up"}>
-                  <Button variant="primary" size="lg" className="w-full gap-4 h-24 text-2xl rounded-[32px] shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all group border-4 border-white/10 uppercase font-black italic">
-                    {isLoggedIn ? "Open Cricket Portal" : "Deploy Cricket Engine"}
-                    <ArrowRight className="h-8 w-8 group-hover:translate-x-2 transition-transform" />
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-             {/* Decorative Overlay Badge */}
-             <div className="absolute top-10 right-10 h-24 w-24 rounded-full bg-white/5 backdrop-blur-xl border border-white/10 flex flex-col items-center justify-center -rotate-12 group-hover:rotate-0 transition-transform duration-700">
-               <Activity className="h-8 w-8 text-primary mb-1 animate-pulse" />
-               <span className="text-[8px] font-black uppercase tracking-widest text-primary">Pro</span>
-            </div>
-          </div>
+        {/* Additional sport hint */}
+        <div className="reveal-up delay-300 mt-10 sm:mt-14 text-center">
+          <p className="text-sm text-muted-foreground mb-4">
+            Also supporting <span className="font-medium text-foreground">Badminton</span>, <span className="font-medium text-foreground">Table Tennis</span>, <span className="font-medium text-foreground">Basketball</span>, and more
+          </p>
+          <Link href={isLoggedIn ? "/dashboard" : "/register"}>
+            <Button variant="outline" size="md" className="rounded-xl font-medium text-sm border-border/60 hover:border-primary/30 hover:bg-primary/5 transition-all">
+              View All Supported Sports
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
         </div>
       </div>
     </section>

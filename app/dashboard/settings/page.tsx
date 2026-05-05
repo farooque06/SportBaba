@@ -1,14 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useAuth } from "@clerk/nextjs"
+import { useSession } from "next-auth/react"
+import Cookies from "js-cookie"
 import { fetchFacility, updateFacilitySettings } from "@/lib/actions/facility"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Settings, Palette, Clock, Globe, Bell, Shield, Loader2 } from "lucide-react"
 
 export default function SettingsPage() {
-  const { orgId } = useAuth()
+  const { data: session } = useSession()
+  const facilityId = Cookies.get("active_facility_id")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [name, setName] = useState("")
@@ -18,9 +20,12 @@ export default function SettingsPage() {
   const [closeTime, setCloseTime] = useState("22:00")
 
   useEffect(() => {
-    if (!orgId) return
+    if (!facilityId) {
+        setLoading(false)
+        return
+    }
     async function loadData() {
-       const facility = await fetchFacility(orgId as string)
+       const facility = await fetchFacility(facilityId as string)
        if (facility) {
           setName(facility.name || "")
           setEmail(facility.config?.contact_email || "")
@@ -31,12 +36,12 @@ export default function SettingsPage() {
        setLoading(false)
     }
     loadData()
-  }, [orgId])
+  }, [facilityId])
 
   const handleSave = async () => {
-    if (!orgId) return
+    if (!facilityId) return
     setSaving(true)
-    const result = await updateFacilitySettings(orgId, {
+    const result = await updateFacilitySettings(facilityId, {
        name,
        config: {
           contact_email: email,

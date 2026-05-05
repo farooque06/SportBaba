@@ -6,6 +6,8 @@ import { createBooking } from "@/lib/actions/booking"
 import { X, AlertCircle, CreditCard, Banknote, CheckCircle2, Phone, Clock, MapPin, User, Calendar, Timer, MessageCircle, Loader2, ChevronDown, Zap } from "lucide-react"
 import { formatCurrency, getWhatsAppLink } from "@/lib/utils"
 import { ArtisanSelect } from "@/components/ui/ArtisanSelect"
+import { Toast, ToastType } from "@/components/ui/Toast"
+import { useRouter } from "next/navigation"
 
 interface QuickBookingModalProps {
   isOpen: boolean
@@ -22,8 +24,9 @@ interface QuickBookingModalProps {
 
 export function QuickBookingModal({ 
   isOpen, onClose, facilityId, resources, selectedDate,
-  initialResourceId, initialHour, initialMinute, openHour = 8, closeHour = 22
+  initialResourceId, initialHour, initialMinute, openHour = 6, closeHour = 23
 }: QuickBookingModalProps) {
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [bookingDate, setBookingDate] = useState(selectedDate)
   const [selectedResId, setSelectedResId] = useState(initialResourceId || resources[0]?.id)
@@ -34,6 +37,9 @@ export function QuickBookingModal({
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [isSuccess, setIsSuccess] = useState(false)
   const [createdBooking, setCreatedBooking] = useState<any>(null)
+  const [toast, setToast] = useState<{ message: string, type: ToastType } | null>(null)
+
+  const showToast = (message: string, type: ToastType = "success") => setToast({ message, type })
 
   // ─── Hybrid Timing State ───
   const [isCustomTiming, setIsCustomTiming] = useState(false)
@@ -94,7 +100,10 @@ export function QuickBookingModal({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (hasConflict || isPastMaxHour || isInvalidCustomTime) return
+    if (hasConflict || isPastMaxHour || isInvalidCustomTime) {
+      showToast("Please resolve timing conflicts before saving", "error")
+      return
+    }
     setLoading(true)
     const formData = new FormData(e.currentTarget)
     
@@ -112,14 +121,15 @@ export function QuickBookingModal({
       notes: formData.get("notes") as string || "",
       payment_status: paymentStatus,
       payment_method: paymentMethod,
-    })
+    }, facilityId)
     setLoading(false)
     
     if (result.success) {
       setIsSuccess(true)
       setCreatedBooking(result.data)
+      router.refresh()
     } else {
-      alert(result.error || "Failed to create booking")
+      showToast(result.error || "Failed to create booking", "error")
     }
   }
 
@@ -473,6 +483,13 @@ export function QuickBookingModal({
           </div>
         </form>
       </div>
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
+      )}
     </div>
   )
 }

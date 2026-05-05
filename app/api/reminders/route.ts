@@ -1,32 +1,29 @@
 import { NextResponse } from "next/server"
 import { supabase } from "@/lib/supabase"
 import { generateWhatsAppNotification } from "@/lib/notifications"
+import { auth } from "@/auth"
+import { cookies } from "next/headers"
 
 // GET /api/reminders
-//
-// Cron-ready endpoint that finds bookings starting within the next hour
-// and returns WhatsApp reminder URLs for each.
-//
-// Deploy with Vercel Cron or call every 15 minutes.
-// In production, use with WhatsApp Business API to auto-send.
-// For now, it returns the URLs so facility staff can send with one click.
 export async function GET(request: Request) {
-  // Verify cron secret (add CRON_SECRET to .env)
-  const authHeader = request.headers.get('authorization')
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const session = await auth()
+  
+  // If not authenticated via session, check for cron secret
+  if (!session?.user) {
+    const authHeader = request.headers.get('authorization')
+    if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
   }
 
-  const now = new Date()
-  const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000)
-  const thirtyMinAgo = new Date(now.getTime() - 30 * 60 * 1000) // Don't re-remind if already within 30 min
+  const cookieStore = await cookies()
+  const facilityId = cookieStore.get("active_facility_id")?.value
 
-  // Find bookings starting within the next 45-75 minutes
-  // This window accounts for the cron running every 15 min
+  const now = new Date()
   const windowStart = new Date(now.getTime() + 45 * 60 * 1000)
   const windowEnd = new Date(now.getTime() + 75 * 60 * 1000)
 
-  const { data: upcomingBookings, error } = await supabase
+  let query = supabase
     .from('bookings')
     .select(`
       *,
@@ -37,12 +34,19 @@ export async function GET(request: Request) {
     .in('status', ['confirmed', 'pending'])
     .not('guest_phone', 'is', null)
 
+  // Filter by facility if user is logged in
+  if (facilityId) {
+    query = query.eq('facility_id', facilityId)
+  }
+
+  const { data: upcomingBookings, error } = await query
+
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
   if (!upcomingBookings || upcomingBookings.length === 0) {
-    return NextResponse.json({ message: 'No upcoming bookings to remind', count: 0 })
+    return NextResponse.json({ message: 'No upcoming bookings to remind', count: 0, reminders: [] })
   }
 
   // Generate WhatsApp reminder URLs for each booking

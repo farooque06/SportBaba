@@ -18,8 +18,8 @@ export async function fetchMembers(facilityId: string) {
   return data;
 }
 
-export async function updateMemberRole(membershipId: string, newRole: string) {
-  const currentUserRole = await getCurrentUserRole();
+export async function updateMemberRole(membershipId: string, newRole: string, facilityId: string) {
+  const currentUserRole = await getCurrentUserRole(facilityId);
   if (currentUserRole !== 'owner') {
     return { error: "Only the facility owner can change roles." };
   }
@@ -36,8 +36,8 @@ export async function updateMemberRole(membershipId: string, newRole: string) {
   return { success: true, data };
 }
 
-export async function removeMember(membershipId: string) {
-  const currentUserRole = await getCurrentUserRole();
+export async function removeMember(membershipId: string, facilityId: string) {
+  const currentUserRole = await getCurrentUserRole(facilityId);
   if (currentUserRole !== 'owner') {
     return { error: "Only the facility owner can remove members." };
   }
@@ -57,7 +57,7 @@ export async function removeMember(membershipId: string) {
 }
 
 export async function addMemberByEmail(facilityId: string, email: string, role: string) {
-  const currentUserRole = await getCurrentUserRole();
+  const currentUserRole = await getCurrentUserRole(facilityId);
   if (currentUserRole !== 'owner' && currentUserRole !== 'manager') {
     return { error: "Unauthorized to add members." };
   }

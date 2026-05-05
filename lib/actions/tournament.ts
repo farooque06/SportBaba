@@ -2,6 +2,7 @@
 
 import { supabase } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/auth";
 
 export async function createTournament(data: {
   facility_id: string;
@@ -11,6 +12,9 @@ export async function createTournament(data: {
   end_date: string;
   format: string;
 }) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
+
   const { data: tournament, error } = await supabase
     .from('tournaments')
     .insert({
@@ -37,6 +41,9 @@ export async function fetchTournaments(facilityId: string) {
 }
 
 export async function updateTournamentStatus(id: string, status: 'upcoming' | 'active' | 'completed') {
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
+
   const { data, error } = await supabase
     .from('tournaments')
     .update({ status })

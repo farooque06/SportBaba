@@ -1,21 +1,23 @@
 "use client"
 
-import { useOrganization } from "@clerk/nextjs"
+import Cookies from "js-cookie"
 import { createResourceUnit } from "@/lib/actions/resources"
 import { Button } from "@/components/ui/Button"
 import { useState } from "react"
 
 export function AddResourceModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
-  const { organization } = useOrganization()
+  const facilityId = Cookies.get("active_facility_id")
   const [loading, setLoading] = useState(false)
 
   if (!isOpen) return null
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (!facilityId) return
+
     setLoading(true)
     const formData = new FormData(e.currentTarget)
-    await createResourceUnit(formData)
+    await createResourceUnit(formData, facilityId)
     setLoading(false)
     onClose()
   }
@@ -24,7 +26,7 @@ export function AddResourceModal({ isOpen, onClose }: { isOpen: boolean, onClose
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-card w-full max-w-md rounded-[32px] p-8 border border-border shadow-2xl animate-in fade-in zoom-in duration-300">
         <h2 className="text-3xl font-black tracking-tighter mb-2 text-foreground">Add New Resource</h2>
-        <p className="text-muted-foreground text-sm font-medium mb-8">Define a new pitch or net for {organization?.name}.</p>
+        <p className="text-muted-foreground text-sm font-medium mb-8">Define a new pitch or net for your facility.</p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">

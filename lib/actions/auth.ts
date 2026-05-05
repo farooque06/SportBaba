@@ -1,52 +1,104 @@
 "use server"
 
 import { supabase } from "@/lib/supabase";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { signIn, signOut, auth } from "@/auth";
+import bcrypt from "bcryptjs";
+import { revalidatePath } from "next/cache";
 
-export async function syncUserAction() {
-  const { userId } = await auth();
-  const user = await currentUser();
-  if (!userId || !user) return { error: "Not authenticated" };
+export async function registerAction(formData: FormData) {
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+  const fullName = formData.get("fullName") as string;
 
-  const { data, error } = await supabase.from('profiles').upsert({
-    id: userId,
-    clerk_id: userId,
-    email: user.emailAddresses[0].emailAddress,
-    full_name: `${user.firstName} ${user.lastName}`,
-    avatar_url: user.imageUrl,
-  }, { onConflict: 'id' });
+  if (!email || !password || !fullName) {
+    return { error: "All fields are required" };
+  }
 
-  if (error) return { error: error.message };
-  return { success: true, data };
+  const isSuperAdmin = email === 'far00queapril17@gmail.com';
+
+  console.log("Registering user:", email);
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // 1. Create user in profiles table
+  console.log("Inserting into Supabase profiles...");
+  const { data, error } = await supabase.from('profiles').insert({
+    email,
+    full_name: fullName,
+    password_hash: hashedPassword,
+    role: isSuperAdmin ? 'superadmin' : 'user'
+  }).select().single();
+
+  if (error) {
+    console.error("Supabase Insertion Error:", error);
+    if (error.code === '23505') return { error: "Email already exists" };
+    return { error: error.message };
+  }
+
+  console.log("User registered successfully. Signing in...");
+
+  // 2. Sign in the user
+  try {
+    await signIn("credentials", {
+      email,
+      password,
+      redirectTo: isSuperAdmin ? "/admin" : "/dashboard",
+    });
+  } catch (error: any) {
+    if (error.type === "CredentialsSignin") {
+      return { error: "Invalid credentials" };
+    }
+    throw error;
+  }
+
+  return { success: true };
 }
 
-export async function getCurrentUserRole() {
-  const { userId, orgId } = await auth();
-  if (!userId || !orgId) return null;
+export async function loginAction(formData: FormData) {
+  const email = formData.get("email") as string;
+  const password = formData.get("password") as string;
+
+  const isSuperAdmin = email === 'far00queapril17@gmail.com';
+
+  try {
+    await signIn("credentials", {
+      email,
+      password,
+      redirectTo: isSuperAdmin ? "/admin" : "/dashboard",
+    });
+  } catch (error: any) {
+    if (error.type === "CredentialsSignin" || error.message?.includes("CredentialsSignin")) {
+      return { error: "Invalid email or password" };
+    }
+    // Auth.js v5 uses redirects which throw errors; we MUST re-throw them
+    if (error.digest?.includes("NEXT_REDIRECT") || error.message?.includes("NEXT_REDIRECT")) {
+        throw error;
+    }
+    console.error("Login Action Error:", error);
+    return { error: "An unexpected error occurred during login." };
+  }
+}
+
+export async function logoutAction() {
+  await signOut({ redirectTo: "/" });
+  revalidatePath("/");
+}
+
+export async function getCurrentUser() {
+  const session = await auth();
+  return session?.user || null;
+}
+
+export async function getCurrentUserRole(facilityId: string) {
+  const user = await getCurrentUser();
+  if (!user?.id || !facilityId) return null;
 
   const { data, error } = await supabase
     .from('memberships')
     .select('role')
-    .eq('user_id', userId)
-    .eq('facility_id', orgId)
+    .eq('profile_id', user.id)
+    .eq('facility_id', facilityId)
     .single();
 
   if (error || !data) return null;
   return data.role;
-}
-
-export async function requireAdmin() {
-  const role = await getCurrentUserRole();
-  const isAdmin = role === 'owner' || role === 'manager';
-  
-  if (!isAdmin) {
-    throw new Error("Unauthorized: Administrative privileges required.");
-  }
-
-  return { role, isAdmin: true };
-}
-
-export async function canViewReports() {
-    const role = await getCurrentUserRole();
-    return role === 'owner' || role === 'manager' || role === 'staff';
 }

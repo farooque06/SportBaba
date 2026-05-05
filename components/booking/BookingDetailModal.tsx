@@ -8,6 +8,7 @@ import { formatCurrency } from "@/lib/utils"
 import { updatePaymentStatus, updateBookingStatus, addBookingAddon, removeBookingAddon, extendBooking } from "@/lib/actions/booking"
 import { fetchProducts } from "@/lib/actions/inventory"
 import { getCurrentUserRole } from "@/lib/actions/auth"
+import { Toast, ToastType } from "@/components/ui/Toast"
 
 interface BookingDetailModalProps {
   booking: any | null
@@ -21,6 +22,9 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
   const [availableProducts, setAvailableProducts] = useState<any[]>([])
   const [whatsappPending, setWhatsappPending] = useState<string | null>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
+  const [toast, setToast] = useState<{ message: string, type: ToastType } | null>(null)
+
+  const showToast = (message: string, type: ToastType = "success") => setToast({ message, type })
 
   useEffect(() => { setBooking(initialBooking) }, [initialBooking])
 
@@ -29,7 +33,7 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
       if (booking?.facility_id) {
         const [products, role] = await Promise.all([
           fetchProducts(booking.facility_id),
-          getCurrentUserRole()
+          getCurrentUserRole(booking.facility_id)
         ])
         setAvailableProducts(products)
         setUserRole(role)
@@ -73,7 +77,7 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
   // Handlers
   const handleMarkAsPaid = async (method: string) => {
     setIsUpdating(true)
-    const result = await updatePaymentStatus(booking.id, 'paid', method)
+    const result = await updatePaymentStatus(booking.id, 'paid', method, undefined, booking.facility_id)
     if (result.success) {
       setBooking(result.data)
       if(onUpdate) onUpdate(result.data)
@@ -88,7 +92,7 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
        if (!isPaid && !confirm("This match has an outstanding balance. Mark as completed?")) return;
     }
     setIsUpdating(true)
-    const result = await updateBookingStatus(booking.id, status)
+    const result = await updateBookingStatus(booking.id, status, booking.facility_id)
     if (result.success) {
       setBooking(result.data)
       if(onUpdate) onUpdate(result.data)
@@ -99,7 +103,7 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
 
   const handleAddAddon = async (item: { id: string, name: string, price: number }) => {
     setIsUpdating(true)
-    const result = await addBookingAddon(booking.id, item)
+    const result = await addBookingAddon(booking.id, item, booking.facility_id)
     if (result.success) {
       setBooking(result.data)
       if(onUpdate) onUpdate(result.data)
@@ -109,7 +113,7 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
 
   const handleRemoveAddon = async (timestamp: string) => {
     setIsUpdating(true)
-    const result = await removeBookingAddon(booking.id, timestamp)
+    const result = await removeBookingAddon(booking.id, timestamp, booking.facility_id)
     if (result.success) {
       setBooking(result.data)
       if(onUpdate) onUpdate(result.data)
@@ -119,12 +123,13 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
 
   const handleExtendMatch = async (minutes: number) => {
     setIsUpdating(true)
-    const result = await extendBooking(booking.id, minutes)
+    const result = await extendBooking(booking.id, minutes, booking.facility_id)
     if (result.success) {
       setBooking(result.data)
       if(onUpdate) onUpdate(result.data)
+      showToast("Match extended successfully")
     } else {
-      alert(result.error || "Could not extend match. Check for conflicts.")
+      showToast(result.error || "Could not extend match. Check for conflicts.", "error")
     }
     setIsUpdating(false)
   }
@@ -378,10 +383,10 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
                 <Button 
                   disabled={isUpdating}
                   variant="ghost" 
-                  className="flex-1 h-12 md:h-14 rounded-xl font-black uppercase tracking-widest text-[10px] text-red-500/70 hover:text-red-600 hover:bg-red-500/5 active:scale-[0.97] transition-all"
+                  className="flex-1 h-12 md:h-14 rounded-xl font-black uppercase tracking-widest text-[10px] text-red-500/70 border border-red-500/20 hover:text-red-600 hover:bg-red-500/5 active:scale-[0.97] transition-all"
                   onClick={() => handleUpdateStatus('cancelled')}
                 >
-                  Cancel
+                  Cancel Match
                 </Button>
               )}
               {booking.status === 'pending' && (
@@ -394,18 +399,33 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
                 </Button>
               )}
               {booking.status === 'confirmed' && (
-                <Button 
-                  disabled={isUpdating}
-                  className="flex-1 h-12 md:h-14 rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-xl active:scale-[0.97] transition-all"
-                  onClick={() => handleUpdateStatus('completed')}
-                >
-                  {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : (
-                    <span className="flex items-center gap-2">
-                      <Zap className="h-3.5 w-3.5" />
-                      Finish Match
-                    </span>
-                  )}
-                </Button>
+                <>
+                  <Button 
+                    variant="ghost" 
+                    className="flex-1 h-12 md:h-14 rounded-xl font-black uppercase tracking-widest text-[10px] text-blue-600 border border-blue-500/20 hover:bg-blue-500/5 active:scale-[0.97] transition-all flex items-center justify-center gap-2"
+                    onClick={() => {
+                      import('@/lib/notifications').then(async ({ generateWhatsAppNotification }) => {
+                        const result = await generateWhatsAppNotification('reminder_1hr', booking);
+                        if (result.whatsappUrl) window.open(result.whatsappUrl, '_blank');
+                      });
+                    }}
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Reminder
+                  </Button>
+                  <Button 
+                    disabled={isUpdating}
+                    className="flex-1 h-12 md:h-14 rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:shadow-xl active:scale-[0.97] transition-all"
+                    onClick={() => handleUpdateStatus('completed')}
+                  >
+                    {isUpdating ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                      <span className="flex items-center gap-2">
+                        <Zap className="h-3.5 w-3.5" />
+                        Finish Match
+                      </span>
+                    )}
+                  </Button>
+                </>
               )}
               {booking.status === 'completed' && (
                 <Button 
@@ -420,6 +440,21 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
                 >
                   <Receipt className="h-4 w-4" />
                   Send Receipt
+                </Button>
+              )}
+              {booking.status === 'cancelled' && (
+                <Button 
+                  variant="ghost" 
+                  className="flex-1 h-12 md:h-14 rounded-xl font-black uppercase tracking-widest text-[10px] text-red-600 border border-red-500/20 hover:bg-red-500/5 active:scale-[0.97] transition-all flex items-center justify-center gap-2"
+                  onClick={() => {
+                    import('@/lib/notifications').then(async ({ generateWhatsAppNotification }) => {
+                      const result = await generateWhatsAppNotification('booking_cancelled', booking);
+                      if (result.whatsappUrl) window.open(result.whatsappUrl, '_blank');
+                    });
+                  }}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Notify Cancel
                 </Button>
               )}
             </div>
@@ -458,6 +493,13 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
             </div>
           )}
        </div>
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
+      )}
     </div>
   )
 }

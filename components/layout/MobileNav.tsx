@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Calendar, Package, BarChart3, MoreHorizontal,
   Trophy, Users, CreditCard, Settings, LogOut, X, ChevronUp, UserCheck
 } from "lucide-react"
-import { UserButton, OrganizationSwitcher, useClerk } from "@clerk/nextjs"
+import { useSession, signOut } from "next-auth/react"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { useSport } from "@/components/providers/SportProvider"
 
@@ -28,7 +28,7 @@ const secondaryItems = [
 
 export function MobileNav() {
   const pathname = usePathname()
-  const { signOut } = useClerk()
+  const { data: session } = useSession()
   const { sport, setSport, facilityType } = useSport()
   const [showMore, setShowMore] = useState(false)
 
@@ -71,13 +71,11 @@ export function MobileNav() {
             </div>
           )}
           <ThemeToggle />
-          <UserButton
-            appearance={{
-              elements: {
-                userButtonAvatarBox: "h-7 w-7 ring-2 ring-primary/20",
-              }
-            }}
-          />
+          {session?.user && (
+             <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-black text-primary ring-2 ring-primary/10">
+                {session.user.name?.[0].toUpperCase()}
+             </div>
+          )}
         </div>
       </div>
 
@@ -147,21 +145,6 @@ export function MobileNav() {
               </button>
             </div>
 
-            {/* Org Switcher */}
-            <div className="px-6 pb-4">
-              <OrganizationSwitcher
-                hidePersonal
-                afterCreateOrganizationUrl="/dashboard"
-                afterSelectOrganizationUrl="/dashboard"
-                appearance={{
-                  elements: {
-                    organizationSwitcherTrigger: "w-full justify-between font-bold text-sm",
-                    rootBox: "w-full",
-                  }
-                }}
-              />
-            </div>
-
             {/* Secondary Nav Items */}
             <div className="px-4 pb-2 space-y-1">
               {secondaryItems.map((item) => {
@@ -187,7 +170,7 @@ export function MobileNav() {
             {/* Sign Out */}
             <div className="px-4 pb-6 pt-2 border-t border-border mx-4">
               <button
-                onClick={() => signOut({ redirectUrl: '/' })}
+                onClick={() => signOut({ callbackUrl: '/' })}
                 className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl text-sm font-bold text-red-500 hover:bg-red-500/10 transition-all mt-3"
               >
                 <LogOut className="h-4 w-4" />

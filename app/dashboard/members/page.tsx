@@ -1,15 +1,15 @@
-import { auth } from "@clerk/nextjs/server";
 import { Card } from "@/components/ui/Card";
 import { Users, Shield, ShieldCheck, User, Lock } from "lucide-react";
 import { fetchMembers } from "@/lib/actions/members";
 import { getCurrentUserRole } from "@/lib/actions/auth";
 import { MembersHub } from "@/components/members/MembersHub";
+import { getFacilityId } from "@/lib/get-facility-id";
 
 export default async function MembersPage() {
-  const { orgId } = await auth();
-  const role = await getCurrentUserRole();
-
-  if (!orgId) return null;
+  const facilityId = await getFacilityId();
+  if (!facilityId) return null;
+  
+  const role = await getCurrentUserRole(facilityId);
 
   // Route Protection: Admin Only
   if (role !== 'owner' && role !== 'manager') {
@@ -29,7 +29,7 @@ export default async function MembersPage() {
     );
   }
 
-  const members = await fetchMembers(orgId);
+  const members = await fetchMembers(facilityId);
   const ownerCount = members.filter((m: any) => m.role === 'owner').length;
   const staffCount = members.filter((m: any) => m.role === 'staff' || m.role === 'manager').length;
   const playerCount = members.filter((m: any) => m.role === 'player').length;
@@ -40,7 +40,7 @@ export default async function MembersPage() {
       {/* Interactive Hub */}
       <MembersHub 
         members={members} 
-        facilityId={orgId} 
+        facilityId={facilityId} 
         currentUserRole={role || 'staff'} 
       />
 

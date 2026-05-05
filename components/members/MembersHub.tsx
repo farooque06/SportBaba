@@ -27,7 +27,7 @@ export function MembersHub({ members: initialMembers, facilityId, currentUserRol
 
   const handleUpdateRole = async (memberId: string, newRole: string) => {
     setLoading(true);
-    const result = await updateMemberRole(memberId, newRole);
+    const result = await updateMemberRole(memberId, newRole, facilityId);
     if (result.success) {
       setMembers(members.map(m => m.id === memberId ? { ...m, role: newRole } : m));
       showToast(`Role updated to ${newRole}.`);
@@ -39,7 +39,7 @@ export function MembersHub({ members: initialMembers, facilityId, currentUserRol
 
   const handleRemove = async (memberId: string) => {
     setLoading(true);
-    const result = await removeMember(memberId);
+    const result = await removeMember(memberId, facilityId);
     if (result.success) {
       setMembers(members.filter(m => m.id !== memberId));
       showToast("Member access revoked.");

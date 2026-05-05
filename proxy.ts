@@ -1,37 +1,40 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { auth } from "@/auth"
 
-const isPublicRoute = createRouteMatcher(['/', '/sign-in(.*)', '/sign-up(.*)']);
+export default auth((req) => {
+  const isLoggedIn = !!req.auth
+  const { nextUrl } = req
 
-export default clerkMiddleware(async (auth, request) => {
-  const { userId, sessionClaims } = await auth();
+  const isApiAuthRoute = nextUrl.pathname.startsWith("/api/auth")
+  const isAuthRoute = ["/login", "/register"].includes(nextUrl.pathname)
   
-  if (!isPublicRoute(request)) {
-    await auth.protect();
+  // Public routes: landing, login, register, and dynamic slug pages (storefronts)
+  // We exclude /dashboard and /admin and /onboarding from being treated as storefront slugs
+  const isProtectedPath = nextUrl.pathname.startsWith("/dashboard") || 
+                          nextUrl.pathname.startsWith("/admin") || 
+                          nextUrl.pathname.startsWith("/onboarding") ||
+                          nextUrl.pathname.startsWith("/api")
 
-    // Role-based redirection logic
-    // We check publicMetadata.role (matches Sidebar logic) and email/ID fallbacks
-    const claims = sessionClaims as any;
-    const role = claims?.publicMetadata?.role || claims?.metadata?.role;
-    const email = claims?.email || claims?.primary_email || claims?.primaryEmail;
-    
-    const isAdmin = role === 'superadmin' || 
-                    email === 'far00queapril17@gmail.com' || 
-                    userId === '48c52067-23b6-412c-a17b-1e7de8bc4f98';
+  const isPublicRoute = ["/", "/login", "/register"].includes(nextUrl.pathname) || 
+                        nextUrl.pathname.startsWith("/icons") || 
+                        nextUrl.pathname.startsWith("/images") ||
+                        (!isProtectedPath && nextUrl.pathname.length > 1)
 
-    const url = new URL(request.url);
-    if (isAdmin && url.pathname.startsWith('/dashboard')) {
-      console.log(`[Middleware] Admin detected (${userId}). Redirecting to /admin`);
-      return NextResponse.redirect(new URL('/admin', request.url));
+  if (isApiAuthRoute) return undefined
+
+  if (isAuthRoute) {
+    if (isLoggedIn) {
+      return Response.redirect(new URL("/dashboard", nextUrl))
     }
+    return undefined
   }
-});
+
+  if (!isLoggedIn && !isPublicRoute) {
+    return Response.redirect(new URL("/login", nextUrl))
+  }
+
+  return undefined
+})
 
 export const config = {
-  matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
-    '/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)',
-    // Always run for API routes
-    '/(api|trpc)(.*)',
-  ],
-};      
+  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
+}

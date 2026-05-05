@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
 import { Card } from "@/components/ui/Card"
 import { TrendingUp, Banknote, Users, Calendar, Activity, X } from "lucide-react"
 import { fetchAnalyticsData } from "@/lib/actions/analytics";
@@ -6,10 +5,11 @@ import { formatCurrency } from "@/lib/utils";
 import { RevenueGauge } from "@/components/dashboard/RevenueGauge";
 import { BookingTrends } from "@/components/dashboard/BookingTrends";
 import { LoyaltySegments } from "@/components/dashboard/LoyaltySegments";
+import { getFacilityId } from "@/lib/get-facility-id";
 
 export default async function AnalyticsPage() {
-  const { orgId } = await auth();
-  const data = orgId ? await fetchAnalyticsData(orgId) : null;
+  const facilityId = await getFacilityId();
+  const data = facilityId ? await fetchAnalyticsData(facilityId) : null;
 
   if (!data) {
     return (

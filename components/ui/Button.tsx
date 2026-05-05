@@ -11,24 +11,24 @@ export interface ButtonProps
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', asChild, ...props }, ref) => {
     const variants = {
-      primary: "bg-primary text-white hover:opacity-90 shadow-[0_0_20px_rgba(34,197,94,0.3)]",
+      primary: "bg-primary text-primary-foreground hover:opacity-90 shadow-md shadow-primary/20",
       secondary: "bg-secondary text-secondary-foreground hover:opacity-90",
-      outline: "border border-border bg-transparent hover:bg-muted text-foreground",
-      ghost: "bg-transparent hover:bg-muted text-muted-foreground hover:text-foreground",
-      black: "bg-foreground text-background hover:opacity-90 shadow-xl",
+      outline: "border border-border bg-transparent hover:bg-muted/50 text-foreground",
+      ghost: "bg-transparent hover:bg-muted/50 text-muted-foreground hover:text-foreground",
+      black: "bg-foreground text-background hover:opacity-90 shadow-lg",
     }
 
     const sizes = {
       sm: "h-9 px-4 text-xs",
       md: "h-11 px-6 text-sm",
-      lg: "h-14 px-10 text-lg",
+      lg: "h-12 px-8 text-base",
     }
 
     return (
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center rounded-xl font-bold transition-all active:scale-95 disabled:opacity-50 disabled:pointer-events-none",
+          "inline-flex items-center justify-center rounded-xl font-semibold transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none cursor-pointer",
           variants[variant],
           sizes[size],
           className

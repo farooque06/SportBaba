@@ -1,13 +1,11 @@
 "use server"
 
 import { supabase } from "@/lib/supabase";
-import { auth } from "@clerk/nextjs/server";
-import { requireAdmin } from "./auth";
+import { auth } from "@/auth";
 
-export async function fetchDailyReport(date: string) {
-  const { role } = await requireAdmin(); // Ensures only owner/manager see financials
-  const { orgId } = await auth();
-  if (!orgId) throw new Error("Unauthorized");
+export async function fetchDailyReport(date: string, facilityId: string) {
+  const session = await auth();
+  if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
   const startOfDay = new Date(date);
   startOfDay.setHours(0, 0, 0, 0);
@@ -20,7 +18,7 @@ export async function fetchDailyReport(date: string) {
       *,
       resource:resource_units(name, unit_type, base_price)
     `)
-    .eq('facility_id', orgId)
+    .eq('facility_id', facilityId)
     .gte('start_time', startOfDay.toISOString())
     .lte('start_time', endOfDay.toISOString());
 
@@ -79,8 +77,8 @@ export async function fetchDailyReport(date: string) {
   };
 }
 
-export async function generateCSVReport(date: string) {
-  const report = await fetchDailyReport(date);
+export async function generateCSVReport(date: string, facilityId: string) {
+  const report = await fetchDailyReport(date, facilityId);
   
   const headers = ["ID", "Resource", "Guest", "Phone", "Start Time", "End Time", "Status", "Payment Status", "Payment Method", "Total Price", "Paid Amount"];
   const rows = report.bookings.map(b => [

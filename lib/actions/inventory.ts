@@ -1,9 +1,8 @@
 "use server"
 
 import { supabase } from "@/lib/supabase";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "./auth";
 
 export async function fetchProducts(facilityId: string) {
   const { data, error } = await supabase
@@ -17,16 +16,15 @@ export async function fetchProducts(facilityId: string) {
   return data;
 }
 
-export async function upsertProduct(product: { id?: string, name: string, price: number, category?: string }) {
-  await requireAdmin();
-  const { orgId } = await auth();
-  if (!orgId) throw new Error("Unauthorized");
+export async function upsertProduct(product: { id?: string, name: string, price: number, category?: string }, facilityId: string) {
+  const session = await auth();
+  if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
   const { data, error } = await supabase
     .from('products')
     .upsert({
       ...product,
-      facility_id: orgId,
+      facility_id: facilityId,
     })
     .select()
     .single();
@@ -37,17 +35,16 @@ export async function upsertProduct(product: { id?: string, name: string, price:
   return { success: true, data };
 }
 
-export async function deleteProduct(id: string) {
-  await requireAdmin();
-  const { orgId } = await auth();
-  if (!orgId) throw new Error("Unauthorized");
+export async function deleteProduct(id: string, facilityId: string) {
+  const session = await auth();
+  if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
   // Soft delete by setting is_active to false
   const { error } = await supabase
     .from('products')
     .update({ is_active: false })
     .eq('id', id)
-    .eq('facility_id', orgId);
+    .eq('facility_id', facilityId);
 
   if (error) return { error: error.message };
   

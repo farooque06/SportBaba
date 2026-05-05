@@ -9,24 +9,15 @@ import { supabase } from "@/lib/supabase"
 
 export async function fetchGlobalStats() {
   try {
-    // 1. Fetch total facilities
-    const { count: facilityCount } = await supabase
-      .from('facilities')
-      .select('*', { count: 'exact', head: true });
+    // Run multiple count queries in parallel for speed
+    const [facilitiesRes, bookingsRes, activeSubsRes] = await Promise.all([
+      supabase.from('facilities').select('*', { count: 'exact', head: true }),
+      supabase.from('bookings').select('*', { count: 'exact', head: true }),
+      supabase.from('facilities').select('*', { count: 'exact', head: true }).eq('subscription_status', 'active')
+    ]);
 
-    // 2. Fetch total bookings across all facilities
-    const { count: bookingCount } = await supabase
-      .from('bookings')
-      .select('*', { count: 'exact', head: true });
-
-    // 3. Fetch active subscriptions (estimated)
-    const { count: activeSubs } = await supabase
-      .from('facilities')
-      .select('*', { count: 'exact', head: true })
-      .eq('subscription_status', 'active');
-
-    // 4. Calculate actual MRR (Platform Value)
-    const { data: activeFacilities } = await supabase
+    // Fetch MRR data
+    const { data: activeFacilities, error: mrrError } = await supabase
         .from('facilities')
         .select(`
             id,
@@ -35,24 +26,30 @@ export async function fetchGlobalStats() {
         `)
         .eq('subscription_status', 'active');
         
+    if (mrrError) {
+        console.error("MRR Fetch Error:", mrrError.message);
+    }
+
     let mrr = 0;
     if (activeFacilities) {
         activeFacilities.forEach((fac: any) => {
-            if (fac.subscription_plans && typeof fac.subscription_plans.price === 'number') {
-                mrr += fac.subscription_plans.price;
+            // Support both object and array response formats from Supabase joins
+            const plan = Array.isArray(fac.subscription_plans) ? fac.subscription_plans[0] : fac.subscription_plans;
+            if (plan && typeof plan.price === 'number') {
+                mrr += plan.price;
             }
         });
     }
 
     return {
-      totalFacilities: facilityCount || 0,
-      totalBookings: bookingCount || 0,
-      activeSubscriptions: activeSubs || 0,
+      totalFacilities: facilitiesRes.count || 0,
+      totalBookings: bookingsRes.count || 0,
+      activeSubscriptions: activeSubsRes.count || 0,
       platformValue: mrr, 
       recentActivity: activeFacilities?.length || 0
     }
-  } catch (error) {
-    console.error("Admin Fetch Global Stats failed:", error);
+  } catch (error: any) {
+    console.error("Admin Fetch Global Stats failed:", error.message || error);
     return {
       totalFacilities: 0,
       totalBookings: 0,
@@ -65,26 +62,7 @@ export async function fetchGlobalStats() {
 
 export async function fetchAllFacilities() {
   try {
-    // 1. Determine which user IDs belong to superadmins
-    const { data: superAdmins } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('role', 'superadmin');
-
-    const superAdminIds = superAdmins?.map(p => p.id) || [];
-
-    // 2. Find facilities that belong to these superadmins via the memberships table
-    let adminFacilityIds: string[] = [];
-    if (superAdminIds.length > 0) {
-      const { data: adminMemberships } = await supabase
-        .from('memberships')
-        .select('facility_id')
-        .in('profile_id', superAdminIds);
-      
-      adminFacilityIds = adminMemberships?.map(m => m.facility_id) || [];
-    }
-
-    // 3. Fetch all facilities
+    // 1. Fetch facilities with their primary owner (admin) email
     const { data: facilities, error } = await supabase
       .from('facilities')
       .select(`
@@ -99,18 +77,40 @@ export async function fetchAllFacilities() {
         email,
         address,
         status,
-        subscription_plans:plan_id(name, price)
+        subscription_plans:plan_id(name, price),
+        memberships(
+          role,
+          profiles(email)
+        )
       `)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+        console.error("Supabase Error in fetchAllFacilities:", error.message);
+        throw error;
+    }
 
-    // 4. Filter out facilities owned by superadmins
-    const filteredFacilities = facilities.filter(fac => !adminFacilityIds.includes(fac.id));
+    // 2. Process facilities to ensure email is never empty if an owner exists
+    const processedFacilities = facilities?.map((fac: any) => {
+        let displayEmail = fac.email;
+        
+        // If facility email is empty, find the first 'admin' or 'owner' membership email
+        if (!displayEmail && fac.memberships) {
+            const ownerMembership = fac.memberships.find((m: any) => m.role === 'admin' || m.role === 'owner');
+            if (ownerMembership && ownerMembership.profiles) {
+                displayEmail = ownerMembership.profiles.email;
+            }
+        }
+        
+        return {
+            ...fac,
+            email: displayEmail
+        };
+    });
 
-    return filteredFacilities;
-  } catch (error) {
-    console.error("Admin Fetch All Facilities failed:", error);
+    return processedFacilities || [];
+  } catch (error: any) {
+    console.error("Admin Fetch All Facilities failed:", error.message || error);
     return [];
   }
 }

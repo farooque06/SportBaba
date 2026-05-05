@@ -8,10 +8,10 @@ import {
   BarChart3, LogOut, CreditCard, Package, UserCheck,
   ChevronLeft, ChevronRight, Sparkles, Globe, ClipboardList
 } from "lucide-react"
-import { UserButton, OrganizationSwitcher, useClerk, useUser } from "@clerk/nextjs"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { useSport } from "@/components/providers/SportProvider"
 import { cn } from "@/lib/utils"
+import { logoutAction } from "@/lib/actions/auth"
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
@@ -30,13 +30,12 @@ const menuItems = [
 interface SidebarProps {
   subscriptionStatus?: string;
   trialEnd?: string;
+  user?: any;
 }
 
-export function Sidebar({ subscriptionStatus, trialEnd }: SidebarProps) {
+export function Sidebar({ subscriptionStatus, trialEnd, user }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const { signOut } = useClerk()
-  const { user } = useUser()
   const { sport, setSport, facilityType } = useSport()
   const pathname = usePathname()
 
@@ -83,19 +82,19 @@ export function Sidebar({ subscriptionStatus, trialEnd }: SidebarProps) {
           )}
         </Link>
 
-        <div className={cn("transition-all duration-300", isCollapsed ? "opacity-0 invisible h-0" : "opacity-100 visible h-auto pb-2")}>
-          <OrganizationSwitcher
-            hidePersonal
-            afterCreateOrganizationUrl="/dashboard"
-            afterSelectOrganizationUrl="/dashboard"
-            appearance={{
-              elements: {
-                organizationSwitcherTrigger: "w-full justify-between font-black text-[10px] uppercase tracking-widest h-12 rounded-2xl border-border/50 hover:bg-muted transition-colors",
-                rootBox: "w-full",
-              }
-            }}
-          />
-        </div>
+        {!isCollapsed && (
+          <div className="flex flex-col gap-1 px-1">
+             <div className="flex items-center justify-between py-3 px-4 rounded-2xl border border-primary/20 bg-primary/5 shadow-sm group/org">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] leading-none mb-1">Active Hub</span>
+                  <span className="text-xs font-black text-foreground uppercase tracking-tight truncate max-w-[140px]">
+                    {user?.facilityName || "Primary Hub"}
+                  </span>
+                </div>
+                <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+             </div>
+          </div>
+        )}
       </div>
 
       {/* Sport Toggle */}
@@ -131,7 +130,7 @@ export function Sidebar({ subscriptionStatus, trialEnd }: SidebarProps) {
       {/* Navigation */}
       <div className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar">
         {/* Admin Hub Link (Conditional) */}
-        {(user?.publicMetadata?.role === 'superadmin' || user?.primaryEmailAddress?.emailAddress === 'far00queapril17@gmail.com') && (
+        {(user?.role === 'superadmin' || user?.email === 'far00queapril17@gmail.com') && (
           <Link
             href="/admin"
             className={cn(
@@ -199,20 +198,20 @@ export function Sidebar({ subscriptionStatus, trialEnd }: SidebarProps) {
 
         <div className={cn("flex items-center justify-between gap-3 px-2", isCollapsed && "flex-col")}>
           <div className="flex items-center gap-3">
-            <UserButton
-              appearance={{
-                elements: {
-                  userButtonAvatarBox: "h-9 w-9 ring-2 ring-primary/20 hover:ring-primary/40 transition-all shadow-md",
-                }
-              }}
-            />
-            {!isCollapsed && <span className="text-xs font-black text-muted-foreground italic uppercase tracking-tighter">My Account</span>}
+             <div className="h-9 w-9 rounded-full ring-2 ring-primary/20 bg-muted flex items-center justify-center text-muted-foreground overflow-hidden">
+                {user?.image ? (
+                  <img src={user.image} alt={user.name} className="w-full h-full object-cover" />
+                ) : (
+                  <Users className="h-5 w-5" />
+                )}
+             </div>
+            {!isCollapsed && <span className="text-xs font-black text-muted-foreground italic uppercase tracking-tighter truncate max-w-[120px]">{user?.name || "Account"}</span>}
           </div>
           <ThemeToggle />
         </div>
 
         <button
-          onClick={() => signOut({ redirectUrl: '/' })}
+          onClick={() => logoutAction()}
           title="Sign Out"
           className={cn(
             "w-full flex items-center gap-3 h-12 rounded-2xl text-[10px] font-black transition-all group cursor-pointer border border-transparent hover:bg-red-500/10 hover:border-red-500/20 text-muted-foreground hover:text-red-500",

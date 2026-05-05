@@ -1,7 +1,7 @@
 "use server"
 
 import { supabase } from "@/lib/supabase";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
 export async function fetchCustomers(facilityId: string) {
@@ -51,8 +51,8 @@ export async function upsertCustomer(facilityId: string, data: {
   email?: string;
   notes?: string;
 }) {
-  const { orgId } = await auth();
-  if (!orgId) throw new Error("Unauthorized");
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
 
   // Check if customer already exists by phone
   if (data.phone) {

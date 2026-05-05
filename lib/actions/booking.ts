@@ -1,7 +1,7 @@
 "use server"
 
 import { supabase } from "@/lib/supabase";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { linkBookingToCustomer } from "./customers";
 import { generateWhatsAppNotification } from "@/lib/notifications";
@@ -15,9 +15,9 @@ export async function createBooking(data: {
   notes?: string;
   payment_status?: 'paid' | 'unpaid';
   payment_method?: string;
-}) {
-  const { orgId } = await auth();
-  if (!orgId) throw new Error("Unauthorized");
+}, facilityId: string) {
+  const session = await auth();
+  if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
   // Calculate price based on duration
   const start = new Date(data.start_time);
@@ -37,7 +37,7 @@ export async function createBooking(data: {
     .from('bookings')
     .insert({
       ...data,
-      facility_id: orgId,
+      facility_id: facilityId,
       total_price,
       paid_amount: data.payment_status === 'paid' ? total_price : 0,
       payment_status: data.payment_status || 'unpaid',
@@ -49,7 +49,7 @@ export async function createBooking(data: {
   if (error) return { error: error.message };
   
   // Auto-link to customer profile
-  await linkBookingToCustomer(orgId, booking.id, data.guest_name, data.guest_phone, total_price);
+  await linkBookingToCustomer(facilityId, booking.id, data.guest_name, data.guest_phone, total_price);
 
   // Generate WhatsApp notification
   let whatsappUrl: string | undefined;
@@ -69,8 +69,8 @@ export async function createBooking(data: {
   return { success: true, data: booking, whatsappUrl };
 }
 export async function fetchBookings(facilityId: string) {
-  const { orgId } = await auth();
-  if (!orgId || orgId !== facilityId) throw new Error("Unauthorized");
+  const session = await auth();
+  if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
   const { data, error } = await supabase
     .from('bookings')
@@ -87,9 +87,9 @@ export async function fetchBookings(facilityId: string) {
   return data;
 }
 
-export async function updatePaymentStatus(bookingId: string, status: string, method?: string, amount?: number) {
-  const { orgId } = await auth();
-  if (!orgId) throw new Error("Unauthorized");
+export async function updatePaymentStatus(bookingId: string, status: string, method?: string, amount?: number, facilityId?: string) {
+  const session = await auth();
+  if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
   // Fetch current booking data
   const { data: booking } = await supabase
@@ -129,7 +129,7 @@ export async function updatePaymentStatus(bookingId: string, status: string, met
       paid_amount: newPaidAmount
     })
     .eq('id', bookingId)
-    .eq('facility_id', orgId)
+    .eq('facility_id', facilityId)
     .select(`
       *,
       resource:resource_units(name, unit_type, base_price),
@@ -152,15 +152,15 @@ export async function updatePaymentStatus(bookingId: string, status: string, met
   return { success: true, data, whatsappUrl };
 }
 
-export async function updateBookingStatus(bookingId: string, status: string) {
-  const { orgId } = await auth();
-  if (!orgId) throw new Error("Unauthorized");
+export async function updateBookingStatus(bookingId: string, status: string, facilityId: string) {
+  const session = await auth();
+  if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
   const { data, error } = await supabase
     .from('bookings')
     .update({ status })
     .eq('id', bookingId)
-    .eq('facility_id', orgId)
+    .eq('facility_id', facilityId)
     .select(`
       *,
       resource:resource_units(name, unit_type, base_price),
@@ -188,9 +188,9 @@ export async function updateBookingStatus(bookingId: string, status: string) {
   return { success: true, data, whatsappUrl };
 }
 
-export async function addBookingAddon(bookingId: string, item: { id: string, name: string, price: number }) {
-  const { orgId } = await auth();
-  if (!orgId) throw new Error("Unauthorized");
+export async function addBookingAddon(bookingId: string, item: { id: string, name: string, price: number }, facilityId: string) {
+  const session = await auth();
+  if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
   // Fetch current booking
   const { data: booking, error: fetchError } = await supabase
@@ -222,7 +222,7 @@ export async function addBookingAddon(bookingId: string, item: { id: string, nam
       payment_status: newStatus
     })
     .eq('id', bookingId)
-    .eq('facility_id', orgId)
+    .eq('facility_id', facilityId)
     .select(`
       *,
       resource:resource_units(name, unit_type, base_price),
@@ -236,9 +236,9 @@ export async function addBookingAddon(bookingId: string, item: { id: string, nam
   return { success: true, data };
 }
 
-export async function removeBookingAddon(bookingId: string, itemTimestamp: string) {
-  const { orgId } = await auth();
-  if (!orgId) throw new Error("Unauthorized");
+export async function removeBookingAddon(bookingId: string, itemTimestamp: string, facilityId: string) {
+  const session = await auth();
+  if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
   const { data: booking, error: fetchError } = await supabase
     .from('bookings')
@@ -271,7 +271,7 @@ export async function removeBookingAddon(bookingId: string, itemTimestamp: strin
       payment_status: newStatus
     })
     .eq('id', bookingId)
-    .eq('facility_id', orgId)
+    .eq('facility_id', facilityId)
     .select(`
       *,
       resource:resource_units(name, unit_type, base_price),
@@ -285,8 +285,8 @@ export async function removeBookingAddon(bookingId: string, itemTimestamp: strin
   return { success: true, data };
 }
 export async function fetchResourceWithBookings(facilityId: string, startDate: string, endDate: string) {
-  const { orgId } = await auth();
-  if (!orgId || orgId !== facilityId) throw new Error("Unauthorized");
+  const session = await auth();
+  if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
   const { data: resources, error: resError } = await supabase
     .from('resource_units')
@@ -313,9 +313,9 @@ export async function fetchResourceWithBookings(facilityId: string, startDate: s
   }));
 }
 
-export async function extendBooking(bookingId: string, durationMinutes: number) {
-  const { orgId } = await auth();
-  if (!orgId) throw new Error("Unauthorized");
+export async function extendBooking(bookingId: string, durationMinutes: number, facilityId: string) {
+  const session = await auth();
+  if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
   // Fetch current booking and resource price
   const { data: booking, error: fetchError } = await supabase
@@ -358,7 +358,7 @@ export async function extendBooking(bookingId: string, durationMinutes: number) 
       payment_status: newPaymentStatus
     })
     .eq('id', bookingId)
-    .eq('facility_id', orgId)
+    .eq('facility_id', facilityId)
     .select(`
       *,
       resource:resource_units(name, unit_type, base_price),

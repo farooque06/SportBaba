@@ -1,4 +1,4 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { Card } from "@/components/ui/Card";
 import { Activity, Users, Calendar, PlusSquare } from "lucide-react";
 import { BookingGrid } from "@/components/booking/BookingGrid";
@@ -7,45 +7,39 @@ import { RemindersList } from "@/components/dashboard/RemindersList";
 import { fetchResourceUnits } from "@/lib/actions/resources";
 import { fetchFacilityStats } from "@/lib/actions/members";
 import { InventoryAlerts } from "@/components/dashboard/InventoryAlerts";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default async function DashboardPage() {
-  let user = null;
-  let orgId = null;
+  const session = await auth();
+  if (!session?.user) redirect("/login");
 
-  try {
-    // Attempt to fetch current user and auth simultaneously with a timeout/error catch
-    const [userData, authData] = await Promise.all([
-      currentUser().catch(() => null),
-      auth().catch(() => ({ orgId: null }))
-    ]);
-    user = userData;
-    orgId = authData.orgId;
-  } catch (e) {
-    // Silent fail for production, handled by orgId check below
+  const cookieStore = await cookies();
+  let facilityId = cookieStore.get("active_facility_id")?.value;
+
+  if (!facilityId) {
+    const { data: membership } = await supabase
+      .from('memberships')
+      .select('facility_id')
+      .eq('profile_id', session.user.id)
+      .limit(1)
+      .maybeSingle();
+    
+    facilityId = membership?.facility_id;
   }
 
-  if (!orgId) return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8 space-y-4">
-      <div className="h-16 w-16 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-2">
-        <Activity className="h-8 w-8" />
-      </div>
-      <h2 className="text-2xl font-black uppercase italic tracking-tighter">Connection Error</h2>
-      <p className="text-muted-foreground text-sm max-w-xs mx-auto">We couldn't reach the authentication service. This might be a temporary network issue. Please refresh the page.</p>
-      <button onClick={() => window.location.reload()} className="mt-4 px-8 py-3 bg-primary text-primary-foreground rounded-2xl font-black uppercase tracking-widest text-xs">
-        Try Reconnecting
-      </button>
-    </div>
-  );
+  if (!facilityId) redirect("/onboarding");
 
   const [resources, stats] = await Promise.all([
-    fetchResourceUnits(orgId).catch(() => []),
-    fetchFacilityStats(orgId).catch(() => ({ totalResources: 0, totalBookings: 0, totalMembers: 0, liveMatches: 0 }))
+    fetchResourceUnits(facilityId).catch(() => []),
+    fetchFacilityStats(facilityId).catch(() => ({ totalResources: 0, totalBookings: 0, totalMembers: 0, liveMatches: 0 }))
   ]);
 
   return (
     <div className="space-y-8 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mesh-gradient p-1 rounded-[48px]">
       <div className="px-1 md:px-2">
-        <DashboardHeader name={user?.firstName || "Hub Owner"} />
+        <DashboardHeader name={session.user.name || "Hub Owner"} />
       </div>
 
       {/* ─── Quick Stats ─── */}
@@ -72,7 +66,7 @@ export default async function DashboardPage() {
           </div>
         </div>
         <div className="glass-card rounded-[48px] p-4 md:p-6 shadow-2xl overflow-hidden ring-1 ring-white/10">
-          <BookingGrid initialResources={resources} facilityId={orgId} />
+          <BookingGrid initialResources={resources} facilityId={facilityId} />
         </div>
       </div>
     </div>

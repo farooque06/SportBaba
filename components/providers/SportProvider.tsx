@@ -8,11 +8,12 @@ interface SportContextType {
   sport: Sport;
   setSport: (sport: Sport) => void;
   facilityType?: string;
+  facilityId?: string;
 }
 
 const SportContext = createContext<SportContextType | undefined>(undefined);
 
-export function SportProvider({ children, facilityType }: { children: React.ReactNode, facilityType?: string }) {
+export function SportProvider({ children, facilityType, facilityId }: { children: React.ReactNode, facilityType?: string, facilityId?: string }) {
   const [sport, setSportState] = useState<Sport>("footshall");
 
   // Load from localStorage or force based on facility type
@@ -43,7 +44,7 @@ export function SportProvider({ children, facilityType }: { children: React.Reac
   };
 
   return (
-    <SportContext.Provider value={{ sport, setSport, facilityType }}>
+    <SportContext.Provider value={{ sport, setSport, facilityType, facilityId }}>
       {children}
     </SportContext.Provider>
   );

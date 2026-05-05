@@ -43,7 +43,7 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
   const [selectedBooking, setSelectedBooking] = useState<any>(null)
   const [isUpdating, setIsUpdating] = useState(false)
   const [availableProducts, setAvailableProducts] = useState<any[]>([])
-  const { sport } = useSport()
+  const { sport, facilityId } = useSport()
   const [dateFilter, setDateFilter] = useState<'today' | 'all'>('today')
   const [now, setNow] = useState(new Date())
 
@@ -66,7 +66,7 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
   const handleMarkAsPaid = async (method: string) => {
     if (!selectedBooking) return
     setIsUpdating(true)
-    const result = await updatePaymentStatus(selectedBooking.id, 'paid', method)
+    const result = await updatePaymentStatus(selectedBooking.id, 'paid', method, undefined, facilityId)
     if (result.success) {
       setSelectedBooking(result.data)
     }
@@ -85,7 +85,7 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
     }
 
     setIsUpdating(true)
-    const result = await updateBookingStatus(selectedBooking.id, status)
+    const result = await updateBookingStatus(selectedBooking.id, status, facilityId!)
     if (result.success) {
       setSelectedBooking(result.data)
     }
@@ -95,7 +95,7 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
   const handleAddAddon = async (item: { id: string, name: string, price: number }) => {
     if (!selectedBooking) return
     setIsUpdating(true)
-    const result = await addBookingAddon(selectedBooking.id, item)
+    const result = await addBookingAddon(selectedBooking.id, item, facilityId!)
     if (result.success) {
       setSelectedBooking(result.data)
     }
@@ -105,7 +105,7 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
   const handleRemoveAddon = async (timestamp: string) => {
     if (!selectedBooking) return
     setIsUpdating(true)
-    const result = await removeBookingAddon(selectedBooking.id, timestamp)
+    const result = await removeBookingAddon(selectedBooking.id, timestamp, facilityId!)
     if (result.success) {
       setSelectedBooking(result.data)
     }
@@ -115,7 +115,7 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
   const handleExtendMatch = async (minutes: number) => {
     if (!selectedBooking) return
     setIsUpdating(true)
-    const result = await extendBooking(selectedBooking.id, minutes)
+    const result = await extendBooking(selectedBooking.id, minutes, facilityId!)
     if (result.success) {
       setSelectedBooking(result.data)
     } else {

@@ -7,12 +7,15 @@ import { Calendar, Banknote, MapPin, Printer, Download, ArrowRight, CheckCircle2
 import { fetchDailyReport, generateCSVReport } from "@/lib/actions/reports"
 import { getNotificationForBooking, generateWhatsAppNotification, generateDailySummaryNotification } from "@/lib/notifications"
 import { formatCurrency } from "@/lib/utils"
-import { useOrganization, useUser } from "@clerk/nextjs"
+import { useSession } from "next-auth/react"
+import Cookies from "js-cookie"
+import { fetchDailyReport, generateCSVReport } from "@/lib/actions/reports"
+import { getNotificationForBooking, generateWhatsAppNotification, generateDailySummaryNotification } from "@/lib/notifications"
+import { formatCurrency } from "@/lib/utils"
 import { getCurrentUserRole } from "@/lib/actions/auth"
 
 export default function ReportsPage() {
-  const { organization } = useOrganization()
-  const { user } = useUser()
+  const { data: session } = useSession()
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [report, setReport] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -21,18 +24,26 @@ export default function ReportsPage() {
 
   useEffect(() => {
     async function checkAuth() {
-      const userRole = await getCurrentUserRole()
-      setRole(userRole)
+      const activeFacilityId = Cookies.get("active_facility_id")
+      if (activeFacilityId) {
+        const userRole = await getCurrentUserRole(activeFacilityId)
+        setRole(userRole)
+      }
       setIsVerifying(false)
     }
-    checkAuth()
-  }, [])
+    if (session?.user) {
+        checkAuth()
+    }
+  }, [session])
 
   useEffect(() => {
     if (role === 'owner' || role === 'manager') {
       async function load() {
+        const activeFacilityId = Cookies.get("active_facility_id")
+        if (!activeFacilityId) return
+
         setLoading(true)
-        const data = await fetchDailyReport(date)
+        const data = await fetchDailyReport(date, activeFacilityId)
         setReport(data)
         setLoading(false)
       }
@@ -45,7 +56,10 @@ export default function ReportsPage() {
   }
 
   const handleCSVExport = async () => {
-    const csv = await generateCSVReport(date)
+    const activeFacilityId = Cookies.get("active_facility_id")
+    if (!activeFacilityId) return
+
+    const csv = await generateCSVReport(date, activeFacilityId)
     const blob = new Blob([csv], { type: 'text/csv' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -137,7 +151,7 @@ export default function ReportsPage() {
           <div className="hidden print:block font-serif mb-12 border-b-8 border-black pb-8">
             <div className="flex justify-between items-start mb-6">
               <div>
-                <h1 className="text-6xl font-black uppercase tracking-tighter leading-none mb-2">{organization?.name || 'SPORTBABA'} </h1>
+                <h1 className="text-6xl font-black uppercase tracking-tighter leading-none mb-2">SPORTBABA</h1>
                 <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-60">Facility Management Hub • Accounts Division</p>
               </div>
               <div className="text-right">
@@ -153,7 +167,7 @@ export default function ReportsPage() {
                <div className="space-y-6">
                  <div>
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-1 leading-none">Facility Name</p>
-                    <p className="text-2xl font-black italic tracking-tighter uppercase leading-none">{organization?.name || 'Command Hub HQ'}</p>
+                    <p className="text-2xl font-black italic tracking-tighter uppercase leading-none">Command Hub HQ</p>
                  </div>
                  <div>
                     <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-1 leading-none">Accounting Period</p>

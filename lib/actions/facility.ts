@@ -1,15 +1,15 @@
 "use server"
 
 import { supabase } from "@/lib/supabase";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
-import { clerkClient } from "@clerk/nextjs/server";
-
 export async function registerFacility(formData: FormData) {
-  const { orgId, userId } = await auth();
-  const clerk = await clerkClient();
-  if (!orgId) throw new Error("No organization found");
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
+  
+  const userId = session.user.id;
+  const facilityId = crypto.randomUUID(); // Generate a new ID for the facility
 
   const name = formData.get("name") as string;
   const sport_type = formData.get("sport_type") as string;
@@ -17,8 +17,8 @@ export async function registerFacility(formData: FormData) {
 
   const { data: facility, error: facilityError } = await supabase
     .from('facilities')
-    .upsert({
-      id: orgId,
+    .insert({
+      id: facilityId,
       name,
       slug,
       sport_type,
@@ -35,24 +35,12 @@ export async function registerFacility(formData: FormData) {
     return { error: facilityError.message };
   }
 
-  // Create Owner Membership & Sync Role to Clerk
-  if (userId) {
-    // 1. Database Sync
-    await supabase.from('memberships').upsert({
-      profile_id: userId,
-      facility_id: orgId,
-      role: 'owner'
-    });
-
-    // 2. Platform Identity Sync (Clerk)
-    // This ensures they are recognized as 'Admin' at the platform level for this org
-    await clerk.users.updateUserMetadata(userId, {
-      publicMetadata: {
-        role: 'owner',
-        facilityId: orgId
-      }
-    });
-  }
+  // Create Owner Membership
+  await supabase.from('memberships').insert({
+    profile_id: userId,
+    facility_id: facilityId,
+    role: 'owner'
+  });
 
   revalidatePath("/dashboard");
   return { success: true, data: facility };
@@ -67,7 +55,12 @@ export async function fetchFacility(id: string) {
 
   if (error) return null;
   return data;
-}export async function updateFacilitySettings(id: string, updates: any) {
+}
+
+export async function updateFacilitySettings(id: string, updates: any) {
+  const session = await auth();
+  if (!session?.user) throw new Error("Unauthorized");
+
   const { data, error } = await supabase
     .from('facilities')
     .update({
