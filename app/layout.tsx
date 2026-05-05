@@ -65,6 +65,8 @@ export const metadata: Metadata = {
 };
 
 import { SessionProvider } from "next-auth/react"
+import { Suspense } from "react"
+import { TopLoader } from "@/components/ui/TopLoader"
 
 export default function RootLayout({
   children,
@@ -76,6 +78,9 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} h-full antialiased min-h-full flex flex-col bg-background text-foreground`}>
         <SessionProvider>
           <ThemeProvider>
+            <Suspense fallback={null}>
+              <TopLoader />
+            </Suspense>
             <CommandPalette />
             {children}
           </ThemeProvider>

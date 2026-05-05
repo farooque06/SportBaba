@@ -88,19 +88,19 @@ export function MobileNav() {
               <Link
                 key={tab.label}
                 href={tab.href}
-                className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 rounded-xl transition-all ${
+                className={`flex flex-col items-center justify-center gap-0.5 flex-1 py-2 rounded-xl transition-all active:scale-90 ${
                   active 
                     ? 'text-primary' 
-                    : 'text-muted-foreground active:scale-95'
+                    : 'text-muted-foreground'
                 }`}
               >
                 <div className="relative">
-                  <tab.icon className={`h-5 w-5 transition-transform ${active ? 'scale-110' : ''}`} />
+                  <tab.icon className={`h-5 w-5 transition-transform ${active ? 'scale-110' : 'group-active:scale-95'}`} />
                   {active && (
                     <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full bg-primary shadow-[0_0_6px_rgba(var(--primary),0.6)]" />
                   )}
                 </div>
-                <span className={`text-[9px] font-black uppercase tracking-tighter ${active ? 'text-primary' : ''}`}>
+                <span className={`text-[9px] font-black uppercase tracking-tighter transition-colors ${active ? 'text-primary' : 'group-active:text-foreground'}`}>
                   {tab.label}
                 </span>
               </Link>
@@ -147,24 +147,24 @@ export function MobileNav() {
 
             {/* Secondary Nav Items */}
             <div className="px-4 pb-2 space-y-1">
-              {secondaryItems.map((item) => {
-                const active = isActive(item.href)
-                return (
-                  <Link
-                    key={item.label}
-                    href={item.href}
-                    onClick={() => setShowMore(false)}
-                    className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${
-                      active 
-                        ? 'bg-primary/10 text-primary' 
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                    }`}
-                  >
-                    <item.icon className={`h-5 w-5 ${active ? 'text-primary' : ''}`} />
-                    {item.label}
-                  </Link>
-                )
-              })}
+                {secondaryItems.map((item) => {
+                  const active = isActive(item.href)
+                  return (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      onClick={() => setShowMore(false)}
+                      className={`flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all active:scale-[0.98] ${
+                        active 
+                          ? 'bg-primary/10 text-primary' 
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground active:bg-muted/80'
+                      }`}
+                    >
+                      <item.icon className={`h-5 w-5 ${active ? 'text-primary' : ''}`} />
+                      {item.label}
+                    </Link>
+                  )
+                })}
             </div>
 
             {/* Sign Out */}

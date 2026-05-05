@@ -157,15 +157,15 @@ export function Sidebar({ subscriptionStatus, trialEnd, user }: SidebarProps) {
               href={item.href}
               title={isCollapsed ? item.label : undefined}
               className={cn(
-                "flex items-center gap-4 px-4 h-12 rounded-2xl text-sm font-black transition-all group relative",
+                "flex items-center gap-4 px-4 h-12 rounded-2xl text-sm font-black transition-all group relative active:scale-[0.97]",
                 isActive
                   ? "bg-primary/10 text-primary border border-primary/20 shadow-sm"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent",
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground border border-transparent active:bg-muted/80",
                 isCollapsed && "justify-center px-0"
               )}
             >
               <item.icon className={cn(
-                "h-5 w-5 shrink-0 transition-transform group-hover:scale-110",
+                "h-5 w-5 shrink-0 transition-transform group-hover:scale-110 group-active:scale-95",
                 isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
               )} />
               {!isCollapsed && (
