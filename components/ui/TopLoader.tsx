@@ -65,7 +65,7 @@ export function TopLoader() {
   if (!loading && progress === 0) return null
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[9999] h-[3px] pointer-events-none">
+    <div className="fixed top-0 left-0 right-0 z-[2000] h-[3px] pointer-events-none">
       <div 
         className="h-full bg-gradient-to-r from-primary via-primary to-emerald-300 shadow-[0_0_10px_rgba(34,197,94,0.5)] transition-all duration-300 ease-out"
         style={{ 

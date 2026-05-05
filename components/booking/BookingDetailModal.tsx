@@ -147,7 +147,7 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[300] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4 animate-in fade-in duration-300" onClick={onClose}>
+    <div className="fixed inset-0 z-[1100] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4 animate-in fade-in duration-300" onClick={onClose}>
        <div 
          className="bg-card w-full md:max-w-lg max-h-[88vh] md:max-h-[min(900px,92vh)] rounded-t-[28px] md:rounded-[32px] border border-border/40 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 flex flex-col"
          onClick={(e) => e.stopPropagation()}

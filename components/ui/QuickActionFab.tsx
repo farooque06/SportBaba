@@ -41,7 +41,7 @@ export function QuickActionFab() {
   ]
 
   return (
-    <div className="fixed bottom-24 md:bottom-8 right-4 md:right-8 z-[60] flex flex-col items-end gap-3">
+    <div className="fixed bottom-24 md:bottom-8 right-4 md:right-8 z-[110] flex flex-col items-end gap-3">
       {/* Menu Items */}
       <div className={cn(
         "flex flex-col items-end gap-3 transition-all duration-300 origin-bottom",

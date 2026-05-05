@@ -40,7 +40,7 @@ export function MobileNav() {
   return (
     <>
       {/* ─── Top Header Bar ─── */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-[50] h-14 bg-background/80 backdrop-blur-xl border-b border-border flex items-center justify-between px-4 safe-area-top">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-[100] h-14 bg-background/80 backdrop-blur-xl border-b border-border flex items-center justify-between px-4 safe-area-top">
         <Link href="/dashboard" className="flex items-center gap-2">
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-foreground">
             <span className="text-sm font-black text-background">S</span>
@@ -80,7 +80,7 @@ export function MobileNav() {
       </div>
 
       {/* ─── Bottom Tab Bar ─── */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[50] bg-background/80 backdrop-blur-xl border-t border-border safe-area-bottom">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-background/80 backdrop-blur-xl border-t border-border safe-area-bottom">
         <div className="flex items-center justify-around h-16 px-2">
           {primaryTabs.map((tab) => {
             const active = isActive(tab.href)

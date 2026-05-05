@@ -139,7 +139,7 @@ export function QuickBookingModal({
   // ─── Success Screen ───
   if (isSuccess && createdBooking) {
     return (
-      <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4" onClick={onClose}>
+      <div className="fixed inset-0 z-[1000] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4" onClick={onClose}>
         <div className="bg-card w-full md:max-w-sm rounded-t-[28px] md:rounded-[32px] border border-border/40 shadow-2xl animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 overflow-hidden" onClick={(e) => e.stopPropagation()}>
           {/* Drag handle */}
           <div className="md:hidden flex justify-center pt-3"><div className="h-1 w-10 rounded-full bg-foreground/10" /></div>
@@ -196,7 +196,7 @@ export function QuickBookingModal({
 
   // ─── Create Booking Form ───
   return (
-    <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[1000] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4" onClick={onClose}>
       <div 
         className="bg-card w-full md:max-w-xl max-h-[88vh] md:max-h-[90vh] rounded-t-[28px] md:rounded-[32px] border border-border/40 shadow-2xl animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}

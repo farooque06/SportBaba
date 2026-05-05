@@ -49,7 +49,7 @@ export function AddResourceModal({ isOpen, onClose }: { isOpen: boolean, onClose
   }
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[1000] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4" onClick={onClose}>
       <div 
         className="bg-card w-full md:max-w-md rounded-t-[28px] md:rounded-[32px] border border-border/40 shadow-2xl animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
