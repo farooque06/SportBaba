@@ -111,7 +111,6 @@ export function BookingGrid({
   const filteredResources = resources.filter(res => {
     if (!res.is_active) return false;
     
-    // Connect the new Resource Manager types to the Sidebar Tabs
     if (sport === 'footshall') {
       return ['pitch', 'court', 'field', 'hall'].includes((res.unit_type || "").toLowerCase());
     }
