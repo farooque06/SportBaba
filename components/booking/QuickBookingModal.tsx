@@ -468,13 +468,13 @@ export function QuickBookingModal({
 
             {/* Action Buttons */}
             <div className="flex gap-2.5">
-              <Button type="button" variant="ghost" className="flex-1 h-12 rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-[0.97] transition-all" onClick={onClose}>
+              <Button type="button" variant="ghost" className="flex-1 h-14 md:h-12 rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-[0.97] transition-all" onClick={onClose}>
                 Cancel
               </Button>
               <Button 
                 type="submit" 
                 variant="primary" 
-                className="flex-[2] h-12 rounded-xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 hover:shadow-xl active:scale-[0.97] transition-all disabled:opacity-50" 
+                className="flex-[2] h-14 md:h-12 rounded-xl font-black uppercase tracking-widest text-[10px] md:shadow-lg md:shadow-primary/20 active:scale-[0.97] transition-all disabled:opacity-50" 
                 disabled={loading || hasConflict || isPastMaxHour || isInvalidCustomTime}
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Booking"}

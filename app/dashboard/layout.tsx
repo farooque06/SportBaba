@@ -151,7 +151,7 @@ export default async function DashboardLayout({
           }}
         />
         <MobileNav />
-        <main className="flex-1 overflow-y-auto overscroll-contain w-full max-w-[1600px] mx-auto pt-[72px] md:pt-6 lg:pt-8 px-4 md:px-6 lg:px-8 pb-28 md:pb-12 bg-muted/10" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <main className="flex-1 overflow-y-auto w-full max-w-[1600px] mx-auto pt-[72px] md:pt-6 lg:pt-8 px-4 md:px-6 lg:px-8 pb-28 md:pb-12 bg-muted/10" style={{ WebkitOverflowScrolling: 'touch' }}>
           {children}
         </main>
         <QuickActionFab />
