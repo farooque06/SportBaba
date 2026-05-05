@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useRef } from "react"
 import { usePathname, useSearchParams } from "next/navigation"
 
 export function TopLoader() {
@@ -9,38 +9,47 @@ export function TopLoader() {
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
 
+  // Use a ref for the interval to ensure we can always clear it
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  const stopLoading = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current)
+      intervalRef.current = null
+    }
+  }, [])
+
   const startLoading = useCallback(() => {
+    stopLoading() // Clear any existing loader first
     setLoading(true)
     setProgress(0)
     
-    // Simulate progress
     let current = 0
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       current += Math.random() * 15
       if (current >= 90) {
-        clearInterval(interval)
+        if (intervalRef.current) clearInterval(intervalRef.current)
         current = 90
       }
       setProgress(current)
     }, 200)
-
-    return () => clearInterval(interval)
-  }, [])
+  }, [stopLoading])
 
   useEffect(() => {
     // Complete loading when route changes
+    stopLoading()
     setProgress(100)
     const timer = setTimeout(() => {
       setLoading(false)
       setProgress(0)
     }, 300)
-    return () => clearTimeout(timer)
-  }, [pathname, searchParams])
+    return () => {
+      clearTimeout(timer)
+      stopLoading()
+    }
+  }, [pathname, searchParams, stopLoading])
 
-  // Intercept all link clicks to start the loader
   useEffect(() => {
-    let cleanup: (() => void) | undefined
-
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement
       const anchor = target.closest("a")
@@ -49,18 +58,20 @@ export function TopLoader() {
       const href = anchor.getAttribute("href")
       if (!href || href.startsWith("#") || href.startsWith("http") || href.startsWith("mailto")) return
       
-      // Don't trigger for same-page links
-      if (href === pathname) return
+      // Don't trigger for same-page links unless it's a different search param
+      if (href === pathname || (href.startsWith('/') && href.split('?')[0] === pathname)) {
+         // Optionally skip if no actual navigation will happen
+      }
       
-      cleanup = startLoading()
+      startLoading()
     }
 
     document.addEventListener("click", handleClick)
     return () => {
       document.removeEventListener("click", handleClick)
-      cleanup?.()
+      stopLoading()
     }
-  }, [pathname, startLoading])
+  }, [pathname, startLoading, stopLoading])
 
   if (!loading && progress === 0) return null
 

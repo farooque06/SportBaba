@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { ChevronLeft, ChevronRight, Plus, CheckCircle2, XCircle, Bell, AlertTriangle, Calendar as CalendarIcon, Clock, Zap, User } from "lucide-react"
@@ -56,11 +56,13 @@ export function BookingGrid({
     return () => clearInterval(timer)
   }, [facilityId])
 
-  const slots = Array.from({ length: (closeHour - openHour + 1) * 2 }, (_, i) => {
-    const hour = Math.floor(i / 2) + openHour
-    const minute = (i % 2) * 30
-    return { hour, minute, label: `${hour}:${minute === 0 ? '00' : '30'}` }
-  })
+  const slots = useMemo(() => {
+    return Array.from({ length: (closeHour - openHour + 1) * 2 }, (_, i) => {
+      const hour = Math.floor(i / 2) + openHour
+      const minute = (i % 2) * 30
+      return { hour, minute, label: `${hour}:${minute === 0 ? '00' : '30'}` }
+    })
+  }, [openHour, closeHour])
 
   const isToday = selectedDate.toDateString() === now.toDateString()
   const currentHour = now.getHours()
@@ -72,6 +74,7 @@ export function BookingGrid({
 
   // Fetch data when date changes
   useEffect(() => {
+    let isMounted = true
     async function loadData() {
       setLoading(true)
 
@@ -82,10 +85,13 @@ export function BookingGrid({
       endOfDay.setHours(23, 59, 59, 999)
 
       const data = await fetchResourceWithBookings(facilityId, startOfDay.toISOString(), endOfDay.toISOString())
-      if (data) setResources(data)
-      setLoading(false)
+      if (isMounted && data) {
+        setResources(data)
+      }
+      if (isMounted) setLoading(false)
     }
     loadData()
+    return () => { isMounted = false }
   }, [selectedDate, facilityId])
 
 
