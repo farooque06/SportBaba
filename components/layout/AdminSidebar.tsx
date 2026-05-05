@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { 
   Globe, LayoutDashboard, Users, ShieldAlert, 
   Settings, LogOut, Activity, BarChart3,
-  ChevronLeft, ChevronRight, Package, Trophy
+  ChevronLeft, ChevronRight, Package
 } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -17,7 +17,6 @@ const adminMenuItems = [
   { icon: Users, label: "Client Registry", href: "/admin/clients" },
   { icon: BarChart3, label: "Subscriptions", href: "/admin/subscriptions" },
   { icon: ShieldAlert, label: "System Health", href: "/admin/health" },
-  { icon: Trophy, label: "Tournaments", href: "/admin/tournaments" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
 ]
 
