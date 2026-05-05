@@ -149,7 +149,7 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
   return (
     <div className="fixed inset-0 z-[300] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4 animate-in fade-in duration-300" onClick={onClose}>
        <div 
-         className="bg-card w-full md:max-w-lg max-h-[95vh] md:max-h-[min(900px,92vh)] rounded-t-[28px] md:rounded-[32px] border border-border/40 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 flex flex-col"
+         className="bg-card w-full md:max-w-lg max-h-[88vh] md:max-h-[min(900px,92vh)] rounded-t-[28px] md:rounded-[32px] border border-border/40 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 flex flex-col"
          onClick={(e) => e.stopPropagation()}
        >
           {/* ─── Status-Colored Header ─── */}
@@ -377,7 +377,7 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
           </div>
 
           {/* ─── Action Footer ─── */}
-          <div className="p-4 md:p-5 shrink-0 border-t border-border/20 bg-muted/20 backdrop-blur-sm space-y-3">
+          <div className="p-4 md:p-5 shrink-0 border-t border-border/20 bg-muted/20 backdrop-blur-sm space-y-3 safe-area-bottom">
             <div className="flex gap-2.5">
               {(booking.status === 'confirmed' || booking.status === 'pending') && (
                 <Button 

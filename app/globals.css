@@ -96,6 +96,18 @@
   box-sizing: border-box;
 }
 
+/* Improve touch scrolling on mobile */
+html, body {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent body scroll when modal is open (apply via JS if needed) */
+body.modal-open {
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+}
+
 /* Safe area padding for mobile notches and home indicators */
 .safe-area-top {
   padding-top: env(safe-area-inset-top, 0px);
