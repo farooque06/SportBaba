@@ -17,7 +17,11 @@ export function AddResourceModal({ isOpen, onClose }: { isOpen: boolean, onClose
 
     setLoading(true)
     const formData = new FormData(e.currentTarget)
-    await createResourceUnit(formData, facilityId)
+    await createResourceUnit({
+      name: formData.get("name") as string,
+      unit_type: formData.get("unit_type") as string,
+      base_price: parseFloat(formData.get("base_price") as string) || 0
+    }, facilityId)
     setLoading(false)
     onClose()
   }
