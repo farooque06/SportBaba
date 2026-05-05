@@ -40,6 +40,7 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizeCss: true,
   },
+  turbopack: {},
 };
 
 export default withPWA(nextConfig);

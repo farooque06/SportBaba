@@ -48,7 +48,7 @@ export function BookingGrid({
         setOpenHour(parseInt(facility.config.open_time.split(':')[0]))
       }
       if (facility?.config?.close_time) {
-        setOpenHour(parseInt(facility.config.close_time.split(':')[0]))
+        setCloseHour(parseInt(facility.config.close_time.split(':')[0]))
       }
     }
     loadConfig()
