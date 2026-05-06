@@ -109,6 +109,22 @@ export function BookingGrid({
 
   const handleToday = () => setSelectedDate(new Date())
 
+  const updateLocalBooking = (updated: any) => {
+    setResources(prev => prev.map(res => {
+      const hasBooking = res.bookings?.some((b: any) => b.id === updated.id)
+      if (hasBooking) {
+        return {
+          ...res,
+          bookings: res.bookings.map((b: any) => b.id === updated.id ? updated : b)
+        }
+      }
+      return res
+    }))
+    if (selectedBooking?.id === updated.id) {
+      setSelectedBooking(updated)
+    }
+  }
+
   const openBookingModal = (resourceId?: string, hour?: number, minute?: number) => {
     setModalInitialData({ resourceId, hour, minute })
     setIsModalOpen(true)
@@ -540,7 +556,7 @@ export function BookingGrid({
         <BookingDetailModal
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
-          onUpdate={(updatedBooking) => setSelectedBooking(updatedBooking)}
+          onUpdate={updateLocalBooking}
         />
       )}
     </div>

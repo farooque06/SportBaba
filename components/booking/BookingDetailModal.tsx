@@ -161,18 +161,22 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
             
             <div className="px-5 md:px-8 pb-5 pt-3 md:pt-6">
               {/* Top Row: Status + Close + Ref */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2.5">
-                  <span className={`${statusConfig.color} ${statusConfig.textColor} text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg shadow-sm`}>
-                    {statusConfig.label}
-                  </span>
-                  <span className="text-[9px] font-bold text-muted-foreground/50 font-mono">#{booking.id.slice(0, 8)}</span>
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-3">
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${statusConfig.color} shadow-lg ring-1 ring-white/20`}>
+                    <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                    <span className="text-[9px] font-black uppercase tracking-widest text-white">
+                      {statusConfig.label}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold text-muted-foreground/40 font-mono tracking-tighter">#{booking.id.slice(0, 8).toUpperCase()}</span>
                 </div>
                 <button 
+                  type="button"
                   onClick={onClose}
-                  className="h-8 w-8 rounded-xl bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center transition-colors"
+                  className="h-10 w-10 rounded-2xl bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center transition-all hover:rotate-90"
                 >
-                  <X className="h-4 w-4 text-muted-foreground" />
+                  <X className="h-5 w-5 text-muted-foreground" />
                 </button>
               </div>
 
@@ -220,24 +224,24 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             
             {/* ─── Financial Card ─── */}
-            <div className="p-5 md:p-6 border-b border-border/20">
+            <div className="p-6 md:p-8 bg-gradient-to-b from-card to-background">
               {/* Total + Status */}
-              <div className="flex items-end justify-between mb-4">
-                <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 mb-1">Total Bill</p>
-                  <p className="text-3xl md:text-4xl font-black tracking-tighter leading-none">{formatCurrency(totalPrice)}</p>
+              <div className="flex items-end justify-between mb-6">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Final Settlement</p>
+                  <p className="text-4xl md:text-5xl font-black tracking-tighter leading-none text-foreground">{formatCurrency(totalPrice)}</p>
                 </div>
-                <div className={`text-right flex flex-col items-end gap-1`}>
+                <div className="flex flex-col items-end gap-2">
                   {isFullyPaid ? (
-                    <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Paid</span>
+                    <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 shadow-sm">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Settled</span>
                     </div>
                   ) : (
-                    <>
-                      <p className="text-[9px] font-black uppercase tracking-widest text-red-500/60">Due</p>
-                      <p className="text-xl font-black tracking-tighter text-red-600">{formatCurrency(dueAmount)}</p>
-                    </>
+                    <div className="text-right">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-red-500/60 mb-1">Outstanding Balance</p>
+                      <p className="text-2xl font-black tracking-tighter text-red-600">{formatCurrency(dueAmount)}</p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -288,22 +292,22 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
 
               {/* Payment Buttons (if not fully paid) */}
               {!isFullyPaid && !isCancelled && (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3 mt-6">
                   <button 
                     disabled={isUpdating}
                     onClick={() => handleMarkAsPaid('cash')}
-                    className="flex items-center justify-center gap-2 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 hover:bg-emerald-500/10 hover:border-emerald-500/40 active:scale-[0.97] transition-all disabled:opacity-50"
+                    className="flex flex-col items-center justify-center gap-2 p-5 rounded-[24px] bg-emerald-500/5 border border-emerald-500/20 hover:bg-emerald-500/10 hover:border-emerald-500/40 active:scale-[0.95] transition-all disabled:opacity-50 group"
                   >
-                    <Banknote className="h-4 w-4 text-emerald-600" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Cash</span>
+                    <Banknote className="h-6 w-6 text-emerald-600 group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Cash Settlement</span>
                   </button>
                   <button 
                     disabled={isUpdating}
                     onClick={() => handleMarkAsPaid('card')}
-                    className="flex items-center justify-center gap-2 p-3 rounded-xl bg-blue-500/5 border border-blue-500/20 hover:bg-blue-500/10 hover:border-blue-500/40 active:scale-[0.97] transition-all disabled:opacity-50"
+                    className="flex flex-col items-center justify-center gap-2 p-5 rounded-[24px] bg-blue-500/5 border border-blue-500/20 hover:bg-blue-500/10 hover:border-blue-500/40 active:scale-[0.95] transition-all disabled:opacity-50 group"
                   >
-                    <CreditCard className="h-4 w-4 text-blue-600" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-700">Card</span>
+                    <CreditCard className="h-6 w-6 text-blue-600 group-hover:scale-110 transition-transform" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-700">Card / POS</span>
                   </button>
                 </div>
               )}
@@ -311,29 +315,35 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
 
             {/* ─── Quick Add POS ─── */}
             {!isCancelled && !isCompleted && (
-              <div className="p-5 md:p-6 border-b border-border/20">
-                <div className="flex items-center gap-2 mb-3">
-                  <ShoppingBag className="h-3.5 w-3.5 text-primary/60" />
-                  <p className="text-[9px] font-black uppercase tracking-widest text-primary/60">Add to Bill</p>
+              <div className="p-6 md:p-8 border-t border-border/10">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2">
+                    <ShoppingBag className="h-4 w-4 text-primary" />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-primary">Quick-Add Addons</p>
+                  </div>
+                  <span className="text-[8px] font-black px-2 py-0.5 rounded-md bg-muted text-muted-foreground uppercase">Inventory Sync</span>
                 </div>
                 {availableProducts.length === 0 ? (
-                  <Link href="/dashboard/inventory" className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline block text-center py-4 bg-muted/20 rounded-xl border border-dashed border-border/40">
-                    Set up products in Inventory →
+                  <Link href="/dashboard/inventory" className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline block text-center py-6 bg-muted/20 rounded-3xl border border-dashed border-border/40">
+                    Configure Inventory POS →
                   </Link>
                 ) : (
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-4 gap-3">
                     {availableProducts.slice(0, 8).map((p) => (
                       <button 
                         key={p.id}
                         disabled={isUpdating}
                         onClick={(e) => { e.stopPropagation(); handleAddAddon({ id: p.id, name: p.name, price: Number(p.price) }); }}
-                        className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-xl bg-muted/20 border border-border/30 hover:border-primary/40 hover:bg-primary/5 active:scale-[0.94] transition-all disabled:opacity-50"
+                        className="flex flex-col items-center justify-center gap-2 p-3.5 rounded-[20px] bg-muted/30 border border-border/40 hover:border-primary/40 hover:bg-primary/5 active:scale-[0.92] transition-all disabled:opacity-50 group relative overflow-hidden"
                       >
-                        <span className="text-lg leading-none">
+                        <div className="absolute inset-0 bg-primary/5 translate-y-full group-hover:translate-y-0 transition-transform" />
+                        <span className="text-xl leading-none relative z-10">
                           {p.category === 'drink' ? '💧' : p.category === 'food' ? '🍕' : p.category === 'equipment' ? '⚽' : '📦'}
                         </span>
-                        <span className="text-[7px] font-black uppercase tracking-tighter text-center line-clamp-1 text-foreground/70">{p.name}</span>
-                        <span className="text-[7px] font-bold text-primary/60">{formatCurrency(p.price)}</span>
+                        <div className="text-center relative z-10">
+                          <span className="text-[7px] font-black uppercase tracking-tighter block line-clamp-1 mb-0.5">{p.name}</span>
+                          <span className="text-[8px] font-black text-primary">{formatCurrency(p.price)}</span>
+                        </div>
                       </button>
                     ))}
                   </div>

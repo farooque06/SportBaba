@@ -93,11 +93,40 @@
     font-size: 16px; /* Prevents iOS zoom on focus */
   }
 }
+/* ─── Beautiful Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
 
-/* ═══════════════════════════════════
-   BEAUTIFUL SCROLLBAR
-   ═══════════════════════════════════ */
+::-webkit-scrollbar-track {
+  background: transparent;
+}
 
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 20px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* Custom scrollbar for specific areas */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  opacity: 0.3;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  opacity: 1;
+}
 /* Webkit (Chrome, Safari, Edge) */
 ::-webkit-scrollbar {
   width: 8px;

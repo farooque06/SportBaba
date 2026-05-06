@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/Button"
 import { createBooking } from "@/lib/actions/booking"
-import { X, AlertCircle, CreditCard, Banknote, CheckCircle2, Phone, Clock, MapPin, User, Calendar, Timer, MessageCircle, Loader2, ChevronDown, Zap } from "lucide-react"
+import { X, AlertCircle, CreditCard, Banknote, CheckCircle2, Phone, Clock, MapPin, User, Calendar, Timer, MessageCircle, Loader2, ChevronDown, Zap, Receipt, ChevronRight } from "lucide-react"
 import { formatCurrency, getWhatsAppLink } from "@/lib/utils"
 import { ArtisanSelect } from "@/components/ui/ArtisanSelect"
 import { Toast, ToastType } from "@/components/ui/Toast"
@@ -205,43 +205,62 @@ export function QuickBookingModal({
         {/* Drag handle (mobile) */}
         <div className="md:hidden flex justify-center pt-3 pb-1"><div className="h-1 w-10 rounded-full bg-foreground/10" /></div>
         
-        {/* ─── Header ─── */}
-        <div className="px-5 md:px-8 pt-4 md:pt-6 pb-4 border-b border-border/20 shrink-0">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg md:text-xl font-black tracking-tight">New Booking</h2>
-            <button onClick={onClose} className="h-8 w-8 rounded-xl bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center transition-colors">
-              <X className="h-4 w-4 text-muted-foreground" />
-            </button>
-          </div>
-
-          {/* Date & Resource */}
-          <div className="flex gap-3">
-             <div className="flex-1 relative group">
-                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 ml-1 mb-1.5">Date</p>
-                <div className="relative">
-                  <input 
-                    type="date" 
-                    value={bookingDate.toISOString().split('T')[0]}
-                    onChange={(e) => { if(e.target.value) setBookingDate(new Date(e.target.value)) }}
-                    onClick={(e) => e.currentTarget.showPicker()}
-                    className="w-full bg-muted/50 border border-border/30 p-2.5 pl-9 rounded-xl text-xs font-black outline-none ring-primary/20 focus:ring-4 focus:border-primary/40 transition-all cursor-pointer appearance-none"
-                    required
-                  />
-                  <Calendar className="h-3.5 w-3.5 text-primary/60 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        {/* ─── Premium Header ─── */}
+        <div className="relative overflow-hidden shrink-0 border-b border-border/20">
+          {/* Decorative background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-60" />
+          <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary/10 rounded-full blur-3xl" />
+          
+          <div className="relative px-5 md:px-8 pt-6 md:pt-8 pb-5">
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+                  <Zap className="h-5 w-5 text-primary fill-current opacity-80" />
                 </div>
-             </div>
+                <div>
+                  <h2 className="text-xl md:text-2xl font-black tracking-tight italic uppercase leading-none">Quick Booking</h2>
+                  <p className="text-[9px] font-bold text-primary uppercase tracking-[0.2em] mt-1">Reserve & Initialize</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={onClose} 
+                className="h-10 w-10 rounded-2xl bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center transition-all hover:rotate-90"
+              >
+                <X className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </div>
 
-             <ArtisanSelect 
-                label="Resource"
-                className="flex-[1.5]"
-                value={selectedResId}
-                onChange={setSelectedResId}
-                options={resources.map(res => ({
-                  value: res.id,
-                  label: res.name,
-                  subLabel: `${formatCurrency(res.base_price)}/hr`
-                }))}
-             />
+            {/* Context bar: Date & Resource */}
+            <div className="flex flex-col sm:flex-row gap-3">
+               <div className="flex-1 relative">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1 mb-1.5">Booking Date</p>
+                  <div className="relative group">
+                    <input 
+                      type="date" 
+                      value={bookingDate.toISOString().split('T')[0]}
+                      onChange={(e) => { if(e.target.value) setBookingDate(new Date(e.target.value)) }}
+                      onClick={(e) => e.currentTarget.showPicker()}
+                      className="w-full bg-muted/30 border border-border/40 p-3 pl-10 rounded-xl text-xs font-black outline-none ring-primary/20 focus:ring-4 transition-all cursor-pointer appearance-none group-hover:bg-muted/50"
+                      required
+                    />
+                    <Calendar className="h-4 w-4 text-primary absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-60 group-hover:opacity-100 transition-opacity" />
+                  </div>
+               </div>
+
+               <div className="flex-[1.5]">
+                 <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 ml-1 mb-1.5">Resource Selection</p>
+                 <ArtisanSelect 
+                    value={selectedResId}
+                    onChange={setSelectedResId}
+                    options={resources.map(res => ({
+                      value: res.id,
+                      label: res.name,
+                      subLabel: `${formatCurrency(res.base_price)}/hr`
+                    }))}
+                 />
+               </div>
+            </div>
           </div>
         </div>
 
@@ -446,42 +465,62 @@ export function QuickBookingModal({
         </div>
 
         {/* ─── Fixed Summary + Submit ─── */}
-        <div className="p-5 pb-32 md:p-6 md:pb-6 border-t border-border/20 bg-card shrink-0 space-y-3 safe-area-bottom">
-            {/* Live Summary */}
-            <div className="flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/10">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                  <MapPin className="h-4 w-4 text-primary" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-bold text-muted-foreground truncate">
-                    {selectedResource?.name} • {bookingStart.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })} – {bookingEnd.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}
-                  </p>
-                  <p className="text-[8px] font-bold text-muted-foreground/50">{selectedDuration}h • {bookingDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</p>
-                </div>
+        <div className="p-5 pb-32 md:p-8 md:pb-8 border-t border-border/20 bg-background/80 backdrop-blur-md shrink-0 space-y-4 safe-area-bottom">
+            {/* Live Receipt Card */}
+            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 shadow-sm relative overflow-hidden group">
+              <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+                <Receipt className="h-16 w-16 -rotate-12" />
               </div>
-              <div className="text-right shrink-0 pl-3">
-                <p className="text-lg font-black tracking-tighter leading-none">{formatCurrency(totalPrice)}</p>
-                <p className={`text-[8px] font-black uppercase tracking-widest mt-0.5 ${paymentStatus === 'paid' ? 'text-emerald-600' : 'text-red-500'}`}>
-                  {paymentStatus}
-                </p>
+              
+              <div className="flex items-center justify-between relative z-10">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-primary/70">Estimated Bill</span>
+                  </div>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-3xl font-black tracking-tighter">{formatCurrency(totalPrice)}</span>
+                    <span className="text-[10px] font-bold text-muted-foreground/60 uppercase">Total</span>
+                  </div>
+                </div>
+                
+                <div className="text-right space-y-1">
+                  <div className="flex items-center justify-end gap-1.5 text-[10px] font-bold text-muted-foreground/60">
+                    <Clock className="h-3 w-3" />
+                    {selectedDuration}h Duration
+                  </div>
+                  <div className="flex items-center justify-end gap-1.5 text-[10px] font-bold text-muted-foreground/60">
+                    <MapPin className="h-3 w-3" />
+                    {selectedResource?.name}
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-2.5">
-              <Button type="button" variant="ghost" className="flex-1 h-14 md:h-12 rounded-xl font-black uppercase tracking-widest text-[10px] active:scale-[0.97] transition-all" onClick={onClose}>
+            <div className="flex gap-3">
+              <Button 
+                type="button" 
+                variant="ghost" 
+                className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] bg-muted/30 border border-border/40 hover:bg-muted/50 transition-all" 
+                onClick={onClose}
+              >
                 Cancel
               </Button>
               <Button 
                 type="submit" 
                 variant="primary" 
-                className="flex-[2] h-14 md:h-12 rounded-xl font-black uppercase tracking-widest text-[10px] md:shadow-lg md:shadow-primary/20 active:scale-[0.97] transition-all disabled:opacity-50" 
+                className="flex-[2] h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100" 
                 disabled={loading || hasConflict || isPastMaxHour || isInvalidCustomTime}
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Booking"}
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : (
+                  <span className="flex items-center gap-2">
+                    Initialize Booking
+                    <ChevronRight className="h-4 w-4" />
+                  </span>
+                )}
               </Button>
-          </div>
+            </div>
         </div>
       </form>
       {toast && (

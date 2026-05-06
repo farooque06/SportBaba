@@ -39,8 +39,21 @@ function formatDate(dateStr: string) {
 }
 
 export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
+  const [bookings, setBookings] = useState<any[]>(initialBookings)
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedBooking, setSelectedBooking] = useState<any>(null)
+
+  // Keep local bookings in sync with props
+  useEffect(() => {
+    setBookings(initialBookings)
+  }, [initialBookings])
+
+  const updateLocalBooking = (updated: any) => {
+    setBookings(prev => prev.map(b => b.id === updated.id ? updated : b))
+    if (selectedBooking?.id === updated.id) {
+      setSelectedBooking(updated)
+    }
+  }
   const [isUpdating, setIsUpdating] = useState(false)
   const [availableProducts, setAvailableProducts] = useState<any[]>([])
   const { sport, facilityId } = useSport()
@@ -63,12 +76,16 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
     setAvailableProducts(data)
   }
 
+  const handleBookingUpdate = (updated: any) => {
+    updateLocalBooking(updated)
+  }
+
   const handleMarkAsPaid = async (method: string) => {
     if (!selectedBooking) return
     setIsUpdating(true)
     const result = await updatePaymentStatus(selectedBooking.id, 'paid', method, undefined, facilityId)
     if (result.success) {
-      setSelectedBooking(result.data)
+      updateLocalBooking(result.data)
     }
     setIsUpdating(false)
   }
@@ -87,7 +104,7 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
     setIsUpdating(true)
     const result = await updateBookingStatus(selectedBooking.id, status, facilityId!)
     if (result.success) {
-      setSelectedBooking(result.data)
+      updateLocalBooking(result.data)
     }
     setIsUpdating(false)
   }
@@ -97,7 +114,7 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
     setIsUpdating(true)
     const result = await addBookingAddon(selectedBooking.id, item, facilityId!)
     if (result.success) {
-      setSelectedBooking(result.data)
+      updateLocalBooking(result.data)
     }
     setIsUpdating(false)
   }
@@ -107,7 +124,7 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
     setIsUpdating(true)
     const result = await removeBookingAddon(selectedBooking.id, timestamp, facilityId!)
     if (result.success) {
-      setSelectedBooking(result.data)
+      updateLocalBooking(result.data)
     }
     setIsUpdating(false)
   }
@@ -117,23 +134,13 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
     setIsUpdating(true)
     const result = await extendBooking(selectedBooking.id, minutes, facilityId!)
     if (result.success) {
-      setSelectedBooking(result.data)
-    } else {
-      alert(result.error || "Could not extend match. Check for conflicts.")
+      updateLocalBooking(result.data)
     }
     setIsUpdating(false)
   }
 
-  const handleBookingUpdate = (updatedBooking: any) => {
-    // We could do a router.refresh() here, but for instant UI update we just mutate the local array state?
-    // Wait, the parent passed `bookings` as a prop.
-    // If we want instantly reactive changes without reload, we could rely on Next.js Server Actions doing revalidatePath, which they already do!
-    // But since `filteredBookings` uses `initialBookings` prop, we need to refresh the page.
-    // Let's rely on standard Server Action revalidation, so we just update the selectedBooking.
-    setSelectedBooking(updatedBooking)
-  }
 
-  const filteredBookings = initialBookings
+  const filteredBookings = bookings
     .filter(b => {
       const matchesSearch = 
         b.guest_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
