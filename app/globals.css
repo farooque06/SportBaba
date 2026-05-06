@@ -57,7 +57,7 @@
 
 @layer base {
   html {
-    @apply scroll-smooth antialiased;
+    @apply antialiased;
     scrollbar-width: thin;
     scrollbar-color: var(--primary) transparent;
     /* Prevent tap highlight flash on mobile */
@@ -500,17 +500,67 @@ body.modal-open {
   }
 }
 
-/* ═══════════════════════════════════
-   MOBILE-SPECIFIC PERFORMANCE
-   ═══════════════════════════════════ */
-@media (max-width: 768px) {
-  /* Reduce backdrop-blur on nav bars for scroll performance */
-  .md\:hidden[class*="backdrop-blur"] {
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+/* ═══════════════════════════════════════════════════════════
+   MOBILE / TOUCH DEVICE CRITICAL FIXES
+   
+   ROOT CAUSE: On mobile, `active:scale` transforms trigger
+   on touch-start BEFORE the browser can recognize a scroll
+   gesture. This makes scrolling require multiple taps.
+   
+   FIX: On touch-only devices, we disable all scale transforms
+   on touch-start to ensure the browser immediately recognizes 
+   scroll gestures.
+   ═══════════════════════════════════════════════════════════ */
+
+/* Touch-only devices (phones/tablets without mouse) */
+@media (hover: none) and (pointer: coarse) {
+  /* Disable scale transforms on active to prevent scroll blocking */
+  *:active {
+    transform: none !important;
   }
-  
-  /* Disable heavy animations on mobile for better performance */
+
+  /* Disable hover effects on touch devices */
+  *:hover {
+    transform: none !important;
+  }
+
+  /* Disable backdrop-blur on non-modal fixed elements for performance */
+  .fixed:not([class*="z-[1000]"]):not([class*="z-[1100]"]) {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Keep backdrop-blur for modals where performance is less critical */
+  [class*="z-[1000]"], [class*="z-[1100]"] {
+     backdrop-filter: blur(12px) !important;
+     -webkit-backdrop-filter: blur(12px) !important;
+  }
+
+  /* Disable heavy animations */
+  .animate-float,
+  .animate-slow-zoom,
+  .animate-spin-slow,
+  .animate-pulse-soft {
+    animation: none !important;
+  }
+
+  /* Solid cards for performance */
+  .glass-card {
+    background: var(--card) !important;
+    border: 1px solid var(--border) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  /* Native-feel scroll */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Fallback for older browsers */
+@media (max-width: 768px) {
   .animate-float,
   .animate-slow-zoom,
   .animate-spin-slow {

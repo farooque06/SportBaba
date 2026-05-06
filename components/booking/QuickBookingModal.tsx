@@ -197,7 +197,8 @@ export function QuickBookingModal({
   // ─── Create Booking Form ───
   return (
     <div className="fixed inset-0 z-[1000] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4" onClick={onClose}>
-      <div 
+      <form 
+        onSubmit={handleSubmit}
         className="bg-card w-full md:max-w-xl max-h-[92dvh] max-h-[88vh] md:max-h-[90vh] rounded-t-[24px] md:rounded-[32px] border border-border/40 shadow-2xl animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
@@ -244,8 +245,8 @@ export function QuickBookingModal({
           </div>
         </div>
 
-        {/* ─── Scrollable Form ─── */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto custom-scrollbar">
+        {/* ─── Scrollable Form Fields ─── */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
           <div className="p-5 md:p-8 space-y-5">
             
             {/* ─── Time Selection ─── */}
@@ -442,9 +443,10 @@ export function QuickBookingModal({
 
             </div>
           </div>
+        </div>
 
-          {/* ─── Sticky Summary + Submit ─── */}
-          <div className="sticky bottom-0 p-5 pb-24 md:p-6 md:pb-6 border-t border-border/20 bg-card/95 backdrop-blur-xl shrink-0 space-y-3 safe-area-bottom">
+        {/* ─── Fixed Summary + Submit ─── */}
+        <div className="p-5 pb-32 md:p-6 md:pb-6 border-t border-border/20 bg-card shrink-0 space-y-3 safe-area-bottom">
             {/* Live Summary */}
             <div className="flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/10">
               <div className="flex items-center gap-3 min-w-0">
@@ -479,10 +481,9 @@ export function QuickBookingModal({
               >
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Confirm Booking"}
               </Button>
-            </div>
           </div>
-        </form>
-      </div>
+        </div>
+      </form>
       {toast && (
         <Toast 
           message={toast.message} 

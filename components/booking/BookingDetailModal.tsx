@@ -377,7 +377,7 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
           </div>
 
           {/* ─── Action Footer ─── */}
-          <div className="p-4 pb-24 md:p-5 md:pb-5 shrink-0 border-t border-border/20 bg-muted/20 backdrop-blur-sm space-y-3 safe-area-bottom">
+          <div className="p-4 pb-32 md:p-5 md:pb-5 shrink-0 border-t border-border/20 bg-muted/20 space-y-3 safe-area-bottom">
             <div className="flex gap-2.5">
               {(booking.status === 'confirmed' || booking.status === 'pending') && (
                 <Button 

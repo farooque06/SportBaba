@@ -42,7 +42,7 @@ export function CreateTournamentModal({ isOpen, onClose, facilityId, onSuccess }
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-2 md:p-4 text-white">
-      <div className="bg-[#121212] w-full max-w-xl max-h-[95vh] overflow-y-auto rounded-[32px] md:rounded-[40px] p-6 md:p-10 border border-white/10 shadow-2xl animate-in fade-in zoom-in duration-300 relative custom-scrollbar">
+      <div className="bg-[#121212] w-full max-w-xl max-h-[95vh] overflow-y-auto rounded-[32px] md:rounded-[40px] p-6 md:p-10 pb-32 md:pb-10 border border-white/10 shadow-2xl animate-in fade-in zoom-in duration-300 relative custom-scrollbar">
         {/* Decorative background */}
         <div className="absolute -top-32 -right-32 w-64 h-64 bg-primary/20 rounded-full blur-[100px] opacity-50 pointer-events-none" />
         

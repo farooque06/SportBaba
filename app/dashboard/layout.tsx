@@ -141,7 +141,7 @@ export default async function DashboardLayout({
 
   return (
     <SportProvider facilityType={facility?.sport_type} facilityId={facilityId}>
-      <div className="flex h-dvh h-screen overflow-hidden bg-background">
+      <div className="flex flex-col md:flex-row md:h-screen md:overflow-hidden bg-background">
         <Sidebar 
           subscriptionStatus={facility?.subscription_status} 
           trialEnd={facility?.trial_end} 
@@ -151,7 +151,7 @@ export default async function DashboardLayout({
           }}
         />
         <MobileNav />
-        <main className="flex-1 overflow-y-auto mobile-scroll w-full max-w-[1600px] mx-auto pt-[72px] md:pt-6 lg:pt-8 px-3 md:px-6 lg:px-8 pb-36 md:pb-12 bg-muted/10">
+        <main className="flex-1 md:overflow-y-auto mobile-scroll w-full max-w-[1600px] mx-auto pt-[72px] md:pt-6 lg:pt-8 px-3 md:px-6 lg:px-8 pb-36 md:pb-12 bg-muted/10">
           {children}
         </main>
         <QuickActionFab />

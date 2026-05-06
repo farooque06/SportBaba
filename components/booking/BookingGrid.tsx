@@ -248,7 +248,7 @@ export function BookingGrid({
                     <button
                       onClick={() => setSelectedBooking(booking)}
                       style={{ touchAction: 'manipulation' }}
-                      className={`w-full text-left p-4 rounded-2xl border transition-all active:scale-[0.98] min-h-[60px] ${
+                      className={`w-full text-left p-4 rounded-2xl border min-h-[60px] ${
                         isLive 
                           ? 'bg-red-500/5 border-red-500/20 shadow-sm shadow-red-500/5' 
                           : isEndingSoon

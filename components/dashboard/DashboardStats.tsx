@@ -74,7 +74,7 @@ export function DashboardStats({ facilityId }: { facilityId: string }) {
       <button 
         onClick={loadStats}
         disabled={loading}
-        className="absolute -top-10 right-2 p-2 rounded-xl bg-card/40 backdrop-blur-md border border-border/40 text-muted-foreground hover:text-primary transition-all active:scale-90 disabled:opacity-50"
+        className="absolute -top-10 right-2 p-2 rounded-xl bg-card border border-border/40 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
         title="Refresh Stats"
       >
         <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
@@ -89,7 +89,7 @@ export function DashboardStats({ facilityId }: { facilityId: string }) {
         >
           <div className="flex flex-col gap-4 md:gap-6 relative z-10">
             <div className="flex items-center justify-between">
-              <div className="p-3 md:p-4 rounded-[20px] md:rounded-[24px] bg-primary/10 text-primary group-hover/card:bg-primary group-hover/card:text-primary-foreground transition-all duration-500 shadow-inner">
+              <div className="p-3 md:p-4 rounded-[20px] md:rounded-[24px] bg-primary/10 text-primary md:group-hover/card:bg-primary md:group-hover/card:text-primary-foreground transition-colors duration-500 shadow-inner">
                 <item.icon className="h-5 w-5 md:h-7 md:w-7" />
               </div>
               {item.isLive && (
@@ -106,7 +106,7 @@ export function DashboardStats({ facilityId }: { facilityId: string }) {
                 {loading && !stats ? (
                   <div className="h-8 md:h-10 w-16 bg-muted/30 rounded-xl animate-pulse" />
                 ) : (
-                  <h4 className="text-2xl md:text-4xl font-black tracking-tighter text-foreground group-hover/card:scale-105 transition-transform duration-500 origin-left italic uppercase">
+                  <h4 className="text-2xl md:text-4xl font-black tracking-tighter text-foreground md:group-hover/card:scale-105 transition-transform duration-500 origin-left italic uppercase">
                     {item.value ?? "0"}
                   </h4>
                 )}
@@ -119,7 +119,7 @@ export function DashboardStats({ facilityId }: { facilityId: string }) {
             </div>
           </div>
           
-          <item.icon className="absolute -bottom-4 -right-4 h-24 w-24 text-primary/5 -rotate-12 group-hover/card:rotate-0 group-hover/card:scale-110 transition-all duration-700" />
+          <item.icon className="absolute -bottom-4 -right-4 h-24 w-24 text-primary/5 -rotate-12 md:group-hover/card:rotate-0 md:group-hover/card:scale-110 transition-transform duration-700" />
         </Card>
       ))}
     </div>

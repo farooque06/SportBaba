@@ -218,7 +218,7 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
                 type="button"
                 key={booking.id}
                 onClick={() => setSelectedBooking(booking)}
-                className="group relative bg-card/40 hover:bg-card/60 border border-border/50 hover:border-primary/30 p-4 md:p-6 rounded-2xl md:rounded-[32px] transition-all cursor-pointer flex flex-col md:flex-row md:items-center gap-4 md:gap-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 active:scale-[0.99] duration-300 overflow-hidden w-full text-left"
+                className="group relative bg-card/40 hover:bg-card/60 border border-border/50 hover:border-primary/30 p-4 md:p-6 rounded-2xl md:rounded-[32px] cursor-pointer flex flex-col md:flex-row md:items-center gap-4 md:gap-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 overflow-hidden w-full text-left"
               >
                 {/* Status Indicator Bar */}
                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${
