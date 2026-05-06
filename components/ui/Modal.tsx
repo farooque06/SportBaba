@@ -57,7 +57,7 @@ export function ConfirmationModal({
           </p>
         </div>
 
-        <div className="p-8 space-y-3 bg-muted/10 border-t border-border/10">
+        <div className="p-8 pb-24 md:pb-8 space-y-3 bg-muted/10 border-t border-border/10">
           <Button 
             disabled={isLoading}
             variant="primary" 

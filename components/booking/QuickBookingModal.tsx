@@ -140,7 +140,7 @@ export function QuickBookingModal({
   if (isSuccess && createdBooking) {
     return (
       <div className="fixed inset-0 z-[1000] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4" onClick={onClose}>
-        <div className="bg-card w-full md:max-w-sm rounded-t-[28px] md:rounded-[32px] border border-border/40 shadow-2xl animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="bg-card w-full md:max-w-sm rounded-t-[24px] md:rounded-[32px] border border-border/40 shadow-2xl animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 overflow-hidden" onClick={(e) => e.stopPropagation()}>
           {/* Drag handle */}
           <div className="md:hidden flex justify-center pt-3"><div className="h-1 w-10 rounded-full bg-foreground/10" /></div>
           
@@ -172,7 +172,7 @@ export function QuickBookingModal({
               </div>
             </div>
 
-            <div className="flex flex-col gap-2.5 safe-area-bottom">
+            <div className="flex flex-col gap-2.5 pb-20 md:pb-0 safe-area-bottom">
               {createdBooking.guest_phone && (
                 <a 
                   href={getWhatsAppLink(createdBooking.guest_phone, `Hi ${createdBooking.guest_name}! Your booking at ${selectedResource?.name} is confirmed for ${new Date(createdBooking.start_time).toLocaleDateString()} at ${new Date(createdBooking.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. See you there! ⚽`)}
@@ -198,7 +198,7 @@ export function QuickBookingModal({
   return (
     <div className="fixed inset-0 z-[1000] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4" onClick={onClose}>
       <div 
-        className="bg-card w-full md:max-w-xl max-h-[88vh] md:max-h-[90vh] rounded-t-[28px] md:rounded-[32px] border border-border/40 shadow-2xl animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 flex flex-col overflow-hidden"
+        className="bg-card w-full md:max-w-xl max-h-[92dvh] max-h-[88vh] md:max-h-[90vh] rounded-t-[24px] md:rounded-[32px] border border-border/40 shadow-2xl animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle (mobile) */}
@@ -444,7 +444,7 @@ export function QuickBookingModal({
           </div>
 
           {/* ─── Sticky Summary + Submit ─── */}
-          <div className="sticky bottom-0 p-5 md:p-6 border-t border-border/20 bg-card/95 backdrop-blur-xl shrink-0 space-y-3 safe-area-bottom">
+          <div className="sticky bottom-0 p-5 pb-24 md:p-6 md:pb-6 border-t border-border/20 bg-card/95 backdrop-blur-xl shrink-0 space-y-3 safe-area-bottom">
             {/* Live Summary */}
             <div className="flex items-center justify-between p-3.5 rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/10">
               <div className="flex items-center gap-3 min-w-0">

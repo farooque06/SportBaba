@@ -214,10 +214,11 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
         ) : (
           <div className="grid grid-cols-1 gap-4">
             {filteredBookings.map((booking) => (
-              <div 
+              <button 
+                type="button"
                 key={booking.id}
                 onClick={() => setSelectedBooking(booking)}
-                className="group relative bg-card/40 hover:bg-card/60 border border-border/50 hover:border-primary/30 p-6 rounded-[32px] transition-all cursor-pointer flex flex-col md:flex-row md:items-center gap-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 active:scale-[0.99] duration-300 overflow-hidden"
+                className="group relative bg-card/40 hover:bg-card/60 border border-border/50 hover:border-primary/30 p-4 md:p-6 rounded-2xl md:rounded-[32px] transition-all cursor-pointer flex flex-col md:flex-row md:items-center gap-4 md:gap-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 active:scale-[0.99] duration-300 overflow-hidden w-full text-left"
               >
                 {/* Status Indicator Bar */}
                 <div className={`absolute left-0 top-0 bottom-0 w-1 ${
@@ -227,14 +228,14 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
                 }`} />
 
                 {/* Time & Resource Section */}
-                <div className="flex flex-col min-w-[140px]">
+                <div className="flex flex-col min-w-[140px] pl-2">
                   <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">{formatDate(booking.start_time)}</p>
                   <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-lg font-black tracking-tight">{formatTime(booking.start_time)} - {formatTime(booking.end_time)}</span>
+                    <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+                    <span className="text-base md:text-lg font-black tracking-tight">{formatTime(booking.start_time)} - {formatTime(booking.end_time)}</span>
                   </div>
                   <div className="flex items-center gap-1.5 mt-2">
-                    <div className="h-5 w-5 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <div className="h-5 w-5 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                        <MapPin className="h-3 w-3 text-primary" />
                     </div>
                     <span className="text-sm font-bold text-foreground/80">{booking.resource?.name}</span>
@@ -242,21 +243,21 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
                 </div>
 
                 {/* Player Section */}
-                <div className="flex-1 flex items-center gap-4 border-l border-border/50 pl-6">
-                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center border border-border shadow-inner">
-                    <User className="h-6 w-6 text-muted-foreground" />
+                <div className="flex-1 flex items-center gap-3 md:gap-4 border-t md:border-t-0 md:border-l border-border/50 pt-3 md:pt-0 md:pl-6">
+                  <div className="h-12 w-12 md:h-14 md:w-14 rounded-xl md:rounded-2xl bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center border border-border shadow-inner shrink-0">
+                    <User className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-xl font-black tracking-tight leading-none">{booking.guest_name || "Guest User"}</h4>
+                        <h4 className="text-base md:text-xl font-black tracking-tight leading-none truncate">{booking.guest_name || "Guest User"}</h4>
                         <LoyaltyBadge visits={booking.customer?.total_visits} />
                      </div>
-                     <p className="text-xs font-bold text-primary uppercase tracking-widest">{booking.guest_phone || "No contact provided"}</p>
+                     <p className="text-xs font-bold text-primary uppercase tracking-widest truncate">{booking.guest_phone || "No contact provided"}</p>
                   </div>
                 </div>
 
                 {/* Financial & Status Tags */}
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 flex-wrap">
                    {(() => {
                       const start = new Date(booking.start_time)
                       const end = new Date(booking.end_time)
@@ -264,22 +265,22 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
                       const isUpcoming = booking.status === 'confirmed' && start > now
                       
                       if (isLive) return (
-                         <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse">
+                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse">
                             <div className="h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
                             <span className="text-[9px] font-black uppercase tracking-widest">Live Match</span>
                          </div>
                       )
                       if (isUpcoming) return (
-                         <div className="px-4 py-2 rounded-2xl bg-primary/10 text-primary border border-primary/20">
+                         <div className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary border border-primary/20">
                             <span className="text-[9px] font-black uppercase tracking-widest">Upcoming</span>
                          </div>
                       )
                       return null
                    })()}
-                   <div className={`px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest border transition-colors ${statusColors[booking.status] || ''}`}>
+                   <div className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-colors ${statusColors[booking.status] || ''}`}>
                       {booking.status}
                    </div>
-                   <div className={`px-4 py-2 rounded-2xl text-[9px] font-black uppercase tracking-widest border ${
+                   <div className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border ${
                      booking.payment_status === 'paid' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 
                      booking.payment_status === 'partial' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
                      'bg-red-500/10 text-red-500 border-red-500/20'
@@ -293,12 +294,12 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
                 </div>
 
                 {/* View Action */}
-                <div className="flex justify-end">
+                <div className="hidden md:flex justify-end">
                    <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-muted/50 text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-all">
                       <ChevronRight className="h-5 w-5" />
                    </div>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}

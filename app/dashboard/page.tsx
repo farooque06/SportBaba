@@ -33,7 +33,7 @@ export default async function DashboardPage() {
   const resources = await fetchResourceUnits(facilityId).catch(() => []);
 
   return (
-    <div className="space-y-8 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mesh-gradient p-1 rounded-[48px]">
+    <div className="space-y-6 md:space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20 mesh-gradient p-1 rounded-3xl md:rounded-[48px]">
       <div className="px-1 md:px-2">
         <DashboardHeader name={session.user.name || "Hub Owner"} />
       </div>
@@ -56,7 +56,7 @@ export default async function DashboardPage() {
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 mt-1.5">Real-time resource occupancy & management</p>
           </div>
         </div>
-        <div className="glass-card rounded-[48px] p-4 md:p-6 shadow-2xl overflow-hidden ring-1 ring-white/10">
+        <div className="glass-card rounded-2xl md:rounded-[48px] p-3 md:p-6 shadow-2xl overflow-hidden ring-1 ring-white/10">
           <BookingGrid initialResources={resources} facilityId={facilityId} />
         </div>
       </div>
