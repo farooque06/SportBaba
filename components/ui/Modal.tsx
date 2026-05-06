@@ -42,7 +42,7 @@ export function ConfirmationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={onClose}>
+    <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 pb-24 md:p-4 md:pb-4 animate-in fade-in duration-300" onClick={onClose}>
       <div 
         className="bg-card w-full max-w-sm rounded-[32px] border border-border/40 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500"
         onClick={(e) => e.stopPropagation()}
@@ -57,7 +57,7 @@ export function ConfirmationModal({
           </p>
         </div>
 
-        <div className="p-8 pb-32 md:pb-8 space-y-3 bg-muted/10 border-t border-border/10">
+        <div className="p-8 space-y-3 bg-muted/10 border-t border-border/10">
           <Button 
             disabled={isLoading}
             variant="primary" 

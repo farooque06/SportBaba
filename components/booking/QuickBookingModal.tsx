@@ -196,10 +196,10 @@ export function QuickBookingModal({
 
   // ─── Create Booking Form ───
   return (
-    <div className="fixed inset-0 z-[1000] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 pb-24 md:p-4 md:pb-4" onClick={onClose}>
       <form 
         onSubmit={handleSubmit}
-        className="bg-card w-full md:max-w-xl max-h-[92dvh] max-h-[88vh] md:max-h-[90vh] rounded-t-[24px] md:rounded-[32px] border border-border/40 shadow-2xl animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 flex flex-col overflow-hidden"
+        className="bg-card w-full md:max-w-xl max-h-[85vh] md:max-h-[90vh] rounded-[32px] border border-border/40 shadow-2xl animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle (mobile) */}
@@ -465,7 +465,7 @@ export function QuickBookingModal({
         </div>
 
         {/* ─── Fixed Summary + Submit ─── */}
-        <div className="p-5 pb-32 md:p-8 md:pb-8 border-t border-border/20 bg-background/80 backdrop-blur-md shrink-0 space-y-4 safe-area-bottom">
+        <div className="p-5 pb-6 md:p-8 md:pb-8 border-t border-border/20 bg-background/80 backdrop-blur-md shrink-0 space-y-4 safe-area-bottom">
             {/* Live Receipt Card */}
             <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 shadow-sm relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
