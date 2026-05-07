@@ -1,6 +1,5 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
 import { Card } from "@/components/ui/Card"
 import { Activity, Users, Calendar, PlusSquare, RefreshCw } from "lucide-react"
 import { fetchFacilityStats } from "@/lib/actions/members"
@@ -13,28 +12,17 @@ interface Stats {
   liveMatches: number
 }
 
+import useSWR from "swr"
+
 export function DashboardStats({ facilityId }: { facilityId: string }) {
-  const [stats, setStats] = useState<Stats | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(false)
-
-  const loadStats = useCallback(async () => {
-    setLoading(true)
-    setError(false)
-    try {
-      const data = await fetchFacilityStats(facilityId)
-      setStats(data)
-    } catch (err) {
-      console.error("Failed to fetch stats:", err)
-      setError(true)
-    } finally {
-      setLoading(false)
+  const { data: stats, isValidating: loading, mutate: loadStats } = useSWR(
+    `stats/${facilityId}`,
+    () => fetchFacilityStats(facilityId),
+    {
+      revalidateOnFocus: true,
+      refreshInterval: 60000, // Refresh every 1 min
     }
-  }, [facilityId])
-
-  useEffect(() => {
-    loadStats()
-  }, [loadStats])
+  )
 
   const statsConfig = [
     { 
@@ -72,7 +60,7 @@ export function DashboardStats({ facilityId }: { facilityId: string }) {
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 px-1 md:px-2 relative group">
       {/* Global Refresh Button */}
       <button 
-        onClick={loadStats}
+        onClick={() => loadStats()}
         disabled={loading}
         className="absolute -top-10 right-2 p-2 rounded-xl bg-card border border-border/40 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
         title="Refresh Stats"

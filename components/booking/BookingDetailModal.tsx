@@ -1,14 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSWRConfig } from "swr"
 import Link from "next/link"
 import { X, MapPin, CreditCard, CheckCircle2, Banknote, Clock, Timer, Info, Loader2, Phone, MessageCircle, User, ShoppingBag, Plus, Minus, Zap, Receipt } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { formatCurrency } from "@/lib/utils"
-import { updatePaymentStatus, updateBookingStatus, addBookingAddon, removeBookingAddon, extendBooking } from "@/lib/actions/booking"
+import { updatePaymentStatus, updateBookingStatus, addBookingAddon, removeBookingAddon, extendBooking, cancelWithCredit } from "@/lib/actions/booking"
 import { fetchProducts } from "@/lib/actions/inventory"
 import { getCurrentUserRole } from "@/lib/actions/auth"
 import { Toast, ToastType } from "@/components/ui/Toast"
+import { Portal } from "@/components/ui/Portal"
 
 interface BookingDetailModalProps {
   booking: any | null
@@ -23,6 +25,14 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
   const [whatsappPending, setWhatsappPending] = useState<string | null>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string, type: ToastType } | null>(null)
+  const { mutate } = useSWRConfig()
+
+  const refreshGrid = (updatedData?: any) => {
+    const data = updatedData || booking
+    if (!data?.start_time || !data?.facility_id) return
+    const dateKey = new Date(data.start_time).toISOString().split('T')[0]
+    mutate(`bookings/${data.facility_id}/${dateKey}`)
+  }
 
   const showToast = (message: string, type: ToastType = "success") => setToast({ message, type })
 
@@ -50,6 +60,13 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
   }
 
   if (!booking) return null
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
 
   // Computed values
   const start = new Date(booking.start_time)
@@ -80,6 +97,7 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
     const result = await updatePaymentStatus(booking.id, 'paid', method, undefined, booking.facility_id)
     if (result.success) {
       setBooking(result.data)
+      refreshGrid(result.data)
       if(onUpdate) onUpdate(result.data)
       if (result.whatsappUrl) setWhatsappPending(result.whatsappUrl)
     }
@@ -95,6 +113,7 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
     const result = await updateBookingStatus(booking.id, status, booking.facility_id)
     if (result.success) {
       setBooking(result.data)
+      refreshGrid(result.data)
       if(onUpdate) onUpdate(result.data)
       if (result.whatsappUrl) setWhatsappPending(result.whatsappUrl)
     }
@@ -106,6 +125,7 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
     const result = await addBookingAddon(booking.id, item, booking.facility_id)
     if (result.success) {
       setBooking(result.data)
+      refreshGrid(result.data)
       if(onUpdate) onUpdate(result.data)
     }
     setIsUpdating(false)
@@ -116,6 +136,7 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
     const result = await removeBookingAddon(booking.id, timestamp, booking.facility_id)
     if (result.success) {
       setBooking(result.data)
+      refreshGrid(result.data)
       if(onUpdate) onUpdate(result.data)
     }
     setIsUpdating(false)
@@ -126,10 +147,26 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
     const result = await extendBooking(booking.id, minutes, booking.facility_id)
     if (result.success) {
       setBooking(result.data)
+      refreshGrid(result.data)
       if(onUpdate) onUpdate(result.data)
       showToast("Match extended successfully")
     } else {
       showToast(result.error || "Could not extend match. Check for conflicts.", "error")
+    }
+    setIsUpdating(false)
+  }
+
+  const handleCancelWithCredit = async () => {
+    if (!confirm("Are you sure you want to cancel and issue credit for this match?")) return
+    setIsUpdating(true)
+    const res = await cancelWithCredit(booking.id, booking.facility_id)
+    if (res.success) {
+      showToast(`Cancelled! ${formatCurrency(res.creditIssued || 0)} issued as credit.`, "success")
+      refreshGrid(res.data)
+      if (onUpdate) onUpdate(res.data)
+      onClose()
+    } else {
+      showToast(res.error || "Failed to cancel", "error")
     }
     setIsUpdating(false)
   }
@@ -147,9 +184,10 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 pb-24 md:p-4 md:pb-4 animate-in fade-in duration-300" onClick={onClose}>
+    <Portal>
+      <div className="fixed inset-0 z-[2000] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4 animate-in fade-in duration-300" onClick={onClose}>
         <div 
-          className="bg-card w-full md:max-w-lg max-h-[85vh] md:max-h-[min(900px,92vh)] rounded-[32px] border border-border/40 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 flex flex-col"
+          className="bg-card w-full md:max-w-lg max-h-[92vh] md:max-h-[min(900px,92vh)] rounded-t-[32px] md:rounded-[32px] border border-border/40 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 flex flex-col"
          onClick={(e) => e.stopPropagation()}
        >
           {/* ─── Status-Colored Header ─── */}
@@ -387,17 +425,29 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
           </div>
 
           {/* ─── Action Footer ─── */}
-          <div className="p-4 pb-6 md:p-5 md:pb-5 shrink-0 border-t border-border/20 bg-muted/20 space-y-3 safe-area-bottom">
+          <div className="p-4 pb-10 md:pb-5 shrink-0 border-t border-border/20 bg-muted/20 space-y-3 safe-area-bottom">
             <div className="flex gap-2.5">
               {(booking.status === 'confirmed' || booking.status === 'pending') && (
-                <Button 
-                  disabled={isUpdating}
-                  variant="ghost" 
-                  className="flex-1 h-12 md:h-14 rounded-xl font-black uppercase tracking-widest text-[10px] text-red-500/70 border border-red-500/20 hover:text-red-600 hover:bg-red-500/5 active:scale-[0.97] transition-all"
-                  onClick={() => handleUpdateStatus('cancelled')}
-                >
-                  Cancel Match
-                </Button>
+                  <div className="flex-1 flex flex-col gap-2">
+                    <Button 
+                      disabled={isUpdating}
+                      variant="ghost" 
+                      className="w-full h-10 md:h-11 rounded-lg font-black uppercase tracking-widest text-[9px] text-red-500/70 border border-red-500/10 hover:text-red-600 hover:bg-red-500/5 transition-all"
+                      onClick={() => handleUpdateStatus('cancelled')}
+                    >
+                      Delete Match
+                    </Button>
+                    {(booking.paid_amount > 0) && (
+                      <Button 
+                        disabled={isUpdating}
+                        className="w-full h-10 md:h-11 rounded-lg font-black uppercase tracking-widest text-[9px] bg-amber-500/10 text-amber-600 border border-amber-500/20 hover:bg-amber-500/20 transition-all flex items-center justify-center gap-1.5"
+                        onClick={handleCancelWithCredit}
+                      >
+                        <Zap className="h-3 w-3" />
+                        Cancel & Credit
+                      </Button>
+                    )}
+                  </div>
               )}
               {booking.status === 'pending' && (
                 <Button 
@@ -511,5 +561,6 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
         />
       )}
     </div>
+    </Portal>
   )
 }

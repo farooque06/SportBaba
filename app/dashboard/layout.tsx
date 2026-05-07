@@ -150,11 +150,11 @@ export default async function DashboardLayout({
             facilityName: (facility as any)?.name || "Facility Hub"
           }}
         />
-        <MobileNav />
-        <main className="flex-1 md:overflow-y-auto mobile-scroll w-full max-w-[1600px] mx-auto pt-[72px] md:pt-6 lg:pt-8 px-3 md:px-6 lg:px-8 pb-36 md:pb-12 bg-muted/10">
+        <main className="flex-1 md:overflow-y-auto w-full max-w-[1600px] mx-auto pt-[72px] md:pt-6 lg:pt-8 px-3 md:px-6 lg:px-8 pb-36 md:pb-12 bg-muted/10">
+          <MobileNav />
           {children}
+          <QuickActionFab />
         </main>
-        <QuickActionFab />
       </div>
     </SportProvider>
   );

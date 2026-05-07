@@ -10,6 +10,7 @@ import { fetchFacility } from "@/lib/actions/facility"
 import { fetchResourceWithBookings } from "@/lib/actions/booking"
 import { useSport } from "@/components/providers/SportProvider"
 import { formatCurrency } from "@/lib/utils"
+import useSWR from "swr"
 
 const PX_PER_MINUTE = 2; 
 const SLOT_HEIGHT = 30 * PX_PER_MINUTE; // 60px
@@ -23,14 +24,28 @@ export function BookingGrid({
 }) {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const dateInputRef = useRef<HTMLInputElement>(null)
-  const [resources, setResources] = useState(initialResources)
-  const [loading, setLoading] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalInitialData, setModalInitialData] = useState<{ resourceId?: string, hour?: number, minute?: number }>({})
   const [selectedBooking, setSelectedBooking] = useState<any>(null)
   const { sport } = useSport()
   const [now, setNow] = useState(new Date())
   const [isMounted, setIsMounted] = useState(false)
+
+  // ─── SWR Data Management ───
+  const dateKey = selectedDate.toISOString().split('T')[0]
+  const swrKey = `bookings/${facilityId}/${dateKey}`
+  
+  const { data: resources = initialResources, mutate: mutateGrid, isValidating: loading } = useSWR(swrKey, async () => {
+    const startOfDay = new Date(selectedDate)
+    startOfDay.setHours(0, 0, 0, 0)
+    const endOfDay = new Date(selectedDate)
+    endOfDay.setHours(23, 59, 59, 999)
+    return fetchResourceWithBookings(facilityId, startOfDay.toISOString(), endOfDay.toISOString())
+  }, {
+    revalidateOnFocus: true,
+    refreshInterval: 60000, // Background sync every 1 min
+    dedupingInterval: 2000
+  })
 
   // Dynamic Hours
   const [openHour, setOpenHour] = useState(8)
@@ -72,27 +87,8 @@ export function BookingGrid({
   const showTimeIndicator = isMounted && isToday && currentHour >= openHour && currentHour <= closeHour
   const timeIndicatorTop = (currentHour - openHour) * (60 * PX_PER_MINUTE) + (currentMinutes * PX_PER_MINUTE)
 
-  // Fetch data when date changes
-  useEffect(() => {
-    let isMounted = true
-    async function loadData() {
-      setLoading(true)
-
-      const startOfDay = new Date(selectedDate)
-      startOfDay.setHours(0, 0, 0, 0)
-
-      const endOfDay = new Date(selectedDate)
-      endOfDay.setHours(23, 59, 59, 999)
-
-      const data = await fetchResourceWithBookings(facilityId, startOfDay.toISOString(), endOfDay.toISOString())
-      if (isMounted && data) {
-        setResources(data)
-      }
-      if (isMounted) setLoading(false)
-    }
-    loadData()
-    return () => { isMounted = false }
-  }, [selectedDate, facilityId])
+  // Helper for components to trigger re-fetch
+  const loadData = () => mutateGrid()
 
 
   const handlePrevDay = () => {
@@ -110,16 +106,28 @@ export function BookingGrid({
   const handleToday = () => setSelectedDate(new Date())
 
   const updateLocalBooking = (updated: any) => {
-    setResources(prev => prev.map(res => {
-      const hasBooking = res.bookings?.some((b: any) => b.id === updated.id)
-      if (hasBooking) {
-        return {
-          ...res,
-          bookings: res.bookings.map((b: any) => b.id === updated.id ? updated : b)
+    mutateGrid((prev: any) => {
+      if (!prev) return prev
+      return prev.map((res: any) => {
+        const hasBooking = res.bookings?.some((b: any) => b.id === updated.id)
+        if (hasBooking) {
+          // If the booking was cancelled, remove it from the timeline immediately
+          if (updated.status === 'cancelled') {
+            return {
+              ...res,
+              bookings: res.bookings.filter((b: any) => b.id !== updated.id)
+            }
+          }
+          // Otherwise, update the booking data in place
+          return {
+            ...res,
+            bookings: res.bookings.map((b: any) => b.id === updated.id ? updated : b)
+          }
         }
-      }
-      return res
-    }))
+        return res
+      })
+    }, false)
+
     if (selectedBooking?.id === updated.id) {
       setSelectedBooking(updated)
     }
@@ -486,6 +494,23 @@ export function BookingGrid({
                                   : booking.payment_status === 'partial' ? 'bg-amber-500' 
                                   : 'bg-red-500'
                                 }`} />
+                                
+                                {/* Smart Reminder Quick-Action */}
+                                {(!isLive && !isCompleted && start.getTime() - now.getTime() > 0 && start.getTime() - now.getTime() < 3 * 60 * 60 * 1000) && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      import('@/lib/notifications').then(async ({ generateWhatsAppNotification }) => {
+                                        const result = await generateWhatsAppNotification('reminder_1hr', booking);
+                                        if (result.whatsappUrl) window.open(result.whatsappUrl, '_blank');
+                                      });
+                                    }}
+                                    className="h-6 w-6 rounded-lg bg-primary/10 hover:bg-primary/20 flex items-center justify-center text-primary transition-all animate-pulse shadow-sm border border-primary/20 ml-1"
+                                    title="Send Smart Reminder"
+                                  >
+                                    <Clock className="h-3 w-3" />
+                                  </button>
+                                )}
                               </div>
                             </div>
 
@@ -549,6 +574,7 @@ export function BookingGrid({
         initialMinute={modalInitialData.minute}
         openHour={openHour}
         closeHour={closeHour}
+        onSuccess={loadData}
       />
 
       {/* POS Checkout Modal — opens when clicking an existing booking block */}

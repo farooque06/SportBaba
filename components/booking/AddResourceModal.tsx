@@ -2,16 +2,28 @@
 
 import { createResourceUnit } from "@/lib/actions/resources"
 import { Button } from "@/components/ui/Button"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useSport } from "@/components/providers/SportProvider"
 import { useRouter } from "next/navigation"
 import { X, AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
+import { Portal } from "@/components/ui/Portal"
 
 export function AddResourceModal({ isOpen, onClose }: { isOpen: boolean, onClose: () => void }) {
   const { facilityId } = useSport()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   if (!isOpen) return null
 
@@ -49,9 +61,10 @@ export function AddResourceModal({ isOpen, onClose }: { isOpen: boolean, onClose
   }
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4" onClick={onClose}>
+    <Portal>
+      <div className="fixed inset-0 z-[2000] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4" onClick={onClose}>
       <div 
-        className="bg-card w-full md:max-w-md rounded-t-[28px] md:rounded-[32px] border border-border/40 shadow-2xl animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 overflow-hidden"
+        className="bg-card w-full md:max-w-md rounded-t-[28px] md:rounded-[32px] border border-border/40 shadow-2xl animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 overflow-hidden safe-area-bottom pb-10 md:pb-0"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle (mobile) */}
@@ -124,5 +137,6 @@ export function AddResourceModal({ isOpen, onClose }: { isOpen: boolean, onClose
         </form>
       </div>
     </div>
+    </Portal>
   )
 }

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { auth } from "@/auth";
 import { BookingGrid } from "@/components/booking/BookingGrid";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -38,13 +39,19 @@ export default async function DashboardPage() {
         <DashboardHeader name={session.user.name || "Hub Owner"} />
       </div>
 
-      {/* ─── Quick Stats (Lazy Loaded) ─── */}
+      {/* ─── Quick Stats (Lazy Loaded via SWR) ─── */}
       <DashboardStats facilityId={facilityId} />
 
-      {/* ─── Notifications & Action Center ─── */}
+      {/* ─── Notifications & Action Center (Non-Blocking) ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 px-1 md:px-2">
-        <RemindersList />
-        <InventoryAlerts />
+        <Suspense fallback={<div className="h-48 bg-card/20 rounded-[40px] animate-pulse" />}>
+          <RemindersList />
+        </Suspense>
+        <div className="hidden lg:block">
+          <Suspense fallback={<div className="h-48 bg-card/20 rounded-[40px] animate-pulse" />}>
+            <InventoryAlerts />
+          </Suspense>
+        </div>
       </div>
 
       {/* ─── Booking Management ─── */}

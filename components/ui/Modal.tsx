@@ -1,8 +1,10 @@
 "use client";
+import { useState, useEffect } from "react";
 
 import { X, AlertTriangle, AlertCircle, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
+import { Portal } from "@/components/ui/Portal";
 
 export interface ConfirmationModalProps {
   isOpen: boolean;
@@ -27,6 +29,17 @@ export function ConfirmationModal({
   type = "info",
   isLoading = false
 }: ConfirmationModalProps) {
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const icons = {
@@ -42,9 +55,10 @@ export function ConfirmationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 pb-24 md:p-4 md:pb-4 animate-in fade-in duration-300" onClick={onClose}>
+    <Portal>
+      <div className="fixed inset-0 z-[2000] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4 animate-in fade-in duration-300" onClick={onClose}>
       <div 
-        className="bg-card w-full max-w-sm rounded-[32px] border border-border/40 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500"
+        className="bg-card w-full max-w-sm rounded-t-[32px] md:rounded-[32px] border border-border/40 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500"
         onClick={(e) => e.stopPropagation()}
       >
         <div className={cn("p-10 flex flex-col items-center text-center", colors[type])}>
@@ -57,7 +71,7 @@ export function ConfirmationModal({
           </p>
         </div>
 
-        <div className="p-8 space-y-3 bg-muted/10 border-t border-border/10">
+        <div className="p-8 pb-10 md:pb-8 space-y-3 bg-muted/10 border-t border-border/10">
           <Button 
             disabled={isLoading}
             variant="primary" 
@@ -81,5 +95,6 @@ export function ConfirmationModal({
         </div>
       </div>
     </div>
+    </Portal>
   );
 }

@@ -17,6 +17,7 @@ export type NotificationType =
   | 'booking_completed' 
   | 'payment_received' 
   | 'reminder_1hr'
+  | 'payment_request'
 
 interface BookingData {
   id: string
@@ -169,20 +170,50 @@ function getMessageTemplate(type: NotificationType, booking: BookingData, facili
 
     case 'reminder_1hr':
       return [
-        `⏰ *Reminder: Your game starts in 1 hour!*`,
+        `⭐ *SMART REMINDER: GAME ON!*`,
         ``,
-        `Hi ${name},`,
+        `Hi ${name}, your match at *${facility}* is starting soon!`,
         ``,
-        `🏟️ *${resource}*`,
-        `⏰ ${time}`,
-        `📅 ${date}`,
+        `🏟️ *Court:* ${resource}`,
+        `⏰ *Time:* ${time}`,
+        `📅 *Date:* ${date}`,
+        ``,
+        `📍 *Location:* https://maps.google.com/?q=${encodeURIComponent(facility)}`,
         ``,
         ...(Number(booking.paid_amount || 0) < Number(booking.total_price || 0) 
-          ? [`💰 Due on arrival: ${due}`, ``]
-          : []
+          ? [
+              `💳 *Settlement Required:*`,
+              `Please settle the balance of *${due}* at the counter upon arrival.`,
+              ``
+            ]
+          : [`✅ *Payment:* Fully Settled. See you at the pitch!`, ``]
         ),
-        `Don't forget your gear! See you soon 🎽`,
-        `— *${facility}*`,
+        `👟 *Pro-Tips:*`,
+        `• Arrive 10 mins early for warm-up.`,
+        `• Don't forget your water bottle and proper footwear.`,
+        ``,
+        `Need to change something? Call us: +977-XXXXXXXXXX`,
+        ``,
+        `See you soon! ⚽🏀🎾`,
+      ].join('\n')
+
+    case 'payment_request':
+      return [
+        `⚠️ *PAYMENT REMINDER: SETTLEMENT PENDING*`,
+        ``,
+        `Hi ${name}, we hope you enjoyed your match at *${facility}*!`,
+        ``,
+        `Our records show a pending balance for your recent booking:`,
+        `🏟️ *Court:* ${resource}`,
+        `📅 *Date:* ${date}`,
+        `⏰ *Time:* ${time}`,
+        ``,
+        `💰 *Outstanding Amount: ${due}*`,
+        ``,
+        `Please settle this via our online portal or visit the counter next time.`,
+        ``,
+        `📋 Ref: #${refId}`,
+        `Thank you! 🙏`,
       ].join('\n')
 
     default:

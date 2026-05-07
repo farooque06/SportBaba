@@ -1,13 +1,15 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useSWRConfig } from "swr"
 import { Button } from "@/components/ui/Button"
-import { createBooking } from "@/lib/actions/booking"
-import { X, AlertCircle, CreditCard, Banknote, CheckCircle2, Phone, Clock, MapPin, User, Calendar, Timer, MessageCircle, Loader2, ChevronDown, Zap, Receipt, ChevronRight } from "lucide-react"
-import { formatCurrency, getWhatsAppLink } from "@/lib/utils"
+import { createBooking, fetchResourceWithBookings } from "@/lib/actions/booking"
+import { X, AlertCircle, CreditCard, Banknote, CheckCircle2, Phone, Clock, MapPin, User, Calendar, Timer, MessageCircle, Loader2, ChevronDown, Zap, Receipt, ChevronRight, RefreshCcw } from "lucide-react"
+import { cn, formatCurrency, getWhatsAppLink } from "@/lib/utils"
 import { ArtisanSelect } from "@/components/ui/ArtisanSelect"
 import { Toast, ToastType } from "@/components/ui/Toast"
 import { useRouter } from "next/navigation"
+import { Portal } from "@/components/ui/Portal"
 
 interface QuickBookingModalProps {
   isOpen: boolean
@@ -20,13 +22,16 @@ interface QuickBookingModalProps {
   initialMinute?: number
   openHour?: number
   closeHour?: number
+  onSuccess?: () => void
 }
 
 export function QuickBookingModal({ 
   isOpen, onClose, facilityId, resources, selectedDate,
-  initialResourceId, initialHour, initialMinute, openHour = 6, closeHour = 23
+  initialResourceId, initialHour, initialMinute, openHour = 6, closeHour = 23,
+  onSuccess
 }: QuickBookingModalProps) {
   const router = useRouter()
+  const { mutate } = useSWRConfig()
   const [loading, setLoading] = useState(false)
   const [bookingDate, setBookingDate] = useState(selectedDate)
   const [selectedResId, setSelectedResId] = useState(initialResourceId || resources[0]?.id)
@@ -38,8 +43,34 @@ export function QuickBookingModal({
   const [isSuccess, setIsSuccess] = useState(false)
   const [createdBooking, setCreatedBooking] = useState<any>(null)
   const [toast, setToast] = useState<{ message: string, type: ToastType } | null>(null)
+  const [guestPhone, setGuestPhone] = useState('')
+  const [creditBalance, setCreditBalance] = useState(0)
+  const [useCredit, setUseCredit] = useState(false)
+  const [isCheckingCredit, setIsCheckingCredit] = useState(false)
 
   const showToast = (message: string, type: ToastType = "success") => setToast({ message, type })
+ 
+   // ─── Internal Data Management (to ensure occupied slots work everywhere) ───
+   const [internalResources, setInternalResources] = useState(resources)
+   const [isRefreshing, setIsRefreshing] = useState(false)
+ 
+   useEffect(() => {
+     setInternalResources(resources)
+   }, [resources])
+ 
+   useEffect(() => {
+     async function refreshData() {
+       setIsRefreshing(true)
+       const start = new Date(bookingDate)
+       start.setHours(0,0,0,0)
+       const end = new Date(bookingDate)
+       end.setHours(23,59,59,999)
+       const data = await fetchResourceWithBookings(facilityId, start.toISOString(), end.toISOString())
+       if (data) setInternalResources(data)
+       setIsRefreshing(false)
+     }
+     if (isOpen) refreshData()
+   }, [bookingDate, isOpen, facilityId])
 
   // ─── Hybrid Timing State ───
   const [isCustomTiming, setIsCustomTiming] = useState(false)
@@ -48,10 +79,38 @@ export function QuickBookingModal({
 
   const allHours = Array.from({ length: closeHour - openHour + 1 }, (_, i) => i + openHour)
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
   useEffect(() => { if (isOpen) setBookingDate(selectedDate) }, [isOpen, selectedDate])
 
+  // ─── Credit Check Logic ───
+  useEffect(() => {
+    if (guestPhone.length >= 10) {
+      setIsCheckingCredit(true);
+      import('@/lib/actions/customers').then(({ fetchCustomerCredit }) => {
+        fetchCustomerCredit(facilityId, guestPhone).then(balance => {
+          setCreditBalance(balance);
+          setIsCheckingCredit(false);
+          if (balance > 0) setUseCredit(true);
+        });
+      });
+    } else {
+      setCreditBalance(0);
+      setUseCredit(false);
+    }
+  }, [guestPhone, facilityId]);
+
   // ─── Calculated Values ───
-  const selectedResource = resources.find(r => r.id === selectedResId)
+  const selectedResource = internalResources.find(r => r.id === selectedResId)
   
   const bookingStart = new Date(bookingDate)
   bookingStart.setHours(selectedHour, selectedMinute, 0, 0)
@@ -113,22 +172,29 @@ export function QuickBookingModal({
     end.setMinutes(start.getMinutes() + selectedDuration * 60)
 
     const result = await createBooking({
-      resource_id: selectedResId,
+      resource_id: selectedResId!,
       guest_name: formData.get("guest_name") as string,
-      guest_phone: formData.get("guest_phone") as string,
+      guest_phone: guestPhone,
       start_time: start.toISOString(),
       end_time: end.toISOString(),
       notes: formData.get("notes") as string || "",
       payment_status: paymentStatus,
       payment_method: paymentMethod,
+      use_credit: useCredit
     }, facilityId)
-    setLoading(false)
+    
+    // ─── SWR Revalidation ───
+    const dateKey = bookingDate.toISOString().split('T')[0]
+    const swrKey = `bookings/${facilityId}/${dateKey}`
     
     if (result.success) {
+      mutate(swrKey)
       setIsSuccess(true)
       setCreatedBooking(result.data)
+      if (onSuccess) onSuccess()
       router.refresh()
     } else {
+      setLoading(false)
       showToast(result.error || "Failed to create booking", "error")
     }
   }
@@ -139,7 +205,8 @@ export function QuickBookingModal({
   // ─── Success Screen ───
   if (isSuccess && createdBooking) {
     return (
-      <div className="fixed inset-0 z-[1000] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4" onClick={onClose}>
+      <Portal>
+        <div className="fixed inset-0 z-[2000] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4" onClick={onClose}>
         <div className="bg-card w-full md:max-w-sm rounded-t-[24px] md:rounded-[32px] border border-border/40 shadow-2xl animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 overflow-hidden" onClick={(e) => e.stopPropagation()}>
           {/* Drag handle */}
           <div className="md:hidden flex justify-center pt-3"><div className="h-1 w-10 rounded-full bg-foreground/10" /></div>
@@ -191,15 +258,17 @@ export function QuickBookingModal({
           </div>
         </div>
       </div>
-    )
-  }
+    </Portal>
+  )
+}
 
   // ─── Create Booking Form ───
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 pb-24 md:p-4 md:pb-4" onClick={onClose}>
+    <Portal>
+      <div className="fixed inset-0 z-[2000] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4" onClick={onClose}>
       <form 
         onSubmit={handleSubmit}
-        className="bg-card w-full md:max-w-xl max-h-[85vh] md:max-h-[90vh] rounded-[32px] border border-border/40 shadow-2xl animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 flex flex-col overflow-hidden"
+        className="bg-card w-full md:max-w-xl max-h-[92vh] md:max-h-[90vh] rounded-t-[32px] md:rounded-[32px] border border-border/40 shadow-2xl animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Drag handle (mobile) */}
@@ -219,7 +288,10 @@ export function QuickBookingModal({
                 </div>
                 <div>
                   <h2 className="text-xl md:text-2xl font-black tracking-tight italic uppercase leading-none">Quick Booking</h2>
-                  <p className="text-[9px] font-bold text-primary uppercase tracking-[0.2em] mt-1">Reserve & Initialize</p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                     <p className="text-[9px] font-bold text-primary uppercase tracking-[0.2em]">Reserve & Initialize</p>
+                     {isRefreshing && <RefreshCcw className="h-2 w-2 animate-spin text-primary/40" />}
+                  </div>
                 </div>
               </div>
               <button 
@@ -253,7 +325,7 @@ export function QuickBookingModal({
                  <ArtisanSelect 
                     value={selectedResId}
                     onChange={setSelectedResId}
-                    options={resources.map(res => ({
+                    options={internalResources.map(res => ({
                       value: res.id,
                       label: res.name,
                       subLabel: `${formatCurrency(res.base_price)}/hr`
@@ -396,13 +468,49 @@ export function QuickBookingModal({
                   className="w-full bg-muted/40 border border-border/30 p-3 rounded-xl text-sm font-bold outline-none ring-primary focus:ring-2 transition-all placeholder:text-muted-foreground/40"
                   required
                 />
-                <input 
-                  name="guest_phone"
-                  placeholder="+977 98XXXXXXXX"
-                  className="w-full bg-muted/40 border border-border/30 p-3 rounded-xl text-sm font-bold outline-none ring-primary focus:ring-2 transition-all placeholder:text-muted-foreground/40"
-                  required
-                />
+                <div className="relative group/field">
+                  <input 
+                    name="guest_phone"
+                    placeholder="+977 98XXXXXXXX"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                    className="w-full bg-muted/40 border border-border/30 p-3 rounded-xl text-sm font-bold outline-none ring-primary focus:ring-2 transition-all placeholder:text-muted-foreground/40 pr-10"
+                    required
+                  />
+                  {isCheckingCredit && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <RefreshCcw className="h-4 w-4 text-primary animate-spin" />
+                    </div>
+                  )}
+                </div>
               </div>
+
+              {/* ─── Credit Usage UI ─── */}
+              {creditBalance > 0 && (
+                <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 flex items-center justify-between animate-in zoom-in-95 duration-300">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                      <Zap className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Player Credit</p>
+                      <p className="text-sm font-black text-primary">{formatCurrency(creditBalance)} Available</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setUseCredit(!useCredit)}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                      useCredit 
+                        ? "bg-primary text-white shadow-lg shadow-primary/20" 
+                        : "bg-muted text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                    )}
+                  >
+                    {useCredit ? 'Applied ✓' : 'Apply'}
+                  </button>
+                </div>
+              )}
               <textarea 
                 name="notes"
                 placeholder="Notes (optional)"
@@ -465,7 +573,7 @@ export function QuickBookingModal({
         </div>
 
         {/* ─── Fixed Summary + Submit ─── */}
-        <div className="p-5 pb-6 md:p-8 md:pb-8 border-t border-border/20 bg-background/80 backdrop-blur-md shrink-0 space-y-4 safe-area-bottom">
+        <div className="p-5 pb-10 md:p-8 md:pb-8 border-t border-border/20 bg-background/80 backdrop-blur-md shrink-0 space-y-4 safe-area-bottom">
             {/* Live Receipt Card */}
             <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 shadow-sm relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
@@ -531,5 +639,6 @@ export function QuickBookingModal({
         />
       )}
     </div>
+    </Portal>
   )
 }

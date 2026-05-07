@@ -152,7 +152,7 @@ export async function linkBookingToCustomer(
 export async function searchCustomers(facilityId: string, query: string) {
   const { data, error } = await supabase
     .from('customers')
-    .select('id, name, phone, total_visits, total_spent')
+    .select('id, name, phone, total_visits, total_spent, credit_balance')
     .eq('facility_id', facilityId)
     .or(`name.ilike.%${query}%,phone.ilike.%${query}%`)
     .order('total_visits', { ascending: false })
@@ -160,4 +160,61 @@ export async function searchCustomers(facilityId: string, query: string) {
 
   if (error) return [];
   return data;
+}
+
+export async function fetchCustomerCredit(facilityId: string, phone: string) {
+  const { data, error } = await supabase
+    .from('customers')
+    .select('id, credit_balance')
+    .eq('facility_id', facilityId)
+    .eq('phone', phone)
+    .single();
+
+  if (error || !data) return 0;
+  return Number(data.credit_balance) || 0;
+}
+
+export async function issueCustomerCredit(customerId: string, amount: number) {
+  const { data: customer } = await supabase
+    .from('customers')
+    .select('credit_balance')
+    .eq('id', customerId)
+    .single();
+
+  if (!customer) return { error: "Customer not found" };
+
+  const newBalance = (Number(customer.credit_balance) || 0) + amount;
+
+  const { error } = await supabase
+    .from('customers')
+    .update({ credit_balance: newBalance })
+    .eq('id', customerId);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/customers");
+  return { success: true, newBalance };
+}
+
+export async function deductCustomerCredit(customerId: string, amount: number) {
+  const { data: customer } = await supabase
+    .from('customers')
+    .select('credit_balance')
+    .eq('id', customerId)
+    .single();
+
+  if (!customer) return { error: "Customer not found" };
+
+  const currentBalance = Number(customer.credit_balance) || 0;
+  if (currentBalance < amount) return { error: "Insufficient credit balance" };
+
+  const newBalance = currentBalance - amount;
+
+  const { error } = await supabase
+    .from('customers')
+    .update({ credit_balance: newBalance })
+    .eq('id', customerId);
+
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard/customers");
+  return { success: true, newBalance };
 }

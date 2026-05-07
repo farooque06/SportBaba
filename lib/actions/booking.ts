@@ -15,6 +15,7 @@ export async function createBooking(data: {
   notes?: string;
   payment_status?: 'paid' | 'unpaid';
   payment_method?: string;
+  use_credit?: boolean;
 }, facilityId: string) {
   const session = await auth();
   if (!session?.user || !facilityId) throw new Error("Unauthorized");
@@ -33,14 +34,49 @@ export async function createBooking(data: {
   const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
   const total_price = (Number(resource?.base_price) || 0) * durationHours;
 
+  let paid_amount = data.payment_status === 'paid' ? total_price : 0;
+  let final_payment_status = data.payment_status || 'unpaid';
+
+  // ─── Credit Handling ───
+  let creditUsed = 0;
+  if (data.use_credit && data.guest_phone) {
+    const { fetchCustomerCredit, deductCustomerCredit, searchCustomers } = await import("./customers");
+    const balance = await fetchCustomerCredit(facilityId, data.guest_phone);
+    
+    if (balance > 0) {
+      creditUsed = Math.min(balance, total_price - paid_amount);
+      if (creditUsed > 0) {
+        // Find customer ID for deduction
+        const customers = await searchCustomers(facilityId, data.guest_phone);
+        const customer = customers.find(c => c.phone === data.guest_phone);
+        if (customer) {
+          await deductCustomerCredit(customer.id, creditUsed);
+          paid_amount += creditUsed;
+          
+          if (paid_amount >= total_price) {
+            final_payment_status = 'paid';
+          } else if (paid_amount > 0) {
+            final_payment_status = 'partial';
+          }
+        }
+      }
+    }
+  }
+
   const { data: booking, error } = await supabase
     .from('bookings')
     .insert({
-      ...data,
+      resource_id: data.resource_id,
+      guest_name: data.guest_name,
+      guest_phone: data.guest_phone,
+      start_time: data.start_time,
+      end_time: data.end_time,
+      notes: data.notes,
       facility_id: facilityId,
       total_price,
-      paid_amount: data.payment_status === 'paid' ? total_price : 0,
-      payment_status: data.payment_status || 'unpaid',
+      paid_amount,
+      payment_status: final_payment_status,
+      payment_method: creditUsed > 0 ? (data.payment_method ? `${data.payment_method} + Credit` : 'Credit') : data.payment_method,
       status: 'confirmed'
     })
     .select()
@@ -48,7 +84,7 @@ export async function createBooking(data: {
 
   if (error) return { error: error.message };
   
-  // Auto-link to customer profile
+  // Auto-link to customer profile (already updates stats)
   await linkBookingToCustomer(facilityId, booking.id, data.guest_name, data.guest_phone, total_price);
 
   // Generate WhatsApp notification
@@ -186,6 +222,42 @@ export async function updateBookingStatus(bookingId: string, status: string, fac
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/bookings");
   return { success: true, data, whatsappUrl };
+}export async function cancelWithCredit(bookingId: string, facilityId: string) {
+  const session = await auth();
+  if (!session?.user || !facilityId) throw new Error("Unauthorized");
+
+  // Fetch booking with customer info
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('*, customer_id')
+    .eq('id', bookingId)
+    .single();
+
+  if (!booking) return { error: "Booking not found" };
+  
+  const paidAmount = Number(booking.paid_amount) || 0;
+
+  // 1. Update Booking Status
+  const { data, error: updateError } = await supabase
+    .from('bookings')
+    .update({ status: 'cancelled' })
+    .eq('id', bookingId)
+    .select()
+    .single();
+
+  if (updateError) return { error: updateError.message };
+
+  // 2. Issue Credit if there was a payment
+  if (paidAmount > 0 && booking.customer_id) {
+    const { issueCustomerCredit } = await import("./customers");
+    await issueCustomerCredit(booking.customer_id, paidAmount);
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/bookings");
+  revalidatePath("/dashboard/customers");
+
+  return { success: true, data, creditIssued: paidAmount };
 }
 
 export async function addBookingAddon(bookingId: string, item: { id: string, name: string, price: number }, facilityId: string) {

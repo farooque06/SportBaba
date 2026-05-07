@@ -5,8 +5,10 @@ import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/Button"
 import { QuickBookingModal } from "./QuickBookingModal"
 import { fetchFacility } from "@/lib/actions/facility"
+import { useRouter } from "next/navigation"
 
 export function BookingsHeader({ facilityId, resources }: { facilityId: string, resources: any[] }) {
+  const router = useRouter()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [openHour, setOpenHour] = useState(8)
   const [closeHour, setCloseHour] = useState(22)
@@ -50,6 +52,7 @@ export function BookingsHeader({ facilityId, resources }: { facilityId: string, 
         selectedDate={new Date()}
         openHour={openHour}
         closeHour={closeHour}
+        onSuccess={() => router.refresh()}
       />
     </>
   )
