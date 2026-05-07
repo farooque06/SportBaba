@@ -13,7 +13,7 @@ export async function createBooking(data: {
   start_time: string;
   end_time: string;
   notes?: string;
-  payment_status?: 'paid' | 'unpaid';
+  payment_status?: 'paid' | 'unpaid' | 'partial';
   payment_method?: string;
   use_credit?: boolean;
 }, facilityId: string) {
@@ -35,7 +35,7 @@ export async function createBooking(data: {
   const total_price = (Number(resource?.base_price) || 0) * durationHours;
 
   let paid_amount = data.payment_status === 'paid' ? total_price : 0;
-  let final_payment_status = data.payment_status || 'unpaid';
+  let final_payment_status: 'paid' | 'unpaid' | 'partial' = data.payment_status || 'unpaid';
 
   // ─── Credit Handling ───
   let creditUsed = 0;
@@ -146,7 +146,7 @@ export async function updatePaymentStatus(bookingId: string, status: string, met
   }
 
   // Determine final status based on amount vs total
-  let finalStatus = status;
+  let finalStatus: any = status;
   const totalPrice = Number(booking.total_price);
   
   if (newPaidAmount >= totalPrice) {
@@ -278,7 +278,7 @@ export async function addBookingAddon(bookingId: string, item: { id: string, nam
   const updatedTotalPrice = (Number(booking.total_price) || 0) + item.price;
   
   // Logic: If total increased, it's unpaid (or partially paid) until fully settled
-  let newStatus = 'unpaid';
+  let newStatus: 'paid' | 'unpaid' | 'partial' = 'unpaid';
   const paid = Number(booking.paid_amount) || 0;
   if (paid >= updatedTotalPrice) {
     newStatus = 'paid';
@@ -327,7 +327,7 @@ export async function removeBookingAddon(bookingId: string, itemTimestamp: strin
   const updatedItems = currentItems.filter((i: any) => i.timestamp !== itemTimestamp);
   const updatedTotalPrice = (Number(booking.total_price) || 0) - itemToRemove.price;
   
-  let newStatus = 'unpaid';
+  let newStatus: 'paid' | 'unpaid' | 'partial' = 'unpaid';
   const paid = Number(booking.paid_amount) || 0;
   if (paid >= updatedTotalPrice) {
     newStatus = 'paid';
