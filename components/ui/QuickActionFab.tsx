@@ -52,10 +52,11 @@ export function QuickActionFab() {
       className="fixed right-0 bottom-24 md:bottom-12 z-[110] group w-8 h-16 flex items-center justify-end"
       onMouseEnter={() => setIsOpen(true)}
       onMouseLeave={() => setIsOpen(false)}
+      onClick={() => setIsOpen(!isOpen)}
     >
       {/* Side Handle (Visible when closed) */}
       <div className={cn(
-        "absolute right-0 bottom-0 h-16 w-3 bg-primary/95 backdrop-blur-md rounded-l-full flex items-center justify-center cursor-pointer transition-all duration-500 shadow-2xl border-y border-l border-white/20 hover:w-6",
+        "absolute right-0 bottom-0 h-16 w-5 md:w-3 bg-primary/95 backdrop-blur-md rounded-l-full flex items-center justify-center cursor-pointer transition-all duration-500 shadow-2xl border-y border-l border-white/20 hover:w-6",
         isOpen ? "translate-x-full opacity-0" : "translate-x-0"
       )}>
         <div className="flex flex-col items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -64,10 +65,13 @@ export function QuickActionFab() {
       </div>
 
       {/* Slide-out Menu Content */}
-      <div className={cn(
-        "absolute right-0 bottom-0 bg-card/98 backdrop-blur-3xl border border-border/40 border-r-0 rounded-l-[40px] p-5 shadow-[-30px_0_60px_rgba(0,0,0,0.15)] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] flex flex-col gap-2 min-w-[200px]",
-        isOpen ? "translate-x-0" : "translate-x-full"
-      )}>
+      <div 
+        className={cn(
+          "absolute right-0 bottom-0 bg-card/98 backdrop-blur-3xl border border-border/40 border-r-0 rounded-l-[40px] p-5 shadow-[-30px_0_60px_rgba(0,0,0,0.15)] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] flex flex-col gap-2 min-w-[220px]",
+          isOpen ? "translate-x-0" : "translate-x-full"
+        )}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-4 px-2">
           <div>
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Quick Access</h3>
