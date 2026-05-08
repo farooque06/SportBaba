@@ -6,9 +6,9 @@ import {
   Plus, 
   Calendar, 
   Banknote, 
-  UserPlus, 
-  X,
-  Zap
+  UserPlus,
+  ArrowRight,
+  Database
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -25,6 +25,13 @@ export function QuickActionFab() {
       color: "bg-primary text-white"
     },
     { 
+      id: "add-customer", 
+      label: "Add Customer", 
+      icon: UserPlus, 
+      onClick: () => router.push("/dashboard/customers?action=new"),
+      color: "bg-purple-500 text-white"
+    },
+    { 
       id: "new-expense", 
       label: "New Expense", 
       icon: Banknote, 
@@ -32,79 +39,78 @@ export function QuickActionFab() {
       color: "bg-blue-500 text-white"
     },
     { 
-      id: "add-customer", 
-      label: "Add Customer", 
-      icon: UserPlus, 
-      onClick: () => router.push("/dashboard/customers?action=new"),
-      color: "bg-purple-500 text-white"
+      id: "add-resource", 
+      label: "Add Resource", 
+      icon: Database, 
+      onClick: () => router.push("/dashboard/resources?action=new"),
+      color: "bg-orange-500 text-white"
     },
   ]
 
   return (
-    <div className="fixed bottom-24 md:bottom-8 right-4 md:right-8 z-[110] flex flex-col items-end gap-3">
-      {/* Backdrop for click-away — using proper z-index (not negative) */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 z-[109] bg-background/20 backdrop-blur-sm animate-in fade-in duration-300" 
-          onClick={() => setIsOpen(false)}
-          onTouchEnd={(e) => { e.preventDefault(); setIsOpen(false); }}
-        />
-      )}
-
-      {/* Menu Items */}
+    <div 
+      className="fixed right-0 bottom-24 md:bottom-12 z-[110] group w-8 h-16 flex items-center justify-end"
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+    >
+      {/* Side Handle (Visible when closed) */}
       <div className={cn(
-        "flex flex-col items-end gap-3 transition-all duration-300 origin-bottom relative z-[111]",
-        isOpen ? "scale-100 opacity-100 translate-y-0" : "scale-50 opacity-0 translate-y-10 pointer-events-none"
+        "absolute right-0 bottom-0 h-16 w-3 bg-primary/95 backdrop-blur-md rounded-l-full flex items-center justify-center cursor-pointer transition-all duration-500 shadow-2xl border-y border-l border-white/20 hover:w-6",
+        isOpen ? "translate-x-full opacity-0" : "translate-x-0"
       )}>
-        {actions.map((action, idx) => (
-          <button 
-            type="button"
-            key={action.id}
-            className="flex items-center gap-3 group cursor-pointer"
-            onClick={() => { action.onClick(); setIsOpen(false); }}
-            style={{ transitionDelay: `${idx * 50}ms`, touchAction: 'manipulation' }}
-          >
-            <span className="bg-card/95 backdrop-blur-xl border border-border/40 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest text-foreground shadow-xl">
-              {action.label}
-            </span>
-            <div className={cn(
-              "h-12 w-12 rounded-2xl flex items-center justify-center shadow-2xl transition-transform hover:scale-110 active:scale-90 min-h-[48px] min-w-[48px]",
-              action.color
-            )}>
-              <action.icon className="h-5 w-5" />
-            </div>
-          </button>
-        ))}
+        <div className="flex flex-col items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Plus className="h-4 w-4 text-white -translate-x-0.5" />
+        </div>
       </div>
 
-      {/* Main Toggle Button */}
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "h-16 w-16 rounded-[24px] flex items-center justify-center shadow-[0_20px_50px_rgba(34,197,94,0.3)] transition-all duration-500 relative overflow-hidden group border-2 z-[111] min-h-[64px] min-w-[64px]",
-          isOpen 
-            ? "bg-card border-primary/20 rotate-45" 
-            : "bg-primary border-primary/20 hover:scale-105 active:scale-95"
-        )}
-        style={{ touchAction: 'manipulation' }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
-        
-        {isOpen ? (
-          <X className="h-6 w-6 text-primary" />
-        ) : (
-          <div className="relative">
-            <Plus className="h-7 w-7 text-white transition-transform group-hover:rotate-90 duration-500" />
-            <div className="absolute -top-1 -right-1 h-3 w-3 bg-white rounded-full animate-ping opacity-20" />
+      {/* Slide-out Menu Content */}
+      <div className={cn(
+        "absolute right-0 bottom-0 bg-card/98 backdrop-blur-3xl border border-border/40 border-r-0 rounded-l-[40px] p-5 shadow-[-30px_0_60px_rgba(0,0,0,0.15)] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] flex flex-col gap-2 min-w-[200px]",
+        isOpen ? "translate-x-0" : "translate-x-full"
+      )}>
+        <div className="flex items-center justify-between mb-4 px-2">
+          <div>
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Quick Access</h3>
+            <p className="text-[8px] font-bold text-muted-foreground/60 uppercase">Management Hub</p>
           </div>
-        )}
-        
-        {/* Subtle Glow Effect */}
-        {!isOpen && (
-          <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity blur-xl -z-10" />
-        )}
-      </button>
+          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+            <ArrowRight className="h-3 w-3 text-muted-foreground" />
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          {actions.map((action, idx) => (
+            <button 
+              key={action.id}
+              onClick={() => { action.onClick(); setIsOpen(false); }}
+              className="w-full flex items-center gap-4 p-2.5 rounded-2xl hover:bg-primary/5 transition-all group/item border border-transparent hover:border-primary/10"
+              style={{ transitionDelay: `${idx * 30}ms` }}
+            >
+              <div className={cn(
+                "h-10 w-10 rounded-xl flex items-center justify-center shadow-lg transition-transform group-hover/item:scale-110",
+                action.color
+              )}>
+                <action.icon className="h-4.5 w-4.5" />
+              </div>
+              <div className="text-left">
+                <span className="block text-[10px] font-black uppercase tracking-widest text-foreground/80 group-hover/item:text-primary transition-colors">
+                  {action.label}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-border/30 px-2 text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.1em] text-center">
+          SportBaba Management System
+        </div>
+      </div>
+
+      {/* Invisible hover trigger area to keep menu open while moving mouse */}
+      <div className={cn(
+        "absolute right-0 bottom-0 top-[-300px] w-60 -z-10",
+        isOpen ? "block" : "hidden"
+      )} />
     </div>
   )
 }

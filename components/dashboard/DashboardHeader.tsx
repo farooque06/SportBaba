@@ -21,17 +21,6 @@ export function DashboardHeader({ name }: { name: string }) {
         <h1 className="text-2xl sm:text-4xl font-black tracking-tighter">Welcome, {name} 👋</h1>
         <p className="text-muted-foreground font-medium text-sm">Your {sport === 'footshall' ? 'football pitch' : 'cricket nets'} are performing at peak efficiency.</p>
       </div>
-      <div className="flex items-center gap-3">
-         <Button 
-            variant="black" 
-            className="rounded-2xl px-6 gap-2 w-full sm:w-auto"
-            onClick={() => setIsModalOpen(true)}
-         >
-            <Plus className="h-4 w-4" />
-            Add Resource
-         </Button>
-         <AddResourceModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
-      </div>
     </div>
   )
 }
