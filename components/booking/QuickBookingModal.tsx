@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useSWRConfig } from "swr"
 import { Button } from "@/components/ui/Button"
 import { createBooking, fetchResourceWithBookings } from "@/lib/actions/booking"
-import { X, AlertCircle, CreditCard, Banknote, CheckCircle2, Phone, Clock, MapPin, User, Calendar, Timer, MessageCircle, Loader2, ChevronDown, Zap, Receipt, ChevronRight, RefreshCcw } from "lucide-react"
+import { searchCustomers, fetchCustomers } from "@/lib/actions/customers"
+import { X, AlertCircle, CreditCard, Banknote, CheckCircle2, Phone, Clock, MapPin, User, Calendar, Timer, MessageCircle, Loader2, ChevronDown, Zap, Receipt, ChevronRight, RefreshCcw, Search, Star, History, Users } from "lucide-react"
 import { cn, formatCurrency, getWhatsAppLink } from "@/lib/utils"
 import { ArtisanSelect } from "@/components/ui/ArtisanSelect"
 import { Toast, ToastType } from "@/components/ui/Toast"
@@ -43,6 +44,11 @@ export function QuickBookingModal({
   const [isSuccess, setIsSuccess] = useState(false)
   const [createdBooking, setCreatedBooking] = useState<any>(null)
   const [toast, setToast] = useState<{ message: string, type: ToastType } | null>(null)
+  // ─── Customer Selection ───
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null)
+  const [customerOptions, setCustomerOptions] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [guestName, setGuestName] = useState('')
   const [guestPhone, setGuestPhone] = useState('')
   const [creditBalance, setCreditBalance] = useState(0)
   const [useCredit, setUseCredit] = useState(false)
@@ -91,6 +97,24 @@ export function QuickBookingModal({
   }, [isOpen]);
 
   useEffect(() => { if (isOpen) setBookingDate(selectedDate) }, [isOpen, selectedDate])
+
+  // ─── Initial Load (Top 10 Customers Only) ───
+  useEffect(() => {
+    if (isOpen) {
+      fetchCustomers(facilityId).then(data => {
+        setCustomerOptions(data.slice(0, 10));
+      });
+    }
+  }, [isOpen, facilityId]);
+
+  const handleCustomerSelect = (id: string) => {
+    setSelectedCustomerId(id);
+    const customer = customerOptions.find(c => c.id === id);
+    if (customer) {
+      setGuestName(customer.name);
+      setGuestPhone(customer.phone);
+    }
+  };
 
   // ─── Credit Check Logic ───
   useEffect(() => {
@@ -173,7 +197,7 @@ export function QuickBookingModal({
 
     const result = await createBooking({
       resource_id: selectedResId!,
-      guest_name: formData.get("guest_name") as string,
+      guest_name: guestName,
       guest_phone: guestPhone,
       start_time: start.toISOString(),
       end_time: end.toISOString(),
@@ -325,6 +349,7 @@ export function QuickBookingModal({
                  <ArtisanSelect 
                     value={selectedResId}
                     onChange={setSelectedResId}
+                    icon={MapPin}
                     options={internalResources.map(res => ({
                       value: res.id,
                       label: res.name,
@@ -364,11 +389,14 @@ export function QuickBookingModal({
                     label="Start Hour"
                     value={selectedHour}
                     onChange={setSelectedHour}
+                    icon={Clock}
                     options={allHours.map(h => {
                       const status = getHourStatus(h)
+                      const ampm = h >= 12 ? 'PM' : 'AM'
+                      const displayHour = h % 12 || 12
                       return {
                         value: h,
-                        label: `${h < 10 ? `0${h}` : h}:00`,
+                        label: `${displayHour}:00 ${ampm}`,
                         color: status === 'occupied' ? 'text-red-500' : status === 'past' ? 'text-muted-foreground/30' : '',
                         subLabel: status === 'occupied' ? 'Occupied' : status === 'past' ? 'Past' : 'Available'
                       }
@@ -378,6 +406,7 @@ export function QuickBookingModal({
                     label="Min"
                     value={selectedMinute}
                     onChange={setSelectedMinute}
+                    icon={Timer}
                     options={(isCustomTiming 
                       ? Array.from({ length: 12 }, (_, i) => ({ value: i * 5, label: `:${(i * 5).toString().padStart(2, '0')}` }))
                       : [0, 15, 30, 45].map(m => ({ value: m, label: `:${m.toString().padStart(2, '0')}` }))
@@ -397,11 +426,14 @@ export function QuickBookingModal({
                       label="End Hour"
                       value={customEndHour}
                       onChange={setCustomEndHour}
+                      icon={Clock}
                       options={allHours.map(h => {
-                        const status = getHourStatus(h) // Simple hour check is fine for end
+                        const status = getHourStatus(h)
+                        const ampm = h >= 12 ? 'PM' : 'AM'
+                        const displayHour = h % 12 || 12
                         return {
                           value: h,
-                          label: `${h < 10 ? `0${h}` : h}:00`,
+                          label: `${displayHour}:00 ${ampm}`,
                           color: status === 'occupied' ? 'text-red-500' : status === 'past' ? 'text-muted-foreground/30' : ''
                         }
                       })}
@@ -410,6 +442,7 @@ export function QuickBookingModal({
                       label="Min"
                       value={customEndMinute}
                       onChange={setCustomEndMinute}
+                      icon={Timer}
                       options={Array.from({ length: 12 }, (_, i) => {
                         const val = i * 5
                         const status = getHourStatus(customEndHour, val)
@@ -426,9 +459,10 @@ export function QuickBookingModal({
                     label="Duration"
                     value={selectedDuration}
                     onChange={setSelectedDuration}
+                    icon={Timer}
                     options={[0.5, 1, 1.5, 2, 2.5, 3, 4, 5].map(d => ({
                       value: d,
-                      label: `${d}h`
+                      label: `${d} Hour${d > 1 ? 's' : ''}`
                     }))}
                   />
                 )}
@@ -455,28 +489,52 @@ export function QuickBookingModal({
               )}
             </div>
 
-            {/* ─── Customer Info ─── */}
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <User className="h-3.5 w-3.5 text-primary/60" />
-                <p className="text-[9px] font-black uppercase tracking-widest text-primary/60">Customer</p>
-              </div>
+            {/* ─── Customer Picker ─── */}
+            <div className="space-y-4">
+              <ArtisanSelect 
+                label="Select Regular Customer"
+                placeholder="Select from list..."
+                value={selectedCustomerId}
+                onChange={handleCustomerSelect}
+                icon={Users}
+                options={customerOptions.map(c => ({
+                  value: c.id,
+                  label: c.name,
+                  subLabel: `${c.phone} • ${c.total_visits} Visits`,
+                  icon: User
+                }))}
+              />
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <input 
-                  name="guest_name"
-                  placeholder="Player Name"
-                  className="w-full bg-muted/40 border border-border/30 p-3 rounded-xl text-sm font-bold outline-none ring-primary focus:ring-2 transition-all placeholder:text-muted-foreground/40"
-                  required
-                />
+                <div className="relative group/field">
+                  <input 
+                    name="guest_name"
+                    placeholder="Player Name"
+                    value={guestName}
+                    onChange={(e) => {
+                      setGuestName(e.target.value);
+                      if (selectedCustomerId) setSelectedCustomerId(null);
+                    }}
+                    className="w-full bg-muted/40 border border-border/30 p-3 rounded-xl text-sm font-bold outline-none ring-primary focus:ring-2 transition-all placeholder:text-muted-foreground/40 pl-10"
+                    required
+                    autoComplete="off"
+                  />
+                  <User className="h-4 w-4 text-muted-foreground/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                </div>
                 <div className="relative group/field">
                   <input 
                     name="guest_phone"
                     placeholder="+977 98XXXXXXXX"
                     value={guestPhone}
-                    onChange={(e) => setGuestPhone(e.target.value)}
-                    className="w-full bg-muted/40 border border-border/30 p-3 rounded-xl text-sm font-bold outline-none ring-primary focus:ring-2 transition-all placeholder:text-muted-foreground/40 pr-10"
+                    onChange={(e) => {
+                      setGuestPhone(e.target.value);
+                      if (selectedCustomerId) setSelectedCustomerId(null);
+                    }}
+                    className="w-full bg-muted/40 border border-border/30 p-3 rounded-xl text-sm font-bold outline-none ring-primary focus:ring-2 transition-all placeholder:text-muted-foreground/40 pl-10 pr-10"
                     required
+                    autoComplete="off"
                   />
+                  <Phone className="h-4 w-4 text-muted-foreground/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
                   {isCheckingCredit && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
                       <RefreshCcw className="h-4 w-4 text-primary animate-spin" />
@@ -558,12 +616,13 @@ export function QuickBookingModal({
                   label="Method"
                   value={paymentMethod}
                   onChange={setPaymentMethod}
+                  icon={CreditCard}
                   options={[
-                    { value: "cash", label: "💵 Cash" },
-                    { value: "card", label: "💳 Card / POS" },
-                    { value: "khalti", label: "📱 Khalti" },
-                    { value: "esewa", label: "📱 eSewa" },
-                    { value: "other", label: "📦 Other" }
+                    { value: "cash", label: "Cash" },
+                    { value: "card", label: "Card / POS" },
+                    { value: "khalti", label: "Khalti" },
+                    { value: "esewa", label: "eSewa" },
+                    { value: "other", label: "Other" }
                   ]}
                 />
               )}

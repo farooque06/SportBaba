@@ -150,16 +150,21 @@ export async function linkBookingToCustomer(
 }
 
 export async function searchCustomers(facilityId: string, query: string) {
+  if (!query) return [];
+
   const { data, error } = await supabase
     .from('customers')
     .select('id, name, phone, total_visits, total_spent, credit_balance')
     .eq('facility_id', facilityId)
     .or(`name.ilike.%${query}%,phone.ilike.%${query}%`)
     .order('total_visits', { ascending: false })
-    .limit(10);
+    .limit(20);
 
-  if (error) return [];
-  return data;
+  if (error) {
+    console.error('Search error:', error);
+    return [];
+  }
+  return data || [];
 }
 
 export async function fetchCustomerCredit(facilityId: string, phone: string) {

@@ -5,7 +5,7 @@ import { useSWRConfig } from "swr"
 import Link from "next/link"
 import { X, MapPin, CreditCard, CheckCircle2, Banknote, Clock, Timer, Info, Loader2, Phone, MessageCircle, User, ShoppingBag, Plus, Minus, Zap, Receipt } from "lucide-react"
 import { Button } from "@/components/ui/Button"
-import { formatCurrency } from "@/lib/utils"
+import { cn, formatCurrency, getWhatsAppLink } from "@/lib/utils"
 import { updatePaymentStatus, updateBookingStatus, addBookingAddon, removeBookingAddon, extendBooking, cancelWithCredit } from "@/lib/actions/booking"
 import { fetchProducts } from "@/lib/actions/inventory"
 import { getCurrentUserRole } from "@/lib/actions/auth"
@@ -185,81 +185,75 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
 
   return (
     <Portal>
-      <div className="fixed inset-0 z-[2000] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4 animate-in fade-in duration-300" onClick={onClose}>
-        <div 
-          className="bg-card w-full md:max-w-lg max-h-[92vh] md:max-h-[min(900px,92vh)] rounded-t-[32px] md:rounded-[32px] border border-border/40 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 md:zoom-in-95 duration-500 flex flex-col"
-         onClick={(e) => e.stopPropagation()}
-       >
-          {/* ─── Status-Colored Header ─── */}
-          <div className={`relative shrink-0 ${statusConfig.headerBg} border-b border-border/20`}>
-            {/* Drag Handle (mobile) */}
-            <div className="md:hidden flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-foreground/10" />
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-background/60 backdrop-blur-2xl animate-in fade-in duration-500" onClick={onClose} />
+        
+        <div className="relative w-full max-w-2xl bg-card border border-border/40 rounded-[48px] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.3)] overflow-hidden animate-in fade-in zoom-in-95 duration-500 flex flex-col max-h-[90vh]">
+          {/* Header Section */}
+          <div className={cn("p-8 md:p-10 relative shrink-0", statusConfig.headerBg)}>
+            <div className="absolute top-8 right-8 flex items-center gap-2">
+              <button onClick={onClose} className="h-12 w-12 rounded-2xl bg-background/40 hover:bg-background/60 border border-white/10 flex items-center justify-center transition-all group active:scale-90">
+                <X className="h-5 w-5 group-hover:rotate-90 transition-transform" />
+              </button>
             </div>
-            
-            <div className="px-5 md:px-8 pb-5 pt-3 md:pt-6">
-              {/* Top Row: Status + Close + Ref */}
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full ${statusConfig.color} shadow-lg ring-1 ring-white/20`}>
-                    <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white">
-                      {statusConfig.label}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-bold text-muted-foreground/40 font-mono tracking-tighter">#{booking.id.slice(0, 8).toUpperCase()}</span>
-                </div>
-                <button 
-                  type="button"
-                  onClick={onClose}
-                  className="h-10 w-10 rounded-2xl bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center transition-all hover:rotate-90"
-                >
-                  <X className="h-5 w-5 text-muted-foreground" />
-                </button>
-              </div>
 
-              {/* Customer + Resource Row */}
-              <div className="flex items-start gap-4">
-                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center shrink-0 shadow-lg ${
-                  isLive ? 'bg-red-500 text-white shadow-red-500/20' 
-                  : isCompleted ? 'bg-emerald-500 text-white shadow-emerald-500/20'
-                  : 'bg-primary text-primary-foreground shadow-primary/20'
-                }`}>
-                  <User className="h-6 w-6" />
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <div className="space-y-4">
+                <div className={cn("inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-black/10", statusConfig.color, "text-white")}>
+                  <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                  {statusConfig.label}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-lg md:text-xl font-black tracking-tight truncate leading-tight">{booking.guest_name || "Guest"}</h3>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    {booking.guest_phone && (
-                      <a href={`tel:${booking.guest_phone}`} className="flex items-center gap-1 text-[10px] font-bold text-primary hover:underline">
-                        <Phone className="h-3 w-3" />
-                        {maskPhone(booking.guest_phone)}
-                      </a>
-                    )}
-                    <span className="text-[9px] font-black text-muted-foreground/50 bg-muted/50 px-2 py-0.5 rounded-md uppercase">{booking.resource?.name || 'Court'}</span>
+                <div className="space-y-1">
+                  <h2 className="text-4xl md:text-6xl font-black tracking-tighter italic uppercase leading-none truncate max-w-[400px]">
+                    {booking.guest_name || "Guest User"}
+                  </h2>
+                  <div className="flex items-center gap-3">
+                    <div className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2">
+                       <Phone className="h-3 w-3 text-primary" />
+                       <span className="text-[10px] font-black tracking-widest">{maskPhone(booking.guest_phone) || "No Contact"}</span>
+                    </div>
+                    <div className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 flex items-center gap-2">
+                       <MapPin className="h-3 w-3 text-muted-foreground" />
+                       <span className="text-[10px] font-black tracking-widest opacity-60 uppercase">{booking.resource?.name || 'Court'}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Time Bar */}
-              <div className={`mt-4 flex items-center gap-3 p-3 rounded-xl border ${
-                isLive ? 'bg-red-500/5 border-red-500/10' : 'bg-muted/20 border-border/30'
-              }`}>
-                <Clock className={`h-4 w-4 shrink-0 ${isLive ? 'text-red-500' : 'text-muted-foreground/50'}`} />
-                <div className="flex items-center gap-2 text-sm font-black tracking-tight">
-                  <span>{start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                  <span className="text-muted-foreground/30">→</span>
-                  <span>{end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
-                </div>
-                <span className={`ml-auto text-[9px] font-black px-2 py-0.5 rounded-md ${
-                  isLive ? 'bg-red-500/10 text-red-600' : 'bg-primary/10 text-primary'
-                }`}>{duration}h</span>
               </div>
             </div>
           </div>
 
-          {/* ─── Scrollable Content ─── */}
           <div className="flex-1 overflow-y-auto custom-scrollbar">
+            {/* Quick Actions Row */}
+            <div className="flex items-center gap-3 p-6 md:px-10 border-b border-border/10 bg-muted/20">
+               <Button variant="ghost" onClick={() => window.open(getWhatsAppLink(booking.guest_phone, `Hi ${booking.guest_name}, this is regarding your booking at ${booking.facility?.name}...`), '_blank')} className="h-12 rounded-2xl border border-border/40 gap-2 font-black uppercase tracking-widest text-[9px] hover:bg-emerald-500/10 transition-all">
+                  <MessageCircle className="h-4 w-4 text-emerald-500" />
+                  WhatsApp
+               </Button>
+               <Button variant="ghost" onClick={() => window.location.href = `tel:${booking.guest_phone}`} className="h-12 rounded-2xl border border-border/40 gap-2 font-black uppercase tracking-widest text-[9px] hover:bg-primary/10 transition-all">
+                  <Phone className="h-4 w-4 text-primary" />
+                  Call
+               </Button>
+               <div className="flex-1" />
+               <div className="flex flex-col items-end">
+                  <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/40 mb-1">Booking ID</p>
+                  <p className="text-[10px] font-black font-mono opacity-60">#{booking.id.slice(0, 8).toUpperCase()}</p>
+               </div>
+            </div>
+
+            {/* Time Slot Display */}
+            <div className="p-8 md:p-10 border-b border-border/10">
+               <div className="flex items-center justify-between gap-6">
+                  <div className="space-y-1">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Start Time</p>
+                     <p className="text-3xl font-black tracking-tighter">{start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
+                  </div>
+                  <div className="h-px flex-1 bg-gradient-to-r from-transparent via-border to-transparent" />
+                  <div className="space-y-1 text-right">
+                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">End Time</p>
+                     <p className="text-3xl font-black tracking-tighter">{end.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
+                  </div>
+               </div>
+            </div>
             
             {/* ─── Financial Card ─── */}
             <div className="p-6 md:p-8 bg-gradient-to-b from-card to-background">
@@ -267,10 +261,20 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
               <div className="flex items-end justify-between mb-6">
                 <div className="space-y-1">
                   <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Final Settlement</p>
-                  <p className="text-4xl md:text-5xl font-black tracking-tighter leading-none text-foreground">{formatCurrency(totalPrice)}</p>
+                  <p className={cn(
+                    "text-4xl md:text-5xl font-black tracking-tighter leading-none text-foreground",
+                    isCancelled && "opacity-40"
+                  )}>
+                    {formatCurrency(totalPrice)}
+                  </p>
                 </div>
                 <div className="flex flex-col items-end gap-2">
-                  {isFullyPaid ? (
+                  {isCancelled ? (
+                    <div className="text-right">
+                      <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 mb-1">Match Status</p>
+                      <p className="text-2xl font-black tracking-tighter text-muted-foreground italic">CANCELLED</p>
+                    </div>
+                  ) : isFullyPaid ? (
                     <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 shadow-sm">
                       <CheckCircle2 className="h-5 w-5 text-emerald-500" />
                       <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Settled</span>
@@ -285,7 +289,7 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
               </div>
 
               {/* Progress Bar */}
-              {!isFullyPaid && totalPrice > 0 && (
+              {!isCancelled && !isFullyPaid && totalPrice > 0 && (
                 <div className="mb-4">
                   <div className="h-2 rounded-full bg-muted/50 overflow-hidden">
                     <div 
@@ -390,7 +394,7 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
             )}
 
             {/* ─── Extend Match ─── */}
-            {booking.status === 'confirmed' && (
+            {booking.status === 'confirmed' && !isCancelled && (
               <div className="p-5 md:p-6 border-b border-border/20">
                 <div className="flex items-center gap-2 mb-3">
                   <Timer className="h-3.5 w-3.5 text-primary/60" />
@@ -552,7 +556,8 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
               </div>
             </div>
           )}
-       </div>
+        </div>
+      </div>
       {toast && (
         <Toast 
           message={toast.message} 
@@ -560,7 +565,6 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
           onClose={() => setToast(null)} 
         />
       )}
-    </div>
     </Portal>
   )
 }

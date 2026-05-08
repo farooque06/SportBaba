@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { Search, Filter, MapPin, User, Clock, CheckCircle2, XCircle, CreditCard, Banknote, Calendar, ChevronRight, X, Info, Loader2, Package, Phone } from "lucide-react"
+import { Search, Filter, MapPin, User, Clock, CheckCircle2, XCircle, CreditCard, Banknote, Calendar, ChevronRight, X, Info, Loader2, Package, Phone, Zap } from "lucide-react"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
-import { formatCurrency, getWhatsAppLink } from "@/lib/utils"
+import { formatCurrency, getWhatsAppLink, cn } from "@/lib/utils"
 import { updatePaymentStatus, updateBookingStatus, addBookingAddon, removeBookingAddon, extendBooking } from "@/lib/actions/booking"
 import { fetchProducts } from "@/lib/actions/inventory"
 import { useSport } from "@/components/providers/SportProvider"
@@ -178,137 +178,202 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
     })
 
   return (
-    <div className="space-y-6">
-      {/* Filtering Toolbar */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-card/40 p-4 rounded-[32px] border border-border/50 backdrop-blur-xl">
+    <div className="space-y-10">
+      {/* Mini Stats Bar */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        <div className="glass-card p-6 rounded-[32px] border border-border/40 relative overflow-hidden group hover:border-primary/40 transition-colors">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+             <Calendar className="h-12 w-12" />
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-2">Total Today</p>
+          <p className="text-3xl font-black tracking-tighter">
+            {bookings.filter(b => new Date(b.start_time).toDateString() === now.toDateString()).length}
+          </p>
+        </div>
+        <div className="glass-card p-6 rounded-[32px] border border-border/40 relative overflow-hidden group hover:border-red-500/40 transition-colors">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+             <Zap className="h-12 w-12" />
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500/60 mb-2">Live Now</p>
+          <p className="text-3xl font-black tracking-tighter text-red-500">
+            {bookings.filter(b => {
+              const start = new Date(b.start_time);
+              const end = new Date(b.end_time);
+              return b.status === 'confirmed' && start <= now && end > now;
+            }).length}
+          </p>
+        </div>
+        <div className="glass-card p-6 rounded-[32px] border border-border/40 relative overflow-hidden group hover:border-primary/40 transition-colors">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+             <Clock className="h-12 w-12" />
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 mb-2">Upcoming</p>
+          <p className="text-3xl font-black tracking-tighter">
+            {bookings.filter(b => new Date(b.start_time) > now && b.status === 'confirmed').length}
+          </p>
+        </div>
+        <div className="glass-card p-6 rounded-[32px] border border-border/40 relative overflow-hidden group hover:border-amber-500/40 transition-colors">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform">
+             <Banknote className="h-12 w-12" />
+          </div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500/60 mb-2">Pending Pmts</p>
+          <p className="text-3xl font-black tracking-tighter text-amber-600">
+            {formatCurrency(bookings.reduce((s, b) => b.payment_status !== 'paid' && b.status !== 'cancelled' ? s + (Number(b.total_price) - Number(b.paid_amount)) : s, 0))}
+          </p>
+        </div>
+      </div>
+
+      {/* Filtering Toolbar (Premium Command Bar) */}
+      <div className="flex flex-col lg:flex-row gap-6 items-center justify-between bg-card/60 p-3 md:p-4 rounded-[40px] border border-border/40 backdrop-blur-3xl shadow-2xl shadow-black/5">
         <div className="flex-1 relative w-full group">
-          <Search className="absolute left-5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
+          <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-4.5 w-4.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <input 
             placeholder="Search by customer, pitch or ID..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-white/5 border border-border/50 p-4 pl-14 rounded-2xl text-sm font-bold outline-none focus:ring-2 ring-primary/20 transition-all"
+            className="w-full bg-white/5 border border-border/30 p-5 pl-16 rounded-[28px] text-sm font-bold outline-none focus:ring-4 ring-primary/10 focus:border-primary/30 transition-all placeholder:text-muted-foreground/40"
           />
         </div>
-        <div className="flex gap-2 shrink-0">
-          <button 
-            onClick={() => setDateFilter('today')}
-            className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${dateFilter === 'today' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
-          >
-            Today
-          </button>
-          <button 
-            onClick={() => setDateFilter('all')}
-            className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${dateFilter === 'all' ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' : 'bg-muted/50 text-muted-foreground hover:bg-muted'}`}
-          >
-            All Time
-          </button>
-          <Button variant="ghost" className="h-14 w-14 rounded-2xl border border-border/50">
-            <Filter className="h-4 w-4" />
+        <div className="flex flex-wrap items-center gap-3 shrink-0 w-full lg:w-auto">
+          <div className="flex bg-muted/30 p-1.5 rounded-[24px] border border-border/40 w-full lg:w-auto">
+            <button 
+              onClick={() => setDateFilter('today')}
+              className={`flex-1 lg:flex-none px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${dateFilter === 'today' ? 'bg-primary text-primary-foreground shadow-xl shadow-primary/20' : 'text-muted-foreground hover:bg-white/5'}`}
+            >
+              Today
+            </button>
+            <button 
+              onClick={() => setDateFilter('all')}
+              className={`flex-1 lg:flex-none px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${dateFilter === 'all' ? 'bg-primary text-primary-foreground shadow-xl shadow-primary/20' : 'text-muted-foreground hover:bg-white/5'}`}
+            >
+              All Time
+            </button>
+          </div>
+          <Button variant="ghost" className="h-14 w-14 rounded-[22px] border border-border/40 bg-muted/20 hover:bg-primary hover:text-white transition-all active:scale-90">
+            <Filter className="h-5 w-5" />
           </Button>
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-6">
         {filteredBookings.length === 0 ? (
-          <Card className="p-20 text-center border-dashed bg-transparent flex flex-col items-center justify-center gap-4 opacity-50">
-             <Calendar className="h-12 w-12 text-muted-foreground" />
-             <div className="space-y-1">
-                <p className="text-xl font-black italic uppercase tracking-tighter">No bookings found</p>
-                <p className="text-xs font-bold uppercase tracking-widest">Adjust filters or create a new entry</p>
+          <div className="p-20 text-center glass-card border-dashed border-border/40 rounded-[40px] flex flex-col items-center justify-center gap-6">
+             <div className="h-20 w-20 rounded-full bg-muted/20 flex items-center justify-center text-muted-foreground/40 animate-pulse">
+                <Calendar className="h-10 w-10" />
              </div>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 gap-4">
-            {filteredBookings.map((booking) => (
-              <button 
-                type="button"
-                key={booking.id}
-                onClick={() => setSelectedBooking(booking)}
-                className="group relative bg-card/40 hover:bg-card/60 border border-border/50 hover:border-primary/30 p-4 md:p-6 rounded-2xl md:rounded-[32px] cursor-pointer flex flex-col md:flex-row md:items-center gap-4 md:gap-6 shadow-sm hover:shadow-xl hover:shadow-primary/5 overflow-hidden w-full text-left"
-              >
-                {/* Status Indicator Bar */}
-                <div className={`absolute left-0 top-0 bottom-0 w-1 ${
-                  booking.status === 'confirmed' ? 'bg-blue-500' : 
-                  booking.status === 'completed' ? 'bg-green-500' :
-                  booking.status === 'cancelled' ? 'bg-red-500' : 'bg-amber-500'
-                }`} />
-
-                {/* Time & Resource Section */}
-                <div className="flex flex-col min-w-[140px] pl-2">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-primary mb-1">{formatDate(booking.start_time)}</p>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <span className="text-base md:text-lg font-black tracking-tight">{formatTime(booking.start_time)} - {formatTime(booking.end_time)}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 mt-2">
-                    <div className="h-5 w-5 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                       <MapPin className="h-3 w-3 text-primary" />
-                    </div>
-                    <span className="text-sm font-bold text-foreground/80">{booking.resource?.name}</span>
-                  </div>
-                </div>
-
-                {/* Player Section */}
-                <div className="flex-1 flex items-center gap-3 md:gap-4 border-t md:border-t-0 md:border-l border-border/50 pt-3 md:pt-0 md:pl-6">
-                  <div className="h-12 w-12 md:h-14 md:w-14 rounded-xl md:rounded-2xl bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center border border-border shadow-inner shrink-0">
-                    <User className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />
-                  </div>
-                  <div className="min-w-0">
-                     <div className="flex items-center gap-2 mb-1">
-                        <h4 className="text-base md:text-xl font-black tracking-tight leading-none truncate">{booking.guest_name || "Guest User"}</h4>
-                        <LoyaltyBadge visits={booking.customer?.total_visits} />
-                     </div>
-                     <p className="text-xs font-bold text-primary uppercase tracking-widest truncate">{booking.guest_phone || "No contact provided"}</p>
-                  </div>
-                </div>
-
-                {/* Financial & Status Tags */}
-                <div className="flex items-center gap-2 flex-wrap">
-                   {(() => {
-                      const start = new Date(booking.start_time)
-                      const end = new Date(booking.end_time)
-                      const isLive = booking.status === 'confirmed' && start <= now && end > now
-                      const isUpcoming = booking.status === 'confirmed' && start > now
-                      
-                      if (isLive) return (
-                         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-500/10 text-red-500 border border-red-500/20 animate-pulse">
-                            <div className="h-1.5 w-1.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Live Match</span>
-                         </div>
-                      )
-                      if (isUpcoming) return (
-                         <div className="px-3 py-1.5 rounded-xl bg-primary/10 text-primary border border-primary/20">
-                            <span className="text-[9px] font-black uppercase tracking-widest">Upcoming</span>
-                         </div>
-                      )
-                      return null
-                   })()}
-                   <div className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-colors ${statusColors[booking.status] || ''}`}>
-                      {booking.status}
-                   </div>
-                   <div className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest border ${
-                     booking.payment_status === 'paid' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 
-                     booking.payment_status === 'partial' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
-                     'bg-red-500/10 text-red-500 border-red-500/20'
-                   }`}>
-                      {Number(booking.paid_amount) > 0 && Number(booking.paid_amount) < Number(booking.total_price) ? (
-                        <>Paid: {formatCurrency(booking.paid_amount)} / {formatCurrency(booking.total_price)}</>
-                      ) : (
-                        formatCurrency(booking.total_price)
-                      )}
-                   </div>
-                </div>
-
-                {/* View Action */}
-                <div className="hidden md:flex justify-end">
-                   <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-muted/50 text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-all">
-                      <ChevronRight className="h-5 w-5" />
-                   </div>
-                </div>
-              </button>
-            ))}
+             <div className="space-y-2">
+                <p className="text-2xl font-black italic uppercase tracking-tighter">No bookings found</p>
+                <p className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">Adjust filters or create a new match entry</p>
+             </div>
           </div>
+        ) : (
+          filteredBookings.map((booking, idx) => (
+            <button 
+              type="button"
+              key={booking.id}
+              onClick={() => setSelectedBooking(booking)}
+              className="group relative bg-card/40 hover:bg-card/70 border border-border/40 hover:border-primary/40 p-4 md:p-8 rounded-[40px] cursor-pointer flex flex-col lg:flex-row lg:items-center gap-6 md:gap-8 shadow-sm hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-500 overflow-hidden text-left animate-in fade-in slide-in-from-bottom-4"
+              style={{ animationDelay: `${idx * 50}ms` }}
+            >
+              {/* Vertical Status Accent */}
+              <div className={cn(
+                "absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-12 rounded-r-full transition-all duration-500",
+                booking.status === 'confirmed' ? 'bg-primary' : 
+                booking.status === 'completed' ? 'bg-emerald-500' :
+                booking.status === 'cancelled' ? 'bg-red-500' : 'bg-amber-500'
+              )} />
+
+              {/* Time & Logistics Block */}
+              <div className="flex flex-col min-w-[180px] border-l-2 border-transparent pl-2 lg:pl-0">
+                <div className="flex items-center gap-2 mb-2">
+                   <div className="h-2 w-2 rounded-full bg-primary/40" />
+                   <p className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{formatDate(booking.start_time)}</p>
+                </div>
+                <div className="flex items-baseline gap-1 mb-3">
+                  <span className="text-3xl font-black tracking-tighter leading-none">{formatTime(booking.start_time).split(' ')[0]}</span>
+                  <span className="text-xs font-black text-muted-foreground uppercase">{formatTime(booking.start_time).split(' ')[1]}</span>
+                  <span className="mx-2 text-muted-foreground/30 font-light text-2xl">—</span>
+                  <span className="text-lg font-bold text-muted-foreground tracking-tight">{formatTime(booking.end_time)}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-8 w-8 rounded-xl bg-muted/50 flex items-center justify-center text-lg shadow-inner">
+                     {booking.resource?.unit_type === 'footshall' ? '⚽' : '🏏'}
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 leading-none mb-1">Resource</p>
+                    <p className="text-sm font-black tracking-tight">{booking.resource?.name}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Guest Profile Section */}
+              <div className="flex-1 flex items-center gap-4 lg:px-8 lg:border-x border-border/40 py-4 lg:py-0">
+                <div className="relative shrink-0">
+                  <div className="h-16 w-16 rounded-[24px] bg-gradient-to-br from-muted to-background flex items-center justify-center border border-border shadow-2xl group-hover:scale-105 transition-transform duration-500">
+                    <User className="h-7 w-7 text-muted-foreground/50" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-lg bg-background border border-border flex items-center justify-center text-[10px]">
+                     <LoyaltyBadge visits={booking.customer?.total_visits} />
+                  </div>
+                </div>
+                <div className="min-w-0">
+                  <h4 className="text-2xl font-black tracking-tighter leading-none mb-2 truncate group-hover:text-primary transition-colors">
+                    {booking.guest_name || "Anonymous Player"}
+                  </h4>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/50 border border-border/40">
+                       <Phone className="h-3 w-3 text-muted-foreground" />
+                       <span className="text-[10px] font-black tracking-widest text-muted-foreground">{booking.guest_phone || "N/A"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Settlement & Status Tags */}
+              <div className="flex flex-row lg:flex-col items-center lg:items-end justify-between gap-4 shrink-0 lg:min-w-[160px]">
+                 <div className="text-right">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40 mb-1">Settlement</p>
+                    <p className="text-2xl font-black tracking-tighter leading-none">{formatCurrency(booking.total_price)}</p>
+                 </div>
+                 <div className="flex items-center gap-2">
+                    {(() => {
+                        const start = new Date(booking.start_time)
+                        const end = new Date(booking.end_time)
+                        const isLive = booking.status === 'confirmed' && start <= now && end > now
+                        if (isLive) return (
+                          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-500 text-white shadow-lg shadow-red-500/20">
+                             <Zap className="h-3 w-3 animate-pulse" />
+                             <span className="text-[8px] font-black uppercase tracking-widest">Live Now</span>
+                          </div>
+                        )
+                        return (
+                          <div className={cn(
+                            "px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border transition-all shadow-sm",
+                            statusColors[booking.status] || ''
+                          )}>
+                            {booking.status}
+                          </div>
+                        )
+                    })()}
+                    <div className={cn(
+                      "px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-widest border shadow-sm",
+                      booking.payment_status === 'paid' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' : 
+                      booking.payment_status === 'partial' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 
+                      'bg-red-500/10 text-red-500 border-red-500/20'
+                    )}>
+                      {booking.payment_status}
+                    </div>
+                 </div>
+              </div>
+
+              {/* Desktop Chevron */}
+              <div className="hidden lg:flex items-center justify-center pl-4">
+                 <div className="h-12 w-12 rounded-[20px] bg-muted/20 flex items-center justify-center text-muted-foreground group-hover:bg-primary group-hover:text-white group-hover:scale-110 transition-all duration-500 shadow-sm group-hover:shadow-primary/20 group-hover:shadow-xl">
+                    <ChevronRight className="h-6 w-6" />
+                 </div>
+              </div>
+            </button>
+          ))
         )}
       </div>
 

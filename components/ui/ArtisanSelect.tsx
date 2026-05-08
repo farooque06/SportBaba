@@ -1,7 +1,9 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { ChevronDown, CheckCircle2 } from "lucide-react"
+import { useState, useRef, useEffect, useLayoutEffect, useMemo } from "react"
+import { ChevronDown, CheckCircle2, LucideIcon, Search, X, Loader2 } from "lucide-react"
+import { Portal } from "@/components/ui/Portal"
+import { cn } from "@/lib/utils"
 
 export interface SelectOption {
   value: any
@@ -9,30 +11,60 @@ export interface SelectOption {
   disabled?: boolean
   color?: string
   subLabel?: string
+  icon?: LucideIcon
 }
 
 interface ArtisanSelectProps {
   value: any
   onChange: (val: any) => void
   options: SelectOption[]
-  icon?: any
+  icon?: LucideIcon
   label?: string
   className?: string
+  placeholder?: string
 }
 
 export function ArtisanSelect({ 
-  value, onChange, options, icon: Icon, label, className = "" 
+  value, onChange, options, icon: Icon, label, className = "", placeholder = "Select..."
 }: ArtisanSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [coords, setCoords] = useState({ top: 0, left: 0, width: 0 })
   const containerRef = useRef<HTMLDivElement>(null)
   const selectedOption = options.find(o => o.value === value)
 
-  // Close on outside click/touch
+  // Update position when opening
+  const updatePosition = () => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect()
+      setCoords({
+        top: rect.bottom, 
+        left: rect.left,
+        width: rect.width
+      })
+    }
+  }
+
+  useLayoutEffect(() => {
+    if (isOpen) {
+      updatePosition()
+      window.addEventListener('scroll', updatePosition, true)
+      window.addEventListener('resize', updatePosition)
+    }
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [isOpen])
+
+  // Close on outside click
   useEffect(() => {
     if (!isOpen) return
-    const handleOutside = (e: Event) => {
+    const handleOutside = (e: MouseEvent | TouchEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false)
+        const target = e.target as HTMLElement
+        if (!target.closest('[data-select-menu]')) {
+          setIsOpen(false)
+        }
       }
     }
     document.addEventListener('mousedown', handleOutside)
@@ -44,48 +76,69 @@ export function ArtisanSelect({
   }, [isOpen])
 
   return (
-    <div className={`relative ${className}`} ref={containerRef}>
-      {label && <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50 ml-1 mb-1.5 block">{label}</label>}
+    <div className={cn("relative w-full", className)} ref={containerRef}>
+      {label && <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 ml-1 mb-1.5 block">{label}</label>}
       
-      {/* Trigger — proper button for mobile touch */}
       <button 
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full bg-muted/40 border border-border/30 p-3 min-h-[44px] rounded-xl flex items-center justify-between cursor-pointer transition-all hover:bg-muted/60 ${isOpen ? 'ring-4 ring-primary/20 border-primary/40 shadow-lg' : ''}`}
-        style={{ touchAction: 'manipulation' }}
+        className={cn(
+          "w-full bg-muted/40 border border-border/40 p-3 min-h-[48px] rounded-2xl flex items-center justify-between cursor-pointer transition-all duration-300",
+          isOpen ? "ring-4 ring-primary/10 border-primary/40 bg-card shadow-xl scale-[1.02]" : "hover:bg-muted/60"
+        )}
       >
-        <div className="flex items-center gap-2.5 min-w-0">
-          {Icon && <Icon className="h-3.5 w-3.5 text-primary/60 shrink-0" />}
-          <span className="text-sm font-black truncate tracking-tight">{selectedOption?.label || "Select..."}</span>
+        <div className="flex items-center gap-3 min-w-0">
+          {Icon && <Icon className="h-4 w-4 text-primary/60 shrink-0" />}
+          <span className="text-xs font-black truncate tracking-tight uppercase">
+            {selectedOption?.label || placeholder}
+          </span>
         </div>
-        <ChevronDown className={`h-4 w-4 text-muted-foreground/30 transition-transform duration-300 shrink-0 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={cn("h-4 w-4 text-muted-foreground/30 transition-transform duration-500", isOpen ? "rotate-180 text-primary" : "")} />
       </button>
 
-      {/* Menu Overlay */}
       {isOpen && (
-        <>
-          <div className="fixed inset-0 z-[240]" onClick={() => setIsOpen(false)} onTouchEnd={(e) => { e.preventDefault(); setIsOpen(false); }} />
-          <div className="absolute top-[calc(100%+8px)] left-0 w-full z-[250] bg-card/95 backdrop-blur-xl border border-border/40 rounded-2xl shadow-2xl py-2 animate-in fade-in zoom-in-95 duration-200 origin-top max-h-64 overflow-y-auto custom-scrollbar">
-            {options.map((opt) => (
-              <button 
-                type="button"
-                key={opt.value}
-                onClick={() => { onChange(opt.value); setIsOpen(false); }}
-                className={`flex flex-col w-full text-left px-4 py-3 min-h-[44px] cursor-pointer transition-colors ${
-                  value === opt.value ? 'bg-primary/10' : 'hover:bg-foreground/5 active:bg-foreground/10'
-                } ${opt.disabled ? 'opacity-40 cursor-not-allowed grayscale' : ''}`}
-                disabled={opt.disabled}
-                style={{ touchAction: 'manipulation' }}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <span className={`text-sm font-bold ${opt.color || "text-foreground"}`}>{opt.label}</span>
-                  {value === opt.value && <CheckCircle2 className="h-3.5 w-3.5 text-primary shrink-0" />}
+        <Portal>
+          <div 
+            data-select-menu
+            className="fixed z-[3000] bg-card/95 backdrop-blur-2xl border border-border/40 rounded-3xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.3)] overflow-hidden animate-in fade-in zoom-in-95 duration-300 origin-top flex flex-col"
+            style={{ 
+              top: `${coords.top + 8}px`, 
+              left: `${coords.left}px`, 
+              width: `${coords.width}px`,
+              maxHeight: '320px'
+            }}
+          >
+            <div className="overflow-y-auto custom-scrollbar flex-1 py-1.5">
+              {options.length === 0 ? (
+                <div className="px-5 py-8 text-center">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">No customers found</p>
                 </div>
-                {opt.subLabel && <span className="text-[10px] font-medium text-muted-foreground/50">{opt.subLabel}</span>}
-              </button>
-            ))}
+              ) : (
+                options.map((opt, idx) => (
+                  <button 
+                    type="button"
+                    key={opt.value + idx}
+                    onClick={() => { onChange(opt.value); setIsOpen(false); }}
+                    className={cn(
+                      "flex flex-col w-full text-left px-5 py-3 transition-all duration-200 hover:pl-6",
+                      value === opt.value ? "bg-primary/10" : "hover:bg-muted/60 active:bg-muted"
+                    )}
+                    disabled={opt.disabled}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-3">
+                         {opt.icon && <opt.icon className="h-3.5 w-3.5 text-primary/60" />}
+                         <span className={cn("text-xs font-black uppercase tracking-tight", opt.color || "text-foreground")}>{opt.label}</span>
+                      </div>
+                      {value === opt.value && <CheckCircle2 className="h-4 w-4 text-primary shrink-0 animate-in zoom-in duration-300" />}
+                    </div>
+                    {opt.subLabel && <span className="text-[9px] font-bold text-muted-foreground/50 mt-0.5 uppercase tracking-widest">{opt.subLabel}</span>}
+                  </button>
+                ))
+              )}
+            </div>
           </div>
-        </>
+        </Portal>
       )}
     </div>
   )

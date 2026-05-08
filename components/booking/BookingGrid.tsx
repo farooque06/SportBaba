@@ -9,7 +9,7 @@ import { BookingDetailModal } from "./BookingDetailModal"
 import { fetchFacility } from "@/lib/actions/facility"
 import { fetchResourceWithBookings } from "@/lib/actions/booking"
 import { useSport } from "@/components/providers/SportProvider"
-import { formatCurrency } from "@/lib/utils"
+import { cn, formatCurrency } from "@/lib/utils"
 import useSWR from "swr"
 
 const PX_PER_MINUTE = 2; 
@@ -30,6 +30,7 @@ export function BookingGrid({
   const { sport } = useSport()
   const [now, setNow] = useState(new Date())
   const [isMounted, setIsMounted] = useState(false)
+  const [activeFilter, setActiveFilter] = useState<'all' | 'upcoming' | 'past' | 'due' | 'cancelled'>('all')
 
   // ─── SWR Data Management ───
   const dateKey = selectedDate.toISOString().split('T')[0]
@@ -209,25 +210,65 @@ export function BookingGrid({
         </Button>
       </div>
 
-      {/* ─── Mobile Card View (shown on small screens) ─── */}
-      <div className={`block md:hidden transition-all duration-500 ${loading ? 'opacity-40' : 'opacity-100'}`}>
+      {/* ─── Mobile Filters & Timeline View (shown on small screens) ─── */}
+      <div className={`block md:hidden space-y-4 transition-all duration-500 ${loading ? 'opacity-40' : 'opacity-100'}`}>
+        
+        {/* Filter Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 no-scrollbar px-1">
+          {[
+            { id: 'all', label: 'All', icon: CalendarIcon },
+            { id: 'upcoming', label: 'Upcoming', icon: Clock },
+            { id: 'past', label: 'Past', icon: CheckCircle2 },
+            { id: 'due', label: 'Due', icon: AlertTriangle },
+            { id: 'cancelled', label: 'Cancelled', icon: XCircle },
+          ].map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setActiveFilter(f.id as any)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border ${
+                activeFilter === f.id 
+                  ? 'bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20' 
+                  : 'bg-card/50 text-muted-foreground border-border/40 hover:border-primary/20'
+              }`}
+            >
+              <f.icon className="h-3 w-3" />
+              {f.label}
+            </button>
+          ))}
+        </div>
+
         {(() => {
-          // Collect all bookings from all resources into a flat sorted list
-          const allBookings = activeResources
-            .flatMap(res => (res.bookings || []).map((b: any) => ({ ...b, resourceName: res.name, resourceType: res.unit_type })))
+          // Collect all bookings from all resources into a flat list
+          let allBookings = activeResources
+            .flatMap(res => (res.bookings || []).map((b: any) => ({ 
+              ...b, 
+              resourceName: res.name, 
+              resourceType: res.unit_type,
+              isLive: b.status === 'confirmed' && new Date(b.start_time) <= now && new Date(b.end_time) > now,
+              isPast: new Date(b.end_time) <= now && b.status !== 'cancelled',
+              isUpcoming: new Date(b.start_time) > now && b.status !== 'cancelled'
+            })))
             .filter((b: any) => {
               const bDate = new Date(b.start_time).toDateString()
-              return bDate === selectedDate.toDateString()
+              if (bDate !== selectedDate.toDateString()) return false
+              
+              if (activeFilter === 'upcoming') return b.isUpcoming
+              if (activeFilter === 'past') return b.isPast || b.status === 'completed'
+              if (activeFilter === 'due') return b.payment_status !== 'paid' && b.status !== 'cancelled'
+              if (activeFilter === 'cancelled') return b.status === 'cancelled'
+              return true
             })
             .sort((a: any, b: any) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
 
           if (allBookings.length === 0) {
             return (
-              <div className="text-center py-16 px-6">
+              <div className="text-center py-16 px-6 glass-card rounded-[32px] border-dashed border-border/40">
                 <div className="h-16 w-16 mx-auto mb-4 rounded-2xl bg-muted/30 flex items-center justify-center">
                   <CalendarIcon className="h-7 w-7 text-muted-foreground/50" />
                 </div>
-                <p className="text-lg font-black italic uppercase tracking-tighter text-muted-foreground/60 mb-1">No Bookings</p>
+                <p className="text-lg font-black italic uppercase tracking-tighter text-muted-foreground/60 mb-1">
+                  {activeFilter === 'all' ? 'No Bookings' : `No ${activeFilter} matches`}
+                </p>
                 <p className="text-xs font-bold text-muted-foreground/40 mb-6">Tap below to add a booking for this day</p>
                 <Button 
                   variant="primary" 
@@ -241,98 +282,140 @@ export function BookingGrid({
             )
           }
 
-          // Group bookings by hour for time separators
-          let lastHour = -1
-
           return (
-            <div className="space-y-2 pb-4">
-              {allBookings.map((booking: any) => {
+            <div className="relative pl-6 space-y-6 pb-8">
+              {/* Vertical Timeline Line */}
+              <div className="absolute left-[11px] top-2 bottom-0 w-0.5 bg-gradient-to-b from-primary/20 via-border/40 to-transparent rounded-full" />
+
+              {/* Current Time Indicator Line (if today) */}
+              {selectedDate.toDateString() === now.toDateString() && (
+                <div className="relative group/time">
+                   {/* This is a placeholder for where the actual time line would be interleaved */}
+                </div>
+              )}
+
+              {allBookings.map((booking: any, idx: number) => {
                 const start = new Date(booking.start_time)
                 const end = new Date(booking.end_time)
+                
+                // Logic to show Current Time marker between cards
+                const nextBooking = allBookings[idx + 1]
+                const nextStart = nextBooking ? new Date(nextBooking.start_time) : null
+                const showTimeMarker = selectedDate.toDateString() === now.toDateString() && 
+                                      now >= start && (!nextStart || now < nextStart)
+
                 const durationMin = (end.getTime() - start.getTime()) / (1000 * 60)
                 const durationH = durationMin >= 60 ? `${(durationMin / 60).toFixed(1)}h` : `${durationMin}m`
-                const isLive = booking.status === 'confirmed' && start <= now && end > now
+                
+                const isLive = booking.isLive
                 const isEndingSoon = isLive && (end.getTime() - now.getTime()) < 5 * 60 * 1000
                 const isCompleted = booking.status === 'completed'
                 const isPending = booking.status === 'pending'
                 const isCancelled = booking.status === 'cancelled'
-                const showHourSep = start.getHours() !== lastHour
-                lastHour = start.getHours()
+                const isPast = booking.isPast
+                const isUpcoming = booking.isUpcoming
 
                 return (
-                  <div key={booking.id}>
-                    {showHourSep && (
-                      <div className="flex items-center gap-3 px-1 pt-3 pb-1">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/50">
-                          {start.toLocaleTimeString([], { hour: 'numeric', hour12: true })}
-                        </span>
-                        <div className="flex-1 h-px bg-border/40" />
-                      </div>
-                    )}
+                  <div key={booking.id} className="relative">
+                    {/* Timeline Dot */}
+                    <div className={cn(
+                      "absolute left-[-21px] top-5 h-3.5 w-3.5 rounded-full border-2 border-background z-10 transition-all duration-500",
+                      isLive ? "bg-red-500 ring-4 ring-red-500/20 scale-125" : 
+                      isCompleted ? "bg-emerald-500" :
+                      isCancelled ? "bg-muted" :
+                      isUpcoming ? "bg-primary ring-4 ring-primary/10" :
+                      "bg-border"
+                    )} />
+
                     <button
                       onClick={() => setSelectedBooking(booking)}
                       style={{ touchAction: 'manipulation' }}
-                      className={`w-full text-left p-4 rounded-2xl border min-h-[60px] ${
-                        isLive 
-                          ? 'bg-red-500/5 border-red-500/20 shadow-sm shadow-red-500/5' 
-                          : isEndingSoon
-                            ? 'bg-amber-500/5 border-amber-500/20 shadow-sm shadow-amber-500/5 animate-pulse'
-                            : isCompleted 
-                              ? 'bg-emerald-500/5 border-emerald-500/20' 
-                              : isPending
-                                ? 'bg-amber-500/5 border-amber-400/20 border-dashed'
-                                : isCancelled
-                                  ? 'bg-muted/20 border-border/30 opacity-50'
-                                  : 'bg-card/60 border-border/40 hover:border-primary/30'
-                      }`}
+                      className={cn(
+                        "w-full text-left p-4 rounded-2xl border transition-all duration-300 relative overflow-hidden group",
+                        isLive ? 'bg-red-500/[0.03] border-red-500/20 shadow-sm' : 
+                        isCompleted ? 'bg-emerald-500/[0.02] border-emerald-500/10' :
+                        isCancelled ? 'bg-muted/10 border-border/20 opacity-60' :
+                        'bg-card/40 border-border/40'
+                      )}
                     >
-                      <div className="flex items-start justify-between gap-3">
+                      {/* Live Shine Effect */}
+                      {isLive && (
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-500/[0.05] to-transparent -translate-x-full animate-shine" />
+                      )}
+
+                      <div className="flex items-start justify-between gap-3 relative z-10">
                         {/* Left: Time block */}
-                        <div className={`shrink-0 w-14 text-center pt-0.5 ${
-                          isLive ? 'text-red-600' : isCompleted ? 'text-emerald-600' : 'text-primary'
-                        }`}>
-                          <p className="text-lg font-black tracking-tighter leading-none">
+                        <div className={cn(
+                          "shrink-0 w-14 text-center",
+                          isLive ? 'text-red-600' : isCompleted ? 'text-emerald-600' : isCancelled ? 'text-muted-foreground/40' : 'text-primary'
+                        )}>
+                          <p className="text-base font-black tracking-tighter leading-none">
                             {start.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: false })}
                           </p>
-                          <p className="text-[8px] font-bold text-muted-foreground mt-0.5">{durationH}</p>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/40 mt-1">{durationH}</p>
                         </div>
 
                         {/* Center: Info */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <p className="text-sm font-black tracking-tight truncate">{booking.guest_name || 'Guest'}</p>
-                            {isLive && <div className="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.5)] animate-pulse shrink-0" />}
-                            {isEndingSoon && <Bell className="h-3 w-3 text-amber-500 animate-bounce shrink-0" />}
+                            <p className={cn(
+                              "text-sm font-black tracking-tight truncate",
+                              isCancelled ? "text-muted-foreground/50 line-through" : "text-foreground"
+                            )}>
+                              {booking.guest_name || 'Guest'}
+                            </p>
+                            {isLive && <div className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />}
                           </div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[9px] font-bold text-muted-foreground bg-muted/50 px-2 py-0.5 rounded-md">{booking.resourceName}</span>
-                            <span className={`text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-md ${
-                              isLive ? 'bg-red-500/10 text-red-600' 
-                              : isCompleted ? 'bg-emerald-500/10 text-emerald-600'
-                              : isPending ? 'bg-amber-500/10 text-amber-600'
-                              : isCancelled ? 'bg-muted text-muted-foreground'
-                              : 'bg-primary/10 text-primary'
-                            }`}>
-                              {isLive ? '● LIVE' : booking.status}
+                            <span className="text-[8px] font-black text-muted-foreground/60 bg-muted/30 px-2 py-0.5 rounded-md uppercase tracking-widest">{booking.resourceName}</span>
+                            <span className={cn(
+                              "text-[8px] font-black uppercase tracking-[0.2em] px-1.5 py-0.5 rounded-md",
+                              isLive ? 'bg-red-500/10 text-red-600' : 
+                              isCompleted ? 'bg-emerald-500/10 text-emerald-600' :
+                              isCancelled ? 'bg-muted text-muted-foreground' :
+                              'bg-primary/10 text-primary'
+                            )}>
+                              {isLive ? 'Live' : isCancelled ? 'Cancelled' : booking.status}
                             </span>
                           </div>
                         </div>
 
-                        {/* Right: Price + Payment */}
+                        {/* Right: Price + Status */}
                         <div className="text-right shrink-0">
-                          <p className="text-xs font-black tracking-tight">{formatCurrency(booking.total_price || 0)}</p>
-                          <div className={`text-[8px] font-black uppercase tracking-widest mt-0.5 ${
-                            booking.payment_status === 'paid' ? 'text-emerald-600'
-                            : booking.payment_status === 'partial' ? 'text-amber-600'
-                            : 'text-red-500'
-                          }`}>
-                            {booking.payment_status === 'paid' ? '✓ Paid' 
-                             : booking.payment_status === 'partial' ? 'Partial'
-                             : 'Unpaid'}
-                          </div>
+                          <p className={cn(
+                            "text-xs font-black tracking-tight",
+                            isCancelled ? "text-muted-foreground/30" : "text-foreground"
+                          )}>
+                            {formatCurrency(booking.total_price || 0)}
+                          </p>
+                          
+                          {isCancelled ? (
+                            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/40 mt-1 block italic">Reverted</span>
+                          ) : (
+                            <div className={cn(
+                              "text-[8px] font-black uppercase tracking-widest mt-1",
+                              booking.payment_status === 'paid' ? 'text-emerald-600' :
+                              booking.payment_status === 'partial' ? 'text-amber-600' : 'text-red-500'
+                            )}>
+                              {booking.payment_status === 'paid' ? '✓ Paid' : 
+                               booking.payment_status === 'partial' ? 'Partial' : 'Unpaid'}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </button>
+
+                    {/* Live Time Indicator */}
+                    {showTimeMarker && (
+                      <div className="absolute -bottom-3.5 left-[-24px] right-0 z-20 flex items-center gap-2">
+                        <div className="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
+                        <div className="flex-1 h-0.5 bg-red-500/30 relative">
+                           <div className="absolute right-0 top-1/2 -translate-y-1/2 bg-red-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shadow-lg">
+                             NOW • {now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                           </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )
               })}

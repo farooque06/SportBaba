@@ -3,7 +3,7 @@
 import { Search, Users, Phone, Mail, Calendar, TrendingUp, Star, Clock, X, MapPin, CreditCard, UserPlus, Save, Loader2 } from "lucide-react"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
-import { formatCurrency } from "@/lib/utils"
+import { cn, formatCurrency } from "@/lib/utils"
 import { fetchCustomerProfile, upsertCustomer } from "@/lib/actions/customers"
 import { LoyaltyBadge } from "@/components/ui/LoyaltyBadge"
 import { Toast, ToastType } from "@/components/ui/Toast"
@@ -328,11 +328,18 @@ export function CustomersClient({ initialCustomers, facilityId }: { initialCusto
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-xs font-black">{formatCurrency(b.total_price)}</p>
-                      <p className={`text-[8px] font-black uppercase tracking-widest ${b.payment_status === 'paid' ? 'text-green-500' :
-                          b.payment_status === 'partial' ? 'text-amber-500' :
-                            'text-red-500'
-                        }`}>{b.payment_status}</p>
+                      <p className={cn(
+                        "text-xs font-black",
+                        b.status === 'cancelled' && "text-muted-foreground/30"
+                      )}>{formatCurrency(b.total_price)}</p>
+                      <p className={cn(
+                        "text-[8px] font-black uppercase tracking-widest",
+                        b.status === 'cancelled' ? "text-muted-foreground/60 italic" :
+                        b.payment_status === 'paid' ? 'text-green-500' :
+                        b.payment_status === 'partial' ? 'text-amber-500' : 'text-red-500'
+                      )}>
+                        {b.status === 'cancelled' ? 'Cancelled' : b.payment_status}
+                      </p>
                     </div>
                   </div>
                 ))
