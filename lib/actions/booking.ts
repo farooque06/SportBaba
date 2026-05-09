@@ -20,6 +20,19 @@ export async function createBooking(data: {
   const session = await auth();
   if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
+  // Check for conflicts
+  const { data: conflicts } = await supabase
+    .from('bookings')
+    .select('id')
+    .eq('resource_id', data.resource_id)
+    .neq('status', 'cancelled')
+    .lt('start_time', data.end_time)
+    .gt('end_time', data.start_time);
+
+  if (conflicts && conflicts.length > 0) {
+    return { error: "This slot is already booked. Please choose another time or pitch." };
+  }
+
   // Calculate price based on duration
   const start = new Date(data.start_time);
   const end = new Date(data.end_time);
@@ -377,7 +390,7 @@ export async function fetchResourceWithBookings(facilityId: string, startDate: s
     .eq('facility_id', facilityId)
     .gte('start_time', startDate)
     .lte('start_time', endDate)
-    .neq('status', 'cancelled');
+    .lte('start_time', endDate);
 
   return resources.map(resource => ({
     ...resource,

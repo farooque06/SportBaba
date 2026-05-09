@@ -41,7 +41,9 @@ export default async function DashboardLayout({
       .limit(1)
       .maybeSingle();
     
-    facilityId = membership?.facility_id;
+    if (membership?.facility_id) {
+      facilityId = membership.facility_id;
+    }
   }
 
   if (!facilityId) redirect("/onboarding");

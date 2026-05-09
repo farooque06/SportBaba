@@ -493,7 +493,7 @@ export function BookingGrid({
                     slotStart.setHours(slot.hour, slot.minute, 0, 0);
                     const slotEnd = new Date(selectedDate);
                     slotEnd.setHours(slot.hour, slot.minute + 30, 0, 0);
-                    return bStart < slotEnd && bEnd > slotStart;
+                    return bStart < slotEnd && bEnd > slotStart && b.status !== 'cancelled';
                   })
 
                   const bStart = booking ? new Date(booking.start_time) : null;

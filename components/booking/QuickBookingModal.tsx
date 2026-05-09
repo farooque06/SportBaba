@@ -171,6 +171,7 @@ export function QuickBookingModal({
   bookingEnd.setMinutes(bookingStart.getMinutes() + selectedDuration * 60)
 
   const hasConflict = selectedResource?.bookings?.some((b: any) => {
+    if (b.status === 'cancelled') return false
     const bStart = new Date(b.start_time)
     const bEnd = new Date(b.end_time)
     return bookingStart < bEnd && bookingEnd > bStart
@@ -183,6 +184,7 @@ export function QuickBookingModal({
     const slotEnd = new Date(slotStart.getTime() + 30 * 60000)
 
     const isOccupied = selectedResource?.bookings?.some((b: any) => {
+      if (b.status === 'cancelled') return false
       const bStart = new Date(b.start_time)
       const bEnd = new Date(b.end_time)
       return slotStart < bEnd && slotEnd > bStart

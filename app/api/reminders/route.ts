@@ -72,7 +72,9 @@ export async function GET(request: Request) {
         startTime: b.start_time,
         resource: b.resource?.name,
         whatsappUrl: result.whatsappUrl,
-        message: result.message
+        message: result.message,
+        paymentStatus: b.payment_status,
+        dueAmount: (Number(b.total_price) || 0) - (Number(b.paid_amount) || 0)
       })
     }
   }

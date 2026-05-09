@@ -7,10 +7,9 @@ export async function fetchDailyReport(date: string, facilityId: string) {
   const session = await auth();
   if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
-  const startOfDay = new Date(date);
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date(date);
-  endOfDay.setHours(23, 59, 59, 999);
+  // Explicitly set start and end of day in the date's timezone
+  const startOfDay = `${date}T00:00:00.000Z`;
+  const endOfDay = `${date}T23:59:59.999Z`;
 
   const { data: bookings, error } = await supabase
     .from('bookings')
@@ -19,8 +18,8 @@ export async function fetchDailyReport(date: string, facilityId: string) {
       resource:resource_units(name, unit_type, base_price)
     `)
     .eq('facility_id', facilityId)
-    .gte('start_time', startOfDay.toISOString())
-    .lte('start_time', endOfDay.toISOString());
+    .gte('start_time', startOfDay)
+    .lte('start_time', endOfDay);
 
   if (error) throw error;
 

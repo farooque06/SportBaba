@@ -10,7 +10,7 @@ import { formatCurrency } from "@/lib/utils"
 import { useSession } from "next-auth/react"
 import Cookies from "js-cookie"
 
-import { getCurrentUserRole } from "@/lib/actions/auth"
+import { getCurrentUserRole, getAnyUserRoleAndFacility } from "@/lib/actions/auth"
 
 export default function ReportsPage() {
   const { data: session } = useSession()
@@ -19,13 +19,23 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true)
   const [role, setRole] = useState<string | null>(null)
   const [isVerifying, setIsVerifying] = useState(true)
+  const [facilityId, setFacilityId] = useState<string | null>(null)
 
   useEffect(() => {
     async function checkAuth() {
-      const activeFacilityId = Cookies.get("active_facility_id")
-      if (activeFacilityId) {
-        const userRole = await getCurrentUserRole(activeFacilityId)
+      let activeId = Cookies.get("active_facility_id")
+      
+      if (activeId) {
+        const userRole = await getCurrentUserRole(activeId)
         setRole(userRole)
+        setFacilityId(activeId)
+      } else {
+        const { role: userRole, facilityId: foundId } = await getAnyUserRoleAndFacility()
+        setRole(userRole)
+        setFacilityId(foundId)
+        if (foundId) {
+          Cookies.set("active_facility_id", foundId, { expires: 7 })
+        }
       }
       setIsVerifying(false)
     }
@@ -35,19 +45,21 @@ export default function ReportsPage() {
   }, [session])
 
   useEffect(() => {
-    if (role === 'owner' || role === 'manager') {
+    if ((role === 'owner' || role === 'manager') && facilityId) {
       async function load() {
-        const activeFacilityId = Cookies.get("active_facility_id")
-        if (!activeFacilityId) return
-
         setLoading(true)
-        const data = await fetchDailyReport(date, activeFacilityId)
-        setReport(data)
-        setLoading(false)
+        try {
+          const data = await fetchDailyReport(date, facilityId!)
+          setReport(data)
+        } finally {
+          setLoading(false)
+        }
       }
       load()
+    } else if (role !== null && !facilityId) {
+      setLoading(false)
     }
-  }, [date, role])
+  }, [date, role, facilityId])
 
   const handlePrint = () => {
     window.print()
@@ -116,9 +128,9 @@ export default function ReportsPage() {
               type="date" 
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="bg-muted/40 border border-border/30 px-4 py-2.5 rounded-2xl text-xs font-black outline-none ring-primary/20 focus:ring-4 transition-all pr-10 appearance-none cursor-pointer"
+              className="bg-muted/40 border border-border/30 px-4 py-2.5 rounded-2xl text-xs font-black outline-none ring-primary/20 focus:ring-4 transition-all pr-10 cursor-pointer"
             />
-            <Calendar className="h-4 w-4 text-primary absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Calendar className="h-4 w-4 text-primary absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-50" />
           </div>
           
           <div className="flex items-center gap-2">
@@ -138,10 +150,12 @@ export default function ReportsPage() {
         </div>
       </div>
 
-      {loading ? (
+      {loading || !report ? (
         <div className="flex flex-col items-center justify-center h-[40vh] space-y-4 print:hidden">
            <div className="h-12 w-12 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Aggregating Ledger Data...</p>
+           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">
+             {loading ? "Aggregating Ledger Data..." : "Finalizing Report View..."}
+           </p>
         </div>
       ) : (
         <div id="printable-report" className="space-y-10">

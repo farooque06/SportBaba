@@ -88,17 +88,61 @@ export async function getCurrentUser() {
   return session?.user || null;
 }
 
+export async function getAnyUserRoleAndFacility() {
+  const user = await getCurrentUser();
+  if (!user?.id) return { role: null, facilityId: null };
+
+  // Superadmin check
+  if (user.email === 'far00queapril17@gmail.com') {
+    // For superadmin, we still need a facilityId to show reports. 
+    // We'll grab the first one we find in the system as a placeholder or first membership.
+    const { data: firstFacility } = await supabase.from('facilities').select('id').limit(1).maybeSingle();
+    return { role: 'owner', facilityId: firstFacility?.id || null };
+  }
+
+  const { data, error } = await supabase
+    .from('memberships')
+    .select('role, facility_id')
+    .eq('profile_id', user.id)
+    .in('role', ['owner', 'manager'])
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !data) return { role: null, facilityId: null };
+  return { role: data.role, facilityId: data.facility_id };
+}
+
 export async function getCurrentUserRole(facilityId: string) {
   const user = await getCurrentUser();
-  if (!user?.id || !facilityId) return null;
+  if (!user?.id) return null;
+
+  // 1. Superadmin check (Platform owners)
+  if (user.email === 'far00queapril17@gmail.com') return 'owner';
+
+  // 2. Handle "any" fallback (Check if user is owner of AT LEAST one facility)
+  if (facilityId === "any" || !facilityId) {
+    const { data } = await supabase
+      .from('memberships')
+      .select('role')
+      .eq('profile_id', user.id)
+      .in('role', ['owner', 'manager'])
+      .limit(1)
+      .maybeSingle();
+    
+    return data?.role || null;
+  }
 
   const { data, error } = await supabase
     .from('memberships')
     .select('role')
     .eq('profile_id', user.id)
     .eq('facility_id', facilityId)
-    .single();
+    .maybeSingle();
 
-  if (error || !data) return null;
-  return data.role;
+  if (error) {
+    console.error("getCurrentUserRole: Database Error", error);
+    return null;
+  }
+
+  return data?.role || null;
 }

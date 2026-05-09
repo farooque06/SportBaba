@@ -57,6 +57,7 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
   const [isUpdating, setIsUpdating] = useState(false)
   const [availableProducts, setAvailableProducts] = useState<any[]>([])
   const { sport, facilityId } = useSport()
+  const [statusFilter, setStatusFilter] = useState<'all' | 'upcoming' | 'past' | 'due' | 'cancelled'>('all')
   const [dateFilter, setDateFilter] = useState<'today' | 'all'>('today')
   const [now, setNow] = useState(new Date())
 
@@ -139,21 +140,41 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
     setIsUpdating(false)
   }
 
-
   const filteredBookings = bookings
     .filter(b => {
+      const bStart = new Date(b.start_time)
+      const bEnd = new Date(b.end_time)
+      
       const matchesSearch = 
         b.guest_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         b.id.includes(searchTerm) ||
         b.resource?.name?.toLowerCase().includes(searchTerm.toLowerCase());
       
+      if (!matchesSearch) return false;
+
+      // Status Filter
+      if (statusFilter === 'upcoming') {
+        if (bStart <= now || b.status === 'cancelled') return false;
+      }
+      if (statusFilter === 'past') {
+        if (bEnd > now || b.status === 'cancelled') return false;
+      }
+      if (statusFilter === 'due') {
+        if (b.payment_status === 'paid' || b.status === 'cancelled') return false;
+      }
+      if (statusFilter === 'cancelled') {
+        if (b.status !== 'cancelled') return false;
+      } else {
+        // By default, hide cancelled matches if not explicitly selected
+        if (b.status === 'cancelled' && statusFilter !== 'all') return false;
+      }
+
+      // Date Filter
       if (dateFilter === 'today') {
-        const bookingDate = new Date(b.start_time).toDateString();
-        const today = now.toDateString();
-        return matchesSearch && bookingDate === today;
+        return bStart.toDateString() === now.toDateString();
       }
       
-      return matchesSearch;
+      return true;
     })
     .sort((a, b) => {
       const aStart = new Date(a.start_time)
@@ -235,7 +256,27 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
           />
         </div>
         <div className="flex flex-wrap items-center gap-3 shrink-0 w-full lg:w-auto">
-          <div className="flex bg-muted/30 p-1.5 rounded-[24px] border border-border/40 w-full lg:w-auto">
+          <div className="flex bg-muted/30 p-1.5 rounded-[24px] border border-border/40 w-full lg:auto overflow-x-auto no-scrollbar">
+            {[
+              { id: 'all', label: 'All' },
+              { id: 'upcoming', label: 'Upcoming' },
+              { id: 'past', label: 'Past' },
+              { id: 'due', label: 'Due' },
+              { id: 'cancelled', label: 'Cancelled' },
+            ].map((f) => (
+              <button 
+                key={f.id}
+                onClick={() => setStatusFilter(f.id as any)}
+                className={cn(
+                  "px-6 py-3 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] transition-all duration-300 whitespace-nowrap",
+                  statusFilter === f.id ? 'bg-primary text-primary-foreground shadow-xl shadow-primary/20' : 'text-muted-foreground hover:bg-white/5'
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <div className="flex bg-muted/30 p-1.5 rounded-[24px] border border-border/40 w-full lg:w-auto shrink-0">
             <button 
               onClick={() => setDateFilter('today')}
               className={`flex-1 lg:flex-none px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${dateFilter === 'today' ? 'bg-primary text-primary-foreground shadow-xl shadow-primary/20' : 'text-muted-foreground hover:bg-white/5'}`}
@@ -246,7 +287,7 @@ export function BookingsList({ bookings: initialBookings }: BookingsListProps) {
               onClick={() => setDateFilter('all')}
               className={`flex-1 lg:flex-none px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${dateFilter === 'all' ? 'bg-primary text-primary-foreground shadow-xl shadow-primary/20' : 'text-muted-foreground hover:bg-white/5'}`}
             >
-              All Time
+              All
             </button>
           </div>
           <Button variant="ghost" className="h-14 w-14 rounded-[22px] border border-border/40 bg-muted/20 hover:bg-primary hover:text-white transition-all active:scale-90">
