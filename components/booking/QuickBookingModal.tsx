@@ -98,6 +98,23 @@ export function QuickBookingModal({
 
   useEffect(() => { if (isOpen) setBookingDate(selectedDate) }, [isOpen, selectedDate])
 
+  // Reset success state and sync props when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setIsSuccess(false);
+      setCreatedBooking(null);
+      setLoading(false);
+      
+      // Sync with props
+      setSelectedHour(initialHour || 10);
+      setSelectedMinute(initialMinute || 0);
+      setSelectedResId(initialResourceId || resources[0]?.id);
+      setGuestName('');
+      setGuestPhone('');
+      setSelectedCustomerId(null);
+    }
+  }, [isOpen, initialHour, initialMinute, initialResourceId, resources]);
+
   // ─── Initial Load (Top 10 Customers Only) ───
   useEffect(() => {
     if (isOpen) {
