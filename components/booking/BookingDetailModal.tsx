@@ -25,6 +25,9 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
   const [whatsappPending, setWhatsappPending] = useState<string | null>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
   const [toast, setToast] = useState<{ message: string, type: ToastType } | null>(null)
+  const [showPartialInput, setShowPartialInput] = useState(false)
+  const [partialAmount, setPartialAmount] = useState('')
+  const [partialMethod, setPartialMethod] = useState('cash')
   const { mutate } = useSWRConfig()
 
   const refreshGrid = (updatedData?: any) => {
@@ -100,6 +103,21 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
       refreshGrid(result.data)
       if(onUpdate) onUpdate(result.data)
       if (result.whatsappUrl) setWhatsappPending(result.whatsappUrl)
+    }
+    setIsUpdating(false)
+  }
+
+  const handlePartialPayment = async () => {
+    if (!partialAmount || Number(partialAmount) <= 0) return;
+    setIsUpdating(true)
+    const result = await updatePaymentStatus(booking.id, 'partial', partialMethod, Number(partialAmount), booking.facility_id)
+    if (result.success) {
+      setBooking(result.data)
+      refreshGrid(result.data)
+      if(onUpdate) onUpdate(result.data)
+      setShowPartialInput(false)
+      setPartialAmount('')
+      showToast(`Recorded ${formatCurrency(Number(partialAmount))} payment`)
     }
     setIsUpdating(false)
   }
@@ -334,23 +352,78 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
 
               {/* Payment Buttons (if not fully paid) */}
               {!isFullyPaid && !isCancelled && (
-                <div className="grid grid-cols-2 gap-3 mt-6">
-                  <button 
-                    disabled={isUpdating}
-                    onClick={() => handleMarkAsPaid('cash')}
-                    className="flex flex-col items-center justify-center gap-2 p-5 rounded-[24px] bg-emerald-500/5 border border-emerald-500/20 hover:bg-emerald-500/10 hover:border-emerald-500/40 active:scale-[0.95] transition-all disabled:opacity-50 group"
-                  >
-                    <Banknote className="h-6 w-6 text-emerald-600 group-hover:scale-110 transition-transform" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Cash Settlement</span>
-                  </button>
-                  <button 
-                    disabled={isUpdating}
-                    onClick={() => handleMarkAsPaid('card')}
-                    className="flex flex-col items-center justify-center gap-2 p-5 rounded-[24px] bg-blue-500/5 border border-blue-500/20 hover:bg-blue-500/10 hover:border-blue-500/40 active:scale-[0.95] transition-all disabled:opacity-50 group"
-                  >
-                    <CreditCard className="h-6 w-6 text-blue-600 group-hover:scale-110 transition-transform" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-700">Card / POS</span>
-                  </button>
+                <div className="space-y-4 mt-6">
+                  <div className="grid grid-cols-3 gap-3">
+                    <button 
+                      disabled={isUpdating}
+                      onClick={() => handleMarkAsPaid('cash')}
+                      className="flex flex-col items-center justify-center gap-2 p-4 rounded-[20px] bg-emerald-500/5 border border-emerald-500/20 hover:bg-emerald-500/10 active:scale-[0.95] transition-all group"
+                    >
+                      <Banknote className="h-5 w-5 text-emerald-600" />
+                      <span className="text-[8px] font-black uppercase tracking-widest text-emerald-700">Full Cash</span>
+                    </button>
+                    <button 
+                      disabled={isUpdating}
+                      onClick={() => handleMarkAsPaid('card')}
+                      className="flex flex-col items-center justify-center gap-2 p-4 rounded-[20px] bg-blue-500/5 border border-blue-500/20 hover:bg-blue-500/10 active:scale-[0.95] transition-all group"
+                    >
+                      <CreditCard className="h-5 w-5 text-blue-600" />
+                      <span className="text-[8px] font-black uppercase tracking-widest text-blue-700">Full Card</span>
+                    </button>
+                    <button 
+                      disabled={isUpdating}
+                      onClick={() => setShowPartialInput(!showPartialInput)}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-2 p-4 rounded-[20px] border active:scale-[0.95] transition-all group",
+                        showPartialInput 
+                          ? "bg-amber-500 text-white border-amber-600 shadow-lg shadow-amber-500/20" 
+                          : "bg-amber-500/5 border-amber-500/20 hover:bg-amber-500/10"
+                      )}
+                    >
+                      <Receipt className={cn("h-5 w-5", showPartialInput ? "text-white" : "text-amber-600")} />
+                      <span className={cn("text-[8px] font-black uppercase tracking-widest", showPartialInput ? "text-white" : "text-amber-700")}>
+                        {showPartialInput ? 'Cancel' : 'Partial'}
+                      </span>
+                    </button>
+                  </div>
+
+                  {showPartialInput && (
+                    <div className="p-4 rounded-3xl bg-muted/30 border border-border/20 space-y-4 animate-in slide-in-from-top-4 duration-500">
+                       <div className="grid grid-cols-2 gap-3">
+                          <div className="relative">
+                             <input 
+                                type="number"
+                                placeholder="Amount"
+                                value={partialAmount}
+                                onChange={(e) => setPartialAmount(e.target.value)}
+                                className="w-full bg-background border border-border/40 p-3 pl-10 rounded-xl text-sm font-bold outline-none ring-primary focus:ring-2"
+                             />
+                             <Banknote className="h-4 w-4 text-primary/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                             {['cash', 'card'].map(m => (
+                               <button 
+                                 key={m}
+                                 onClick={() => setPartialMethod(m)}
+                                 className={cn(
+                                   "rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all",
+                                   partialMethod === m ? "bg-primary text-white border-primary" : "bg-background border-border/40 text-muted-foreground hover:bg-muted"
+                                 )}
+                               >
+                                 {m}
+                               </button>
+                             ))}
+                          </div>
+                       </div>
+                       <Button 
+                         onClick={handlePartialPayment}
+                         disabled={isUpdating || !partialAmount}
+                         className="w-full h-11 bg-black text-white rounded-xl font-black uppercase tracking-widest text-[10px]"
+                       >
+                         {isUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : `Record ${formatCurrency(Number(partialAmount) || 0)} Payment`}
+                       </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

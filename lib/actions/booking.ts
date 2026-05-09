@@ -16,6 +16,7 @@ export async function createBooking(data: {
   payment_status?: 'paid' | 'unpaid' | 'partial';
   payment_method?: string;
   use_credit?: boolean;
+  paid_amount?: number;
 }, facilityId: string) {
   const session = await auth();
   if (!session?.user || !facilityId) throw new Error("Unauthorized");
@@ -47,8 +48,14 @@ export async function createBooking(data: {
   const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
   const total_price = (Number(resource?.base_price) || 0) * durationHours;
 
-  let paid_amount = data.payment_status === 'paid' ? total_price : 0;
+  let paid_amount = data.payment_status === 'paid' ? total_price : (Number(data.paid_amount) || 0);
   let final_payment_status: 'paid' | 'unpaid' | 'partial' = data.payment_status || 'unpaid';
+
+  if (paid_amount >= total_price) {
+    final_payment_status = 'paid';
+  } else if (paid_amount > 0) {
+    final_payment_status = 'partial';
+  }
 
   // ─── Credit Handling ───
   let creditUsed = 0;

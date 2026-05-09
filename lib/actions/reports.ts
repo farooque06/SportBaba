@@ -79,24 +79,58 @@ export async function fetchDailyReport(date: string, facilityId: string) {
 export async function generateCSVReport(date: string, facilityId: string) {
   const report = await fetchDailyReport(date, facilityId);
   
-  const headers = ["ID", "Resource", "Guest", "Phone", "Start Time", "End Time", "Status", "Payment Status", "Payment Method", "Total Price", "Paid Amount"];
-  const rows = report.bookings.map(b => [
-    b.id.slice(0, 8),
-    b.resource?.name || 'N/A',
-    b.guest_name,
-    b.guest_phone || 'N/A',
-    new Date(b.start_time).toLocaleString(),
-    new Date(b.end_time).toLocaleString(),
-    b.status,
-    b.payment_status,
-    b.payment_method || 'CASH',
-    b.total_price,
-    b.paid_amount
-  ]);
+  const headers = [
+    "Booking ID", 
+    "Pitch/Resource", 
+    "Resource Type",
+    "Customer Name", 
+    "Phone Number", 
+    "Date",
+    "Start Time", 
+    "End Time", 
+    "Duration (Min)",
+    "Booking Status", 
+    "Payment Status", 
+    "Payment Method", 
+    "Total Price (NRS)", 
+    "Paid Amount (NRS)",
+    "Due Amount (NRS)"
+  ];
+
+  const rows = report.bookings.map(b => {
+    const start = new Date(b.start_time);
+    const end = new Date(b.end_time);
+    const duration = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
+    
+    return [
+      b.id.slice(0, 8).toUpperCase(),
+      b.resource?.name || 'N/A',
+      b.resource?.unit_type || 'N/A',
+      b.guest_name,
+      b.guest_phone || 'N/A',
+      new Date(b.start_time).toLocaleDateString(),
+      start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      duration,
+      b.status.toUpperCase(),
+      b.payment_status.toUpperCase(),
+      (b.payment_method || 'CASH').toUpperCase(),
+      b.total_price,
+      b.paid_amount,
+      (Number(b.total_price) || 0) - (Number(b.paid_amount) || 0)
+    ];
+  });
 
   const csvContent = [
+    `# SPORTBABA FINANCIAL REPORT - ${date}`,
+    `# Facility ID: ${facilityId}`,
+    "",
     headers.join(","),
-    ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ...rows.map(row => row.map(cell => {
+      // Escape commas in cells
+      const stringCell = String(cell);
+      return stringCell.includes(',') ? `"${stringCell}"` : stringCell;
+    }).join(","))
   ].join("\n");
 
   return csvContent;

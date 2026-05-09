@@ -39,7 +39,8 @@ export function QuickBookingModal({
   const [selectedHour, setSelectedHour] = useState(initialHour !== undefined ? initialHour : 17)
   const [selectedMinute, setSelectedMinute] = useState(initialMinute !== undefined ? initialMinute : 0)
   const [selectedDuration, setSelectedDuration] = useState(1.0)
-  const [paymentStatus, setPaymentStatus] = useState<'paid' | 'unpaid'>('unpaid')
+  const [paymentStatus, setPaymentStatus] = useState<'paid' | 'unpaid' | 'partial'>('unpaid')
+  const [partialAmount, setPartialAmount] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [isSuccess, setIsSuccess] = useState(false)
   const [createdBooking, setCreatedBooking] = useState<any>(null)
@@ -223,7 +224,8 @@ export function QuickBookingModal({
       notes: formData.get("notes") as string || "",
       payment_status: paymentStatus,
       payment_method: paymentMethod,
-      use_credit: useCredit
+      use_credit: useCredit,
+      paid_amount: paymentStatus === 'partial' ? Number(partialAmount) : undefined
     }, facilityId)
     
     // ─── SWR Revalidation ───
@@ -603,34 +605,63 @@ export function QuickBookingModal({
                 <p className="text-[9px] font-black uppercase tracking-widest text-primary/60">Payment</p>
               </div>
               
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button 
-                  type="button"
-                  onClick={() => setPaymentStatus('paid')}
-                  className={`p-3 rounded-xl border-2 flex items-center justify-center gap-2 transition-all active:scale-[0.97] ${
-                    paymentStatus === 'paid' 
-                      ? 'border-emerald-500 bg-emerald-500/10 shadow-sm shadow-emerald-500/10' 
-                      : 'border-border/30 bg-muted/20 hover:border-border/60'
-                  }`}
+                   type="button"
+                   onClick={() => setPaymentStatus('paid')}
+                   className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all active:scale-[0.97] ${
+                     paymentStatus === 'paid' 
+                       ? 'border-emerald-500 bg-emerald-500/10' 
+                       : 'border-border/30 bg-muted/20 hover:border-border/60'
+                   }`}
                 >
-                  <CheckCircle2 className={`h-4 w-4 ${paymentStatus === 'paid' ? 'text-emerald-500' : 'text-muted-foreground/40'}`} />
-                  <span className={`text-[10px] font-black uppercase tracking-widest ${paymentStatus === 'paid' ? 'text-emerald-600' : 'text-muted-foreground/60'}`}>Paid</span>
+                   <CheckCircle2 className={`h-4 w-4 ${paymentStatus === 'paid' ? 'text-emerald-500' : 'text-muted-foreground/40'}`} />
+                   <span className={`text-[9px] font-black uppercase tracking-widest ${paymentStatus === 'paid' ? 'text-emerald-600' : 'text-muted-foreground/60'}`}>Full</span>
                 </button>
                 <button 
-                  type="button"
-                  onClick={() => setPaymentStatus('unpaid')}
-                  className={`p-3 rounded-xl border-2 flex items-center justify-center gap-2 transition-all active:scale-[0.97] ${
-                    paymentStatus === 'unpaid' 
-                      ? 'border-red-500 bg-red-500/10 shadow-sm shadow-red-500/10' 
-                      : 'border-border/30 bg-muted/20 hover:border-border/60'
-                  }`}
+                   type="button"
+                   onClick={() => setPaymentStatus('partial')}
+                   className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all active:scale-[0.97] ${
+                     paymentStatus === 'partial' 
+                       ? 'border-amber-500 bg-amber-500/10' 
+                       : 'border-border/30 bg-muted/20 hover:border-border/60'
+                   }`}
                 >
-                  <X className={`h-4 w-4 ${paymentStatus === 'unpaid' ? 'text-red-500' : 'text-muted-foreground/40'}`} />
-                  <span className={`text-[10px] font-black uppercase tracking-widest ${paymentStatus === 'unpaid' ? 'text-red-600' : 'text-muted-foreground/60'}`}>Unpaid</span>
+                   <Receipt className={`h-4 w-4 ${paymentStatus === 'partial' ? 'text-amber-500' : 'text-muted-foreground/40'}`} />
+                   <span className={`text-[9px] font-black uppercase tracking-widest ${paymentStatus === 'partial' ? 'text-amber-600' : 'text-muted-foreground/60'}`}>Partial</span>
+                </button>
+                <button 
+                   type="button"
+                   onClick={() => setPaymentStatus('unpaid')}
+                   className={`p-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all active:scale-[0.97] ${
+                     paymentStatus === 'unpaid' 
+                       ? 'border-red-500 bg-red-500/10' 
+                       : 'border-border/30 bg-muted/20 hover:border-border/60'
+                   }`}
+                >
+                   <X className={`h-4 w-4 ${paymentStatus === 'unpaid' ? 'text-red-500' : 'text-muted-foreground/40'}`} />
+                   <span className={`text-[9px] font-black uppercase tracking-widest ${paymentStatus === 'unpaid' ? 'text-red-600' : 'text-muted-foreground/60'}`}>Unpaid</span>
                 </button>
               </div>
 
-              {paymentStatus === 'paid' && (
+              {paymentStatus === 'partial' && (
+                <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
+                   <div className="relative">
+                      <input 
+                        type="number"
+                        placeholder="Deposit Amount (e.g. 500)"
+                        value={partialAmount}
+                        onChange={(e) => setPartialAmount(e.target.value)}
+                        className="w-full bg-muted/40 border border-border/30 p-3 rounded-xl text-sm font-bold outline-none ring-amber-500 focus:ring-2 transition-all pl-10"
+                        required
+                      />
+                      <Banknote className="h-4 w-4 text-amber-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                   </div>
+                   <p className="text-[8px] font-bold text-muted-foreground ml-2">Record partial payment/deposit for this booking</p>
+                </div>
+              )}
+
+              {paymentStatus !== 'unpaid' && (
                 <ArtisanSelect 
                   label="Method"
                   value={paymentMethod}

@@ -144,19 +144,25 @@ export default async function DashboardLayout({
   return (
     <SportProvider facilityType={facility?.sport_type} facilityId={facilityId}>
       <div className="flex flex-col md:flex-row md:h-screen md:overflow-hidden bg-background">
-        <Sidebar 
-          subscriptionStatus={facility?.subscription_status} 
-          trialEnd={facility?.trial_end} 
-          user={{
-            ...session.user,
-            facilityName: (facility as any)?.name || "Facility Hub"
-          }}
-        />
-        <main className="flex-1 md:overflow-y-auto w-full max-w-[1600px] mx-auto pt-[72px] md:pt-6 lg:pt-8 px-3 md:px-6 lg:px-8 pb-36 md:pb-12 bg-muted/10">
-          <MobileNav />
+        <div className="print:hidden">
+          <Sidebar 
+            subscriptionStatus={facility?.subscription_status} 
+            trialEnd={facility?.trial_end} 
+            user={{
+              ...session.user,
+              facilityName: (facility as any)?.name || "Facility Hub"
+            }}
+          />
+        </div>
+        <main className="flex-1 md:overflow-y-auto w-full max-w-[1600px] mx-auto pt-[72px] md:pt-6 lg:pt-8 px-3 md:px-6 lg:px-8 pb-36 md:pb-12 bg-muted/10 print:p-0 print:m-0 print:bg-white print:overflow-visible">
+          <div className="print:hidden">
+            <MobileNav />
+          </div>
           {children}
         </main>
-        <QuickActionFab />
+        <div className="print:hidden">
+          <QuickActionFab />
+        </div>
       </div>
     </SportProvider>
   );
