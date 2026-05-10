@@ -16,7 +16,24 @@ export default async function DashboardPage() {
 
   const cookieStore = await cookies();
   let facilityId = cookieStore.get("active_facility_id")?.value;
+  const isSuperAdmin = session.user.email === 'far00queapril17@gmail.com';
 
+  // If we have a cookie, we must verify the user actually belongs to this facility
+  // (Prevents new users from seeing old profiles if the cookie wasn't cleared)
+  if (facilityId && !isSuperAdmin) {
+    const { data: verifyMembership } = await supabase
+      .from('memberships')
+      .select('id')
+      .eq('profile_id', session.user.id)
+      .eq('facility_id', facilityId)
+      .maybeSingle();
+      
+    if (!verifyMembership) {
+      facilityId = undefined; // Invalid cookie for this user
+    }
+  }
+
+  // If no valid facilityId from cookie, fetch their first membership
   if (!facilityId) {
     const { data: membership } = await supabase
       .from('memberships')
@@ -28,7 +45,7 @@ export default async function DashboardPage() {
     facilityId = membership?.facility_id;
   }
 
-  if (!facilityId) redirect("/onboarding");
+  if (!facilityId && !isSuperAdmin) redirect("/onboarding");
 
   // Only fetch resources (usually fast) - let stats load lazily
   const resources = await fetchResourceUnits(facilityId).catch(() => []);

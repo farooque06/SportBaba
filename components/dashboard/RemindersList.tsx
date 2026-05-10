@@ -153,22 +153,19 @@ export function RemindersList() {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
+                         <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
                            <span className="flex items-center gap-1.5 shrink-0">
                              <Clock className="h-3 w-3 opacity-40" /> 
                              {new Date(r.startTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
                            </span>
                            <span className="flex items-center gap-1.5 shrink-0 bg-muted/50 px-2 py-0.5 rounded-md text-[8px]">{r.resource}</span>
-                           {(isPastDue || r.paymentStatus === 'unpaid') && r.dueAmount > 0 && (
-                             <span className={cn(
-                               "font-black flex items-center gap-1 shrink-0",
-                               isPastDue ? "text-red-600" : "text-amber-600"
-                             )}>
-                               <ArrowRight className="h-2 w-2" />
-                               {isPastDue ? "DUE: " : "UNPAID: "}{formatCurrency(r.dueAmount)}
-                             </span>
-                           )}
                         </div>
+                        {(isPastDue || r.paymentStatus === 'unpaid') && r.dueAmount > 0 && (
+                          <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-red-500/5 border border-red-500/10">
+                             <span className="text-[8px] font-black text-red-600/60 uppercase">Amount Due:</span>
+                             <span className="text-[10px] font-black text-red-600">{formatCurrency(r.dueAmount)}</span>
+                          </div>
+                        )}
                       </div>
                    </div>
                    

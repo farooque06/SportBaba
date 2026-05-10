@@ -5,7 +5,7 @@ import { useSWRConfig } from "swr"
 import { Button } from "@/components/ui/Button"
 import { createBooking, fetchResourceWithBookings } from "@/lib/actions/booking"
 import { searchCustomers, fetchCustomers } from "@/lib/actions/customers"
-import { X, AlertCircle, CreditCard, Banknote, CheckCircle2, Phone, Clock, MapPin, User, Calendar, Timer, MessageCircle, Loader2, ChevronDown, Zap, Receipt, ChevronRight, RefreshCcw, Search, Star, History, Users } from "lucide-react"
+import { X, AlertCircle, CreditCard, Banknote, CheckCircle2, Phone, Clock, MapPin, User, Calendar, Timer, MessageCircle, Loader2, ChevronDown, Zap, Receipt, ChevronRight, RefreshCcw, Search, Star, History, Users, Globe } from "lucide-react"
 import { cn, formatCurrency, getWhatsAppLink } from "@/lib/utils"
 import { ArtisanSelect } from "@/components/ui/ArtisanSelect"
 import { Toast, ToastType } from "@/components/ui/Toast"
@@ -51,6 +51,7 @@ export function QuickBookingModal({
   const [isSearching, setIsSearching] = useState(false)
   const [guestName, setGuestName] = useState('')
   const [guestPhone, setGuestPhone] = useState('')
+  const [guestEmail, setGuestEmail] = useState('')
   const [creditBalance, setCreditBalance] = useState(0)
   const [useCredit, setUseCredit] = useState(false)
   const [isCheckingCredit, setIsCheckingCredit] = useState(false)
@@ -112,6 +113,7 @@ export function QuickBookingModal({
       setSelectedResId(initialResourceId || resources[0]?.id);
       setGuestName('');
       setGuestPhone('');
+      setGuestEmail('');
       setSelectedCustomerId(null);
     }
   }, [isOpen, initialHour, initialMinute, initialResourceId, resources]);
@@ -131,6 +133,7 @@ export function QuickBookingModal({
     if (customer) {
       setGuestName(customer.name);
       setGuestPhone(customer.phone);
+      setGuestEmail(customer.email || '');
     }
   };
 
@@ -219,6 +222,7 @@ export function QuickBookingModal({
       resource_id: selectedResId!,
       guest_name: guestName,
       guest_phone: guestPhone,
+      guest_email: guestEmail,
       start_time: start.toISOString(),
       end_time: end.toISOString(),
       notes: formData.get("notes") as string || "",
@@ -561,6 +565,21 @@ export function QuickBookingModal({
                       <RefreshCcw className="h-4 w-4 text-primary animate-spin" />
                     </div>
                   )}
+                </div>
+                <div className="relative group/field sm:col-span-2">
+                  <input 
+                    name="guest_email"
+                    type="email"
+                    placeholder="Email Address (Optional)"
+                    value={guestEmail}
+                    onChange={(e) => {
+                      setGuestEmail(e.target.value);
+                      if (selectedCustomerId) setSelectedCustomerId(null);
+                    }}
+                    className="w-full bg-muted/40 border border-border/30 p-3 rounded-xl text-sm font-bold outline-none ring-primary focus:ring-2 transition-all placeholder:text-muted-foreground/40 pl-10"
+                    autoComplete="off"
+                  />
+                  <Globe className="h-4 w-4 text-muted-foreground/40 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 </div>
               </div>
 

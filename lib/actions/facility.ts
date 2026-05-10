@@ -42,6 +42,20 @@ export async function registerFacility(formData: FormData) {
     role: 'owner'
   });
 
+  // Notify Superadmin
+  try {
+    const { sendNewSignupAlertEmail } = await import("@/lib/actions/emails");
+    await sendNewSignupAlertEmail({
+      facilityName: name,
+      ownerName: session.user.name || 'Partner',
+      ownerEmail: session.user.email || 'No email provided',
+      sportType: sport_type
+    });
+  } catch (emailError) {
+    console.error("Failed to send signup alert email", emailError);
+    // Non-blocking error
+  }
+
   revalidatePath("/dashboard");
   return { success: true, data: facility };
 }

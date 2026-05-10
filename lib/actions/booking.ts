@@ -17,6 +17,7 @@ export async function createBooking(data: {
   payment_method?: string;
   use_credit?: boolean;
   paid_amount?: number;
+  guest_email?: string;
 }, facilityId: string) {
   const session = await auth();
   if (!session?.user || !facilityId) throw new Error("Unauthorized");
@@ -89,6 +90,7 @@ export async function createBooking(data: {
       resource_id: data.resource_id,
       guest_name: data.guest_name,
       guest_phone: data.guest_phone,
+      guest_email: data.guest_email,
       start_time: data.start_time,
       end_time: data.end_time,
       notes: data.notes,
@@ -105,7 +107,7 @@ export async function createBooking(data: {
   if (error) return { error: error.message };
   
   // Auto-link to customer profile (already updates stats)
-  await linkBookingToCustomer(facilityId, booking.id, data.guest_name, data.guest_phone, total_price);
+  await linkBookingToCustomer(facilityId, booking.id, data.guest_name, data.guest_phone, total_price, data.guest_email);
 
   // Generate WhatsApp notification
   let whatsappUrl: string | undefined;

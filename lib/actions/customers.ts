@@ -93,13 +93,13 @@ export async function upsertCustomer(facilityId: string, data: {
   return { success: true, data: customer };
 }
 
-// Auto-link a booking to a customer (called from createBooking)
 export async function linkBookingToCustomer(
   facilityId: string,
   bookingId: string,
   guestName: string,
   guestPhone?: string,
-  totalPrice?: number
+  totalPrice?: number,
+  guestEmail?: string
 ) {
   if (!guestPhone) return; // Can't link without phone
 
@@ -118,6 +118,7 @@ export async function linkBookingToCustomer(
         facility_id: facilityId,
         name: guestName,
         phone: guestPhone,
+        email: guestEmail,
         total_visits: 1,
         total_spent: Number(totalPrice) || 0,
         last_visit: new Date().toISOString()
@@ -133,6 +134,7 @@ export async function linkBookingToCustomer(
       .from('customers')
       .update({
         name: guestName, // Always use latest name
+        ...(guestEmail ? { email: guestEmail } : {}),
         total_visits: (customer.total_visits || 0) + 1,
         total_spent: (Number(customer.total_spent) || 0) + (Number(totalPrice) || 0),
         last_visit: new Date().toISOString()

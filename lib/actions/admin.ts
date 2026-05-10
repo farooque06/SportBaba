@@ -147,7 +147,36 @@ export async function updateClientStatus(
 }
 
 export async function approveFacility(id: string) {
-    return updateClientStatus(id, 'trialing', undefined, undefined, { orgStatus: 'active' });
+    const res = await updateClientStatus(id, 'trialing', undefined, undefined, { orgStatus: 'active' });
+    
+    if (res.success) {
+        // Send notification email to the owner
+        const { data: facility } = await supabase
+            .from('facilities')
+            .select(`
+                name,
+                memberships(
+                    role,
+                    profiles(email, full_name)
+                )
+            `)
+            .eq('id', id)
+            .single();
+
+        if (facility) {
+            const owner = (facility.memberships as any[])?.find((m: any) => m.role === 'owner' || m.role === 'admin');
+            if (owner && owner.profiles?.email) {
+                const { sendFacilityAuthorizedEmail } = await import("@/lib/actions/emails");
+                await sendFacilityAuthorizedEmail({
+                    email: owner.profiles.email,
+                    facilityName: facility.name,
+                    ownerName: owner.profiles.full_name || 'Facility Manager'
+                });
+            }
+        }
+    }
+    
+    return res;
 }
 
 export async function suspendFacility(id: string) {

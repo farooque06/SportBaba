@@ -98,6 +98,7 @@ function getMessageTemplate(
         `📅 ${date}`,
         `⏰ ${time} (${duration})`,
         `💰 Total: ${total}`,
+        ...(due !== 'NRS 0' ? [`⚠️ Due: ${due}`] : [`✅ Paid in Full`]),
         ``,
         `📋 Ref: #${refId}`,
         ``,
