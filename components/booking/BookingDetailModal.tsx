@@ -9,6 +9,7 @@ import { cn, formatCurrency, getWhatsAppLink } from "@/lib/utils"
 import { updatePaymentStatus, updateBookingStatus, addBookingAddon, removeBookingAddon, extendBooking, cancelWithCredit } from "@/lib/actions/booking"
 import { fetchProducts } from "@/lib/actions/inventory"
 import { getCurrentUserRole } from "@/lib/actions/auth"
+import { useSession } from "next-auth/react"
 import { Toast, ToastType } from "@/components/ui/Toast"
 import { Portal } from "@/components/ui/Portal"
 
@@ -19,6 +20,7 @@ interface BookingDetailModalProps {
 }
 
 export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate }: BookingDetailModalProps) {
+  const { data: session } = useSession()
   const [booking, setBooking] = useState<any>(initialBooking)
   const [isUpdating, setIsUpdating] = useState(false)
   const [availableProducts, setAvailableProducts] = useState<any[]>([])
@@ -243,7 +245,15 @@ export function BookingDetailModal({ booking: initialBooking, onClose, onUpdate 
           <div className="flex-1 overflow-y-auto custom-scrollbar">
             {/* Quick Actions Row */}
             <div className="flex items-center gap-3 p-6 md:px-10 border-b border-border/10 bg-muted/20">
-               <Button variant="ghost" onClick={() => window.open(getWhatsAppLink(booking.guest_phone, `Hi ${booking.guest_name}, this is regarding your booking at ${booking.facility?.name}...`), '_blank')} className="h-12 rounded-2xl border border-border/40 gap-2 font-black uppercase tracking-widest text-[9px] hover:bg-emerald-500/10 transition-all">
+               <Button 
+                variant="ghost" 
+                onClick={() => {
+                  const facilityName = (session?.user as any)?.facilityName || "our facility";
+                  const message = `Hi ${booking.guest_name}, this is regarding your booking at *${facilityName}* (${booking.resource?.name}) on ${new Date(booking.start_time).toLocaleDateString()}.`;
+                  window.open(getWhatsAppLink(booking.guest_phone, message), '_blank');
+                }} 
+                className="h-12 rounded-2xl border border-border/40 gap-2 font-black uppercase tracking-widest text-[9px] hover:bg-emerald-500/10 transition-all"
+              >
                   <MessageCircle className="h-4 w-4 text-emerald-500" />
                   WhatsApp
                </Button>

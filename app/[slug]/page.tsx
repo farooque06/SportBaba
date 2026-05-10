@@ -35,7 +35,7 @@ export default async function PublicStorefrontPage({ params }: { params: Promise
            <div className="text-center max-w-4xl mx-auto space-y-6">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-[10px] font-black uppercase tracking-[0.2em] mb-4">
                  <ShieldCheck className="h-3 w-3" />
-                 Official SportBaba Partner
+                 Verified Facility Partner
               </div>
               
               <h1 className="text-6xl md:text-8xl font-black tracking-tighter uppercase italic leading-[0.85] text-transparent bg-clip-text bg-gradient-to-br from-white to-white/40 pb-2">

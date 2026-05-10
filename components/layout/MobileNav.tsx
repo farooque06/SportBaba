@@ -45,7 +45,9 @@ export function MobileNav() {
           <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-foreground">
             <span className="text-sm font-black text-background">S</span>
           </div>
-          <span className="text-lg font-black tracking-tighter text-foreground">SportBaba</span>
+          <span className="text-lg font-black tracking-tighter text-foreground truncate max-w-[120px]">
+            {(session?.user as any)?.facilityName || "SportBaba"}
+          </span>
         </Link>
 
         <div className="flex items-center gap-2">

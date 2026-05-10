@@ -75,7 +75,7 @@ export default function ReportsPage() {
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `SportBaba_Report_${date}.csv`
+    a.download = `${report?.facilityName || 'Facility'}_Report_${date}.csv`
     a.click()
   }
 
@@ -163,10 +163,10 @@ export default function ReportsPage() {
           <div className="hidden print:block font-sans text-black">
             <div className="flex justify-between items-start border-b-4 border-black pb-8 mb-8">
               <div className="space-y-1">
-                <h1 className="text-4xl font-black uppercase tracking-tighter leading-none">SPORTBABA</h1>
+                <h1 className="text-4xl font-black uppercase tracking-tighter leading-none">{report.facilityName}</h1>
                 <p className="text-[8px] font-black uppercase tracking-[0.4em] opacity-40">Financial Ledger • Facility Accounts Division</p>
                 <div className="pt-6 space-y-0.5">
-                   <p className="text-[10px] font-black uppercase tracking-widest">{user?.facilityName || "Primary Hub HQ"}</p>
+                   <p className="text-[10px] font-black uppercase tracking-widest">{report.facilityName || "Primary Hub HQ"}</p>
                    <p className="text-[9px] font-medium opacity-60">Verified Statement: {new Date().toLocaleString()}</p>
                 </div>
               </div>
@@ -237,7 +237,7 @@ export default function ReportsPage() {
                </div>
                <div className="text-right space-y-1">
                   <p className="text-[10px] font-black uppercase tracking-widest">Official Audit Stamp</p>
-                  <p className="text-[7px] font-medium opacity-40">SPORTBABA SECURE LEDGER SYSTEM</p>
+                  <p className="text-[7px] font-medium opacity-40">{report.facilityName.toUpperCase()} SECURE LEDGER SYSTEM</p>
                </div>
             </div>
           </div>

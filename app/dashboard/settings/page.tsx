@@ -18,6 +18,8 @@ export default function SettingsPage() {
   const [phone, setPhone] = useState("")
   const [openTime, setOpenTime] = useState("08:00")
   const [closeTime, setCloseTime] = useState("22:00")
+  const [latitude, setLatitude] = useState("")
+  const [longitude, setLongitude] = useState("")
 
   useEffect(() => {
     if (!facilityId) {
@@ -32,6 +34,8 @@ export default function SettingsPage() {
           setPhone(facility.config?.contact_phone || "")
           setOpenTime(facility.config?.open_time || "08:00")
           setCloseTime(facility.config?.close_time || "22:00")
+          setLatitude(facility.config?.latitude || "")
+          setLongitude(facility.config?.longitude || "")
        }
        setLoading(false)
     }
@@ -48,6 +52,8 @@ export default function SettingsPage() {
           contact_phone: phone,
           open_time: openTime,
           close_time: closeTime,
+          latitude: latitude,
+          longitude: longitude,
           setup_completed: true
        }
     })
@@ -121,6 +127,29 @@ export default function SettingsPage() {
                 className="w-full bg-muted/50 border border-border/50 p-5 rounded-2xl text-sm font-bold outline-none ring-primary/40 focus:ring-2 transition-all"
               />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Latitude</label>
+                <input
+                  placeholder="27.7172"
+                  value={latitude}
+                  onChange={(e) => setLatitude(e.target.value)}
+                  className="w-full bg-muted/50 border border-border/50 p-5 rounded-2xl text-sm font-bold outline-none ring-primary/40 focus:ring-2 transition-all"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Longitude</label>
+                <input
+                  placeholder="85.3240"
+                  value={longitude}
+                  onChange={(e) => setLongitude(e.target.value)}
+                  className="w-full bg-muted/50 border border-border/50 p-5 rounded-2xl text-sm font-bold outline-none ring-primary/40 focus:ring-2 transition-all"
+                />
+              </div>
+            </div>
+            <p className="text-[9px] font-medium text-muted-foreground/60 italic px-1">
+              Coordinates are used to send precise Google Maps links via WhatsApp.
+            </p>
           </div>
         </Card>
 

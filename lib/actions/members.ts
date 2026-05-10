@@ -70,7 +70,7 @@ export async function addMemberByEmail(facilityId: string, email: string, role: 
     .single();
 
   if (profileError || !profile) {
-    return { error: "No user found with this email. Please ensure they have signed up on SportBaba first." };
+    return { error: "No user found with this email. Please ensure they have signed up on the platform first." };
   }
 
   // 2. Check if already a member

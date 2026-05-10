@@ -76,7 +76,9 @@ export function Sidebar({ subscriptionStatus, trialEnd, user }: SidebarProps) {
           </div>
           {!isCollapsed && (
             <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-300">
-              <span className="text-xl font-black tracking-tighter text-foreground italic uppercase leading-none">SportBaba</span>
+              <span className="text-xl font-black tracking-tighter text-foreground italic uppercase leading-none truncate max-w-[150px]">
+                {user?.facilityName || "SportBaba"}
+              </span>
               <span className="text-[10px] font-black text-primary uppercase tracking-widest mt-1">Command Hub</span>
             </div>
           )}

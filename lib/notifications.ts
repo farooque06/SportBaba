@@ -64,7 +64,11 @@ function formatDuration(startStr: string, endStr: string) {
 }
 
 // ─── Message Templates ───
-function getMessageTemplate(type: NotificationType, booking: BookingData, facilityName?: string): string {
+function getMessageTemplate(
+  type: NotificationType, 
+  booking: BookingData, 
+  facility: { name: string, config?: any }
+): string {
   const name = booking.guest_name || 'Player'
   const resource = booking.resource?.name || 'Court'
   const date = formatDate(booking.start_time)
@@ -74,7 +78,13 @@ function getMessageTemplate(type: NotificationType, booking: BookingData, facili
   const paid = formatCurrency(booking.paid_amount || 0)
   const due = formatCurrency(Math.max(0, (Number(booking.total_price) || 0) - (Number(booking.paid_amount) || 0)))
   const refId = booking.id.slice(0, 8).toUpperCase()
-  const facility = facilityName || 'SportBaba'
+  const facilityName = facility.name || 'the facility'
+  
+  // Location Link Logic
+  let locationLink = `https://maps.google.com/?q=${encodeURIComponent(facilityName)}`
+  if (facility.config?.latitude && facility.config?.longitude) {
+    locationLink = `https://www.google.com/maps?q=${facility.config.latitude},${facility.config.longitude}`
+  }
 
   switch (type) {
     case 'booking_confirmed':
@@ -82,7 +92,7 @@ function getMessageTemplate(type: NotificationType, booking: BookingData, facili
         `✅ *Booking Confirmed!*`,
         ``,
         `Hi ${name},`,
-        `Your booking has been confirmed.`,
+        `Your booking at *${facilityName}* has been confirmed.`,
         ``,
         `🏟️ *${resource}*`,
         `📅 ${date}`,
@@ -91,7 +101,7 @@ function getMessageTemplate(type: NotificationType, booking: BookingData, facili
         ``,
         `📋 Ref: #${refId}`,
         ``,
-        `See you at *${facility}*! 🎉`,
+        `See you at the venue! 🎉`,
       ].join('\n')
 
     case 'booking_pending':
@@ -99,7 +109,7 @@ function getMessageTemplate(type: NotificationType, booking: BookingData, facili
         `⏳ *Booking Request Received*`,
         ``,
         `Hi ${name},`,
-        `We've received your booking request.`,
+        `We've received your booking request for *${facilityName}*.`,
         ``,
         `🏟️ *${resource}*`,
         `📅 ${date}`,
@@ -109,7 +119,7 @@ function getMessageTemplate(type: NotificationType, booking: BookingData, facili
         `📋 Ref: #${refId}`,
         ``,
         `We'll confirm your slot shortly!`,
-        `— *${facility}*`,
+        `— *${facilityName}* Team`,
       ].join('\n')
 
     case 'booking_cancelled':
@@ -117,12 +127,12 @@ function getMessageTemplate(type: NotificationType, booking: BookingData, facili
         `❌ *Booking Cancelled*`,
         ``,
         `Hi ${name},`,
-        `Your booking at *${resource}* on ${date} (${time}) has been cancelled.`,
+        `Your booking at *${facilityName}* (${resource}) on ${date} at ${time} has been cancelled.`,
         ``,
         `📋 Ref: #${refId}`,
         ``,
         `If this was a mistake, please contact us to rebook.`,
-        `— *${facility}*`,
+        `— *${facilityName}*`,
       ].join('\n')
 
     case 'booking_completed':
@@ -147,7 +157,7 @@ function getMessageTemplate(type: NotificationType, booking: BookingData, facili
         ``,
         `📋 Ref: #${refId}`,
         ``,
-        `Thanks for playing at *${facility}*! 🙌`,
+        `Thanks for playing at *${facilityName}*! 🙌`,
         `Book again soon!`,
       ].join('\n')
 
@@ -156,7 +166,7 @@ function getMessageTemplate(type: NotificationType, booking: BookingData, facili
         `💳 *Payment Received*`,
         ``,
         `Hi ${name},`,
-        `We've received your payment of ${paid}.`,
+        `We've received your payment of ${paid} for your booking at *${facilityName}*.`,
         ``,
         `🏟️ ${resource} • ${date}`,
         `📋 Ref: #${refId}`,
@@ -165,20 +175,20 @@ function getMessageTemplate(type: NotificationType, booking: BookingData, facili
           : [`✅ *Fully Paid* — Thank you!`]
         ),
         ``,
-        `— *${facility}*`,
+        `— *${facilityName}*`,
       ].join('\n')
 
     case 'reminder_1hr':
       return [
-        `⭐ *SMART REMINDER: GAME ON!*`,
+        `⭐ *REMINDER: GAME ON!*`,
         ``,
-        `Hi ${name}, your match at *${facility}* is starting soon!`,
+        `Hi ${name}, your match at *${facilityName}* is starting soon!`,
         ``,
         `🏟️ *Court:* ${resource}`,
         `⏰ *Time:* ${time}`,
         `📅 *Date:* ${date}`,
         ``,
-        `📍 *Location:* https://maps.google.com/?q=${encodeURIComponent(facility)}`,
+        `📍 *Location:* ${locationLink}`,
         ``,
         ...(Number(booking.paid_amount || 0) < Number(booking.total_price || 0) 
           ? [
@@ -190,9 +200,7 @@ function getMessageTemplate(type: NotificationType, booking: BookingData, facili
         ),
         `👟 *Pro-Tips:*`,
         `• Arrive 10 mins early for warm-up.`,
-        `• Don't forget your water bottle and proper footwear.`,
-        ``,
-        `Need to change something? Call us: +977-XXXXXXXXXX`,
+        `Need to change something? Call us: ${facility.config?.contact_phone || '+977-XXXXXXXXXX'}`,
         ``,
         `See you soon! ⚽🏀🎾`,
       ].join('\n')
@@ -201,7 +209,7 @@ function getMessageTemplate(type: NotificationType, booking: BookingData, facili
       return [
         `⚠️ *PAYMENT REMINDER: SETTLEMENT PENDING*`,
         ``,
-        `Hi ${name}, we hope you enjoyed your match at *${facility}*!`,
+        `Hi ${name}, we hope you enjoyed your match at *${facilityName}*!`,
         ``,
         `Our records show a pending balance for your recent booking:`,
         `🏟️ *Court:* ${resource}`,
@@ -217,7 +225,7 @@ function getMessageTemplate(type: NotificationType, booking: BookingData, facili
       ].join('\n')
 
     default:
-      return `Booking update for ${name} at ${facility}. Ref: #${refId}`
+      return `Booking update for ${name} at ${facilityName}. Ref: #${refId}`
   }
 }
 
@@ -247,8 +255,9 @@ function calculateGrandTotal(booking: BookingData): number {
  * Generate a daily financial summary for the facility owner.
  */
 export async function generateDailySummaryNotification(report: any): Promise<NotificationResult> {
+  const facilityName = report.facilityName || 'Facility'
   const summary = [
-    `📊 *SPORTBABA DAILY CLOSURE*`,
+    `📊 *${facilityName.toUpperCase()} DAILY CLOSURE*`,
     `📅 Date: ${new Date(report.date).toLocaleDateString()}`,
     ``,
     `💰 *Total Revenue: ${formatCurrency(report.totalRevenue)}*`,
@@ -261,7 +270,7 @@ export async function generateDailySummaryNotification(report: any): Promise<Not
     `*Payment Methods:*`,
     ...report.payments.map((p: any) => `• ${p.name}: ${formatCurrency(p.value)}`),
     ``,
-    `Generated by: SportBaba Accounts Hub`
+    `Generated by: ${facilityName} Accounts Hub`
   ].join('\n')
 
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(summary)}`
@@ -289,7 +298,20 @@ export async function generateWhatsAppNotification(
     return { sent: false, error: 'No phone number provided' }
   }
 
-  const message = getMessageTemplate(type, booking, facilityName)
+  // Fetch facility details if not provided fully
+  const { supabase } = await import('@/lib/supabase')
+  const { data: facility } = await supabase
+    .from('facilities')
+    .select('name, config')
+    .eq('id', (booking as any).facility_id)
+    .single()
+
+  const facilityData = {
+    name: facilityName || facility?.name || 'Your Facility',
+    config: facility?.config || {}
+  }
+
+  const message = getMessageTemplate(type, booking, facilityData)
   const whatsappUrl = getWhatsAppLink(booking.guest_phone, message)
 
   return {

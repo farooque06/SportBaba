@@ -64,8 +64,15 @@ export async function fetchDailyReport(date: string, facilityId: string) {
     }
   });
 
+  const { data: facility } = await supabase
+    .from('facilities')
+    .select('name')
+    .eq('id', facilityId)
+    .single();
+
   return {
     date,
+    facilityName: facility?.name || 'Primary Hub',
     totalRevenue,
     lostRevenue,
     canceledCount,
@@ -122,7 +129,7 @@ export async function generateCSVReport(date: string, facilityId: string) {
   });
 
   const csvContent = [
-    `# SPORTBABA FINANCIAL REPORT - ${date}`,
+    `# ${report.facilityName.toUpperCase()} FINANCIAL REPORT - ${date}`,
     `# Facility ID: ${facilityId}`,
     "",
     headers.join(","),

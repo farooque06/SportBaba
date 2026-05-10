@@ -8,7 +8,7 @@ const MOCK_UPDATES = [
   { type: "LIVE", label: "ICC Men's Ranking", val: "IND (1) • AUS (2) • ENG (3)", icon: Trophy },
   { type: "MATCH", label: "IND vs AUS", val: "IND 245/4 (42.1) • Target 278", icon: Radio },
   { type: "UPCOMING", label: "Premier League", val: "MCI vs ARS • Starting in 2h", icon: Zap },
-  { type: "TRENDING", label: "SportBaba Growth", val: "+24% Efficiency in Elite Venues", icon: TrendingUp },
+  { type: "TRENDING", label: "Platform Performance", val: "+24% Efficiency in Elite Venues", icon: TrendingUp },
   { type: "LIVE", label: "ICC Women's Ranking", val: "AUS (1) • ENG (2) • IND (3)", icon: Trophy },
   { type: "NEWS", label: "Facility Update", val: "12 New Cricket Nets Online in London", icon: Zap },
 ]

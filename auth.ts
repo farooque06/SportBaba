@@ -29,11 +29,22 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           if (!isValid) return null
 
+          // Fetch the first facility name for the initial session
+          const { data: membership } = await supabase
+            .from('memberships')
+            .select('facilities(name)')
+            .eq('profile_id', user.id)
+            .limit(1)
+            .maybeSingle()
+
+          const facilityName = (membership?.facilities as any)?.name || null
+
           return {
             id: user.id,
             email: user.email,
             name: user.full_name,
             image: user.avatar_url,
+            facilityName: facilityName
           }
         } catch (err) {
           console.error("[AUTH] authorize error:", err)

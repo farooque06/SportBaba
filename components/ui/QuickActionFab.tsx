@@ -10,9 +10,11 @@ import {
   ArrowRight,
   Database
 } from "lucide-react"
+import { useSession } from "next-auth/react"
 import { cn } from "@/lib/utils"
 
 export function QuickActionFab() {
+  const { data: session } = useSession()
   const [isOpen, setIsOpen] = useState(false)
   const router = useRouter()
 
@@ -106,7 +108,7 @@ export function QuickActionFab() {
         </div>
 
         <div className="mt-4 pt-4 border-t border-border/30 px-2 text-[8px] font-black text-muted-foreground/40 uppercase tracking-[0.1em] text-center">
-          SportBaba Management System
+          {session?.user ? `${(session.user as any).facilityName || 'Facility'} Hub` : 'Management System'}
         </div>
       </div>
 

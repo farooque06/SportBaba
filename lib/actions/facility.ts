@@ -61,11 +61,23 @@ export async function updateFacilitySettings(id: string, updates: any) {
   const session = await auth();
   if (!session?.user) throw new Error("Unauthorized");
 
+  // 1. Fetch current config first to merge
+  const { data: current } = await supabase
+    .from('facilities')
+    .select('config')
+    .eq('id', id)
+    .single();
+
+  const newConfig = {
+    ...(current?.config || {}),
+    ...(updates.config || {})
+  };
+
   const { data, error } = await supabase
     .from('facilities')
     .update({
       name: updates.name,
-      config: updates.config // Merged config
+      config: newConfig
     })
     .eq('id', id)
     .select()
