@@ -149,11 +149,12 @@ export async function updatePaymentStatus(bookingId: string, status: string, met
   const session = await auth();
   if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
-  // Fetch current booking data
+  // Fetch current booking data — scoped to facility
   const { data: booking } = await supabase
     .from('bookings')
     .select('total_price, paid_amount')
     .eq('id', bookingId)
+    .eq('facility_id', facilityId)
     .single();
 
   if (!booking) return { error: "Booking not found" };
@@ -248,11 +249,12 @@ export async function updateBookingStatus(bookingId: string, status: string, fac
   const session = await auth();
   if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
-  // Fetch booking with customer info
+  // Fetch booking with customer info — scoped to facility
   const { data: booking } = await supabase
     .from('bookings')
     .select('*, customer_id')
     .eq('id', bookingId)
+    .eq('facility_id', facilityId)
     .single();
 
   if (!booking) return { error: "Booking not found" };
@@ -286,11 +288,12 @@ export async function addBookingAddon(bookingId: string, item: { id: string, nam
   const session = await auth();
   if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
-  // Fetch current booking
+  // Fetch current booking — scoped to facility
   const { data: booking, error: fetchError } = await supabase
     .from('bookings')
     .select('bill_items, total_price, paid_amount')
     .eq('id', bookingId)
+    .eq('facility_id', facilityId)
     .single();
 
   if (fetchError) return { error: fetchError.message };
@@ -338,6 +341,7 @@ export async function removeBookingAddon(bookingId: string, itemTimestamp: strin
     .from('bookings')
     .select('bill_items, total_price, paid_amount')
     .eq('id', bookingId)
+    .eq('facility_id', facilityId)
     .single();
 
   if (fetchError) return { error: fetchError.message };
@@ -411,11 +415,12 @@ export async function extendBooking(bookingId: string, durationMinutes: number, 
   const session = await auth();
   if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
-  // Fetch current booking and resource price
+  // Fetch current booking and resource price — scoped to facility
   const { data: booking, error: fetchError } = await supabase
     .from('bookings')
     .select('*, resource:resource_units(base_price)')
     .eq('id', bookingId)
+    .eq('facility_id', facilityId)
     .single();
 
   if (fetchError || !booking) return { error: "Booking not found" };

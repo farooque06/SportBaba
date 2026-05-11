@@ -5,6 +5,9 @@ import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
 export async function fetchProducts(facilityId: string) {
+  const session = await auth();
+  if (!session?.user || !facilityId) return [];
+
   const { data, error } = await supabase
     .from('products')
     .select('*')

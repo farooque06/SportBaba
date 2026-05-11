@@ -30,6 +30,9 @@ export async function createTournament(data: {
 }
 
 export async function fetchTournaments(facilityId: string) {
+  const session = await auth();
+  if (!session?.user || !facilityId) return [];
+
   const { data, error } = await supabase
     .from('tournaments')
     .select('*, tournament_teams(count)')
@@ -40,14 +43,21 @@ export async function fetchTournaments(facilityId: string) {
   return data;
 }
 
-export async function updateTournamentStatus(id: string, status: 'upcoming' | 'active' | 'completed') {
+export async function updateTournamentStatus(id: string, status: 'upcoming' | 'active' | 'completed', facilityId?: string) {
   const session = await auth();
   if (!session?.user) throw new Error("Unauthorized");
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('tournaments')
     .update({ status })
-    .eq('id', id)
+    .eq('id', id);
+
+  // Scope to facility if provided (prevents cross-tenant updates)
+  if (facilityId) {
+    query = query.eq('facility_id', facilityId);
+  }
+
+  const { data, error } = await query
     .select()
     .single();
 

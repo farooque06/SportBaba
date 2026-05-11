@@ -2,9 +2,13 @@
 
 import { supabase } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/auth";
 import { getCurrentUserRole } from "./auth";
 
 export async function fetchMembers(facilityId: string) {
+  const session = await auth();
+  if (!session?.user || !facilityId) return [];
+
   const { data, error } = await supabase
     .from('memberships')
     .select(`

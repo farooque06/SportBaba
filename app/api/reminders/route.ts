@@ -17,16 +17,33 @@ export async function GET(request: Request) {
   }
 
   const cookieStore = await cookies()
-  const facilityId = cookieStore.get("active_facility_id")?.value
+  let facilityId = cookieStore.get("active_facility_id")?.value
+
+  // If no cookie, try to resolve facilityId from the user's membership
+  if (!facilityId && session?.user?.id) {
+    const { data: membership } = await supabase
+      .from('memberships')
+      .select('facility_id')
+      .eq('profile_id', session.user.id)
+      .limit(1)
+      .maybeSingle()
+    facilityId = membership?.facility_id
+  }
+
+  // CRITICAL: Never query without a facility filter — it would leak all clients' data
+  if (!facilityId) {
+    return NextResponse.json({ count: 0, reminders: [] })
+  }
 
   const now = new Date()
   
   // ─── 1. Fetch Upcoming Matches (Starts in next 3 hours) ───
   const upcomingWindowEnd = new Date(now.getTime() + 3 * 60 * 60 * 1000)
   
-  let upcomingQuery = supabase
+  const upcomingQuery = supabase
     .from('bookings')
     .select(`*, resource:resource_units(name, unit_type, base_price)`)
+    .eq('facility_id', facilityId)
     .gte('start_time', now.toISOString())
     .lte('start_time', upcomingWindowEnd.toISOString())
     .in('status', ['confirmed', 'pending'])
@@ -35,19 +52,15 @@ export async function GET(request: Request) {
   // ─── 2. Fetch Past Due Matches (Ended in last 24h, not paid) ───
   const pastWindowStart = new Date(now.getTime() - 24 * 60 * 60 * 1000)
   
-  let pastDueQuery = supabase
+  const pastDueQuery = supabase
     .from('bookings')
     .select(`*, resource:resource_units(name, unit_type, base_price)`)
+    .eq('facility_id', facilityId)
     .gte('end_time', pastWindowStart.toISOString())
     .lt('end_time', now.toISOString())
     .eq('payment_status', 'unpaid')
     .in('status', ['confirmed', 'completed'])
     .not('guest_phone', 'is', null)
-
-  if (facilityId) {
-    upcomingQuery = upcomingQuery.eq('facility_id', facilityId)
-    pastDueQuery = pastDueQuery.eq('facility_id', facilityId)
-  }
 
   const [upcomingResult, pastDueResult] = await Promise.all([
     upcomingQuery,
