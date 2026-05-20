@@ -3,25 +3,25 @@ import { Star, Quote } from "lucide-react"
 const testimonials = [
   {
     name: "Rajesh Sharma",
-    role: "Owner, ProPlay Arena",
+    role: "CEO, ProPlay Sports Group",
     location: "Kathmandu",
-    quote: "SportBaba completely transformed how we manage our 8-court facility. Bookings that used to take phone calls now happen automatically. Our revenue jumped 30% in the first quarter.",
+    quote: "SportBaba completely consolidated our operations. We deprecated three separate tools, automated our booking flows, and recorded a 30% increase in net revenue within 90 days.",
     rating: 5,
     sport: "Futsal",
   },
   {
     name: "Anita Gurung",
-    role: "Manager, CricZone Indoor",
+    role: "Operations Director, CricZone Indoor",
     location: "Pokhara",
-    quote: "The real-time booking engine is a game-changer. We went from double-bookings every week to zero conflicts. Staff loves the dashboard — it's incredibly intuitive.",
+    quote: "The multi-court sync engine completely resolved our scheduling conflicts. The dashboard has streamlined check-in workflows for our staff and drastically reduced client wait times.",
     rating: 5,
     sport: "Cricket",
   },
   {
     name: "Bikram Thapa",
-    role: "Director, SportHub Nepal",
+    role: "Managing Director, SportHub Holdings",
     location: "Lalitpur",
-    quote: "We manage 3 locations with SportBaba. The multi-location dashboard gives me complete visibility. Billing is fully automated now — we save 15+ hours every week.",
+    quote: "Managing three regional complexes was an operational bottleneck until we deployed SportBaba. The unified dashboard and automated billing engine save our team over 15 hours of manual administration weekly.",
     rating: 5,
     sport: "Multi-sport",
   },
@@ -35,14 +35,14 @@ export function Testimonials() {
         <div className="text-center mb-14 sm:mb-20 space-y-4">
           <div className="reveal-up inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 text-xs font-medium text-primary mx-auto">
             <Star className="h-3.5 w-3.5 fill-primary" />
-            <span>Loved by Facility Owners</span>
+            <span>Enterprise Success Stories</span>
           </div>
           <h2 className="reveal-up delay-100 text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-tight max-w-3xl mx-auto">
-            Real results from{" "}
-            <span className="text-primary">real facilities</span>
+            Proven operational{" "}
+            <span className="text-primary">efficiency gains</span>
           </h2>
           <p className="reveal-up delay-200 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            See how sports facility owners across Nepal are transforming their operations with SportBaba.
+            How leading multi-sport operators and indoor arenas scaled their operations with our enterprise infrastructure.
           </p>
         </div>
 

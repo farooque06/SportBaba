@@ -47,17 +47,17 @@ export function Hero({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean }
         {/* Badge */}
         <div className="reveal-up inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 text-xs font-medium text-primary mb-8 shadow-sm">
           <Sparkles className="h-3.5 w-3.5" />
-          <span>The #1 Indoor Sports Management Platform</span>
+          <span>The Operating System for Sports Facilities</span>
         </div>
         
         {/* Headline */}
         <h1 className="reveal-up delay-100">
           <span className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-foreground leading-[1.08]">
-            Manage Your Sports
+            The Operating System
           </span>
           <span className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] mt-1 sm:mt-2">
-            Facility <span className="text-primary text-glow relative">
-              Like a Pro
+            for Sports <span className="text-primary text-glow relative">
+              Facilities
               {/* Underline accent */}
               <svg className="absolute -bottom-2 left-0 w-full h-3 text-primary/30" viewBox="0 0 200 12" fill="none" preserveAspectRatio="none">
                 <path d="M2 8.5C30 3 70 1 100 4C130 7 170 9 198 3.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
@@ -68,7 +68,7 @@ export function Hero({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean }
         
         {/* Subhead */}
         <p className="reveal-up delay-200 mt-6 sm:mt-8 text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed">
-          Automate bookings, manage memberships, track revenue, and grow your indoor sports facility — all from one beautifully simple dashboard.
+          SportBaba orchestrates bookings, automates membership billing, and tracks real-time revenue analytics for elite sports venues and complex arenas.
         </p>
 
         {/* CTA buttons */}
@@ -114,9 +114,9 @@ export function Hero({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean }
         <div className="reveal-up delay-500 mt-14 sm:mt-20 grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 w-full max-w-3xl">
           {[
             { label: "Booking Speed", value: "< 1s" },
-            { label: "Uptime", value: "99.9%" },
-            { label: "Active Users", value: "50k+" },
-            { label: "Revenue Boost", value: "+24%" }
+            { label: "Uptime SLA", value: "99.99%" },
+            { label: "Monthly Players", value: "150k+" },
+            { label: "Average ROI Boost", value: "+28%" }
           ].map((stat, i) => (
             <div key={i} className="group flex flex-col items-center p-4 sm:p-5 rounded-2xl bg-card/30 backdrop-blur-xl border border-border/40 hover:border-primary/25 transition-all duration-300 hover:-translate-y-1 border-shimmer">
               <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1">{stat.label}</p>

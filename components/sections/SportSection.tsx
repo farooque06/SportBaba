@@ -11,21 +11,21 @@ export function SportSection({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: b
   const isLoggedIn = status === "authenticated"
   const sports = [
     {
-      title: "Futsal & Indoor Football",
-      subtitle: "Pitch Management",
-      description: "Manage multiple courts, automate time-slot bookings, handle walk-ins, and track usage metrics — all with zero friction.",
+      title: "Football & Futsal Arenas",
+      subtitle: "Pitch Utilization Core",
+      description: "Maximize peak-hour yield, run public schedules, handle lightning-fast check-ins, and deploy automated field lighting triggers.",
       image: "/images/footshall_card_bg.png",
-      features: ["Multi-court management", "Walk-in & online bookings", "Peak-hour pricing"],
+      features: ["Dynamic Demand Pricing", "Automated IoT Light Integrations", "Walk-in POS Integration"],
       cta: isLoggedIn ? "Open Football Dashboard" : "Explore Football Tools",
       rating: "4.9",
       facilities: "200+",
     },
     {
-      title: "Cricket Nets & Arenas",
-      subtitle: "Net Management",
-      description: "Streamline net bookings, manage bowling machines, coordinate umpire schedules, and automate billing for every session.",
+      title: "Cricket Academies & Lanes",
+      subtitle: "Lane & Machine Control",
+      description: "Coordinate lane utilization, manage equipment/machine rentals, schedule coaching staff, and streamline recurring training academy billing.",
       image: "/images/cricshall_card_bg.png",
-      features: ["Net & lane allocation", "Equipment tracking", "Session billing automation"],
+      features: ["Coach & Roster Scheduling", "Bowling Machine Inventory", "Automated Session Invoices"],
       cta: isLoggedIn ? "Open Cricket Dashboard" : "Explore Cricket Tools",
       rating: "4.8",
       facilities: "150+",
@@ -43,14 +43,14 @@ export function SportSection({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: b
         <div className="reveal-up mb-14 sm:mb-20 text-center space-y-4">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 text-xs font-medium text-primary">
             <Zap className="h-3.5 w-3.5" />
-            <span>Built for Every Sport</span>
+            <span>Versatile Adaptability</span>
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-tight max-w-3xl mx-auto">
-            One platform, every{" "}
-            <span className="text-primary">indoor sport</span>
+            One unified core, custom tailored for{" "}
+            <span className="text-primary">every sport</span>
           </h2>
           <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Whether you run football pitches, cricket nets, or multi-sport complexes — SportBaba adapts to your exact workflow.
+            Our flexible database architecture supports the distinct booking rules, equipment rentals, and billing rates of diverse sports.
           </p>
         </div>
 

@@ -25,16 +25,15 @@ export default async function Home() {
           {[...Array(2)].map((_, setIdx) => (
             <div key={setIdx} className="flex items-center gap-8 sm:gap-12 px-4 sm:px-6">
               {[
-                "⚽ Futsal Booking",
-                "🏏 Cricket Net Management",
-                "🏸 Badminton Courts",
-                "🏀 Basketball Arenas",
-                "📊 Revenue Analytics",
-                "👥 Member Management",
-                "🏆 Tournament Engine",
-                "💳 Automated Billing",
-                "📅 Smart Scheduling",
-                "🌐 Multi-location Support",
+                "⚡ High-Performance Scheduler",
+                "📈 Live Revenue Analytics",
+                "🛡️ Enterprise-Grade Security",
+                "👥 Automated Member Portals",
+                "🏆 Tournament Bracket Engine",
+                "💳 Recurring Billing Systems",
+                "📊 Multi-court Resource Syncing",
+                "📱 Custom Branded Widgets",
+                "🌐 API Integration Core",
               ].map((item, i) => (
                 <span key={i} className="text-xs sm:text-sm font-medium text-muted-foreground whitespace-nowrap">
                   {item}
@@ -72,15 +71,15 @@ export default async function Home() {
               </h2>
               
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-lg">
-                Whether you manage a single court or a nationwide chain of sports hubs, SportBaba delivers the enterprise-grade reliability your business demands.
+                Orchestrate multi-sport complexes, track complex member lifecycles, and scale without limits. SportBaba provides the security, performance, and uptime that global venues trust.
               </p>
 
               {/* Stats */}
               <div className="flex flex-wrap gap-8 sm:gap-12 items-center">
                 {[
-                  { value: "99.9%", label: "Uptime SLA" },
-                  { value: "256-bit", label: "Encryption" },
-                  { value: "24/7", label: "Monitoring" },
+                  { value: "99.99%", label: "Uptime SLA" },
+                  { value: "SOC-2", label: "Security Level" },
+                  { value: "24/7/365", label: "Support Desk" },
                 ].map((stat, i) => (
                   <div key={i} className="flex flex-col">
                     <span className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{stat.value}</span>
@@ -93,10 +92,10 @@ export default async function Home() {
             {/* Right — Feature cards */}
             <div className="reveal-up delay-200 grid grid-cols-1 sm:grid-cols-2 gap-4">
               {[
-                { icon: Activity, label: "Real-time Sync", desc: "Live data across all devices. No double bookings, ever." },
-                { icon: LayoutDashboard, label: "Pro Dashboard", desc: "Complete facility overview at a glance." },
-                { icon: Globe, label: "Multi-location", desc: "Manage branches from a single admin panel." },
-                { icon: Zap, label: "Quick Setup", desc: "Go live in under 10 minutes. No tech skills needed." }
+                { icon: Activity, label: "Real-time Sync Engine", desc: "Event-driven synchronization. Zero double-bookings across all platforms." },
+                { icon: LayoutDashboard, label: "Unified Command Center", desc: "High-level executive insights and multi-location telemetry." },
+                { icon: Globe, label: "Global Scale Core", desc: "Standardize operations across multiple cities, currencies, and tax codes." },
+                { icon: Zap, label: "Rapid Integration API", desc: "Live-sync with your existing access control gates, lights, and POS systems." }
               ].map((item, i) => (
                 <div key={i} className="p-6 rounded-2xl bg-card/50 backdrop-blur-xl border border-border/40 space-y-4 group hover:border-primary/25 transition-all duration-300 hover:-translate-y-1 border-shimmer">
                   <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/15 transition-colors">
@@ -130,16 +129,16 @@ export default async function Home() {
         <div className="relative mx-auto max-w-4xl text-center z-10">
           <div className="reveal-up inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 text-xs font-medium text-primary mb-6">
             <Zap className="h-3.5 w-3.5" />
-            <span>Start Today</span>
+            <span>Scale Your Operations</span>
           </div>
           
           <h2 className="reveal-up delay-100 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-6 tracking-tight leading-tight">
-            Ready to automate your{" "}
-            <span className="text-primary text-glow">sports facility?</span>
+            Ready to upgrade your{" "}
+            <span className="text-primary text-glow">sports infrastructure?</span>
           </h2>
           
           <p className="reveal-up delay-200 text-base sm:text-lg md:text-xl text-muted-foreground mb-10 sm:mb-12 max-w-2xl mx-auto leading-relaxed">
-            Join <span className="text-foreground font-semibold">500+ facility owners</span> who have streamlined operations and boosted revenue with SportBaba.
+            Empower your operations team and delight your players. Start your pilot or book a consultation with our enterprise solutions architects today.
           </p>
 
           {/* CTA buttons */}
@@ -147,21 +146,21 @@ export default async function Home() {
             <Link href={isLoggedIn ? "/dashboard" : "/register"} className="w-full sm:w-auto">
               <Button variant="primary" size="lg" className="w-full sm:w-auto h-13 px-8 text-base rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all group font-semibold">
                 <span className="flex items-center gap-2.5">
-                  {isLoggedIn ? "Open Dashboard" : "Start Free 14-Day Trial"}
+                  {isLoggedIn ? "Open Dashboard" : "Start Enterprise Pilot"}
                   <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </span>
               </Button>
             </Link>
             {!isLoggedIn && (
               <Button variant="outline" size="lg" className="w-full sm:w-auto h-13 px-8 text-base rounded-xl border-border/60 hover:border-primary/30 hover:bg-primary/5 transition-all font-semibold">
-                Book a Live Demo
+                Request Architecture Demo
               </Button>
             )}
           </div>
           
           {/* Trust signals */}
           <div className="reveal-up delay-400 mt-10 sm:mt-14 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground">
-            {["No credit card needed", "14-day free trial", "Cancel anytime"].map((item, i) => (
+            {["Flexible Pilots", "Dedicated Setup Support", "SOC-2 Compliant"].map((item, i) => (
               <div key={i} className="flex items-center gap-1.5">
                 <CheckCircle2 className="h-4 w-4 text-primary" />
                 <span className="font-medium">{item}</span>

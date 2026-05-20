@@ -13,14 +13,14 @@ export function FeaturesBento() {
         <div className="text-center mb-14 sm:mb-20 space-y-4">
           <div className="reveal-up inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 text-xs font-medium text-primary mx-auto">
             <Shield className="h-3.5 w-3.5" />
-            <span>Powerful Features</span>
+            <span>Core Infrastructure</span>
           </div>
           <h2 className="reveal-up delay-100 text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground leading-tight max-w-3xl mx-auto">
-            Everything you need to run a{" "}
-            <span className="text-primary">world-class facility</span>
+            The architectural suite for{" "}
+            <span className="text-primary">elite operations</span>
           </h2>
           <p className="reveal-up delay-200 text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            From booking management to revenue analytics — our professional toolkit gives you complete control over every aspect of your sports venue.
+            A unified set of systems designed to eliminate operational fragmentation, automate manual billing, and supercharge arena utilization.
           </p>
         </div>
 
@@ -35,13 +35,13 @@ export function FeaturesBento() {
               <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6 group-hover:bg-primary/15 group-hover:scale-105 transition-all duration-300">
                 <Calendar className="h-6 w-6" />
               </div>
-              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3 text-foreground">Smart Booking Engine</h3>
+              <h3 className="text-2xl sm:text-3xl font-bold tracking-tight mb-3 text-foreground">High-Throughput Scheduler</h3>
               <p className="text-base text-muted-foreground max-w-md leading-relaxed mb-6">
-                The most intuitive booking calendar in the industry. Real-time sync, zero double-bookings, and instant confirmations.
+                An event-driven calendar interface designed for extreme reliability, split-second scheduling, and zero conflicts.
               </p>
               <div className="flex items-center gap-2 bg-primary/5 border border-primary/10 w-fit px-3 py-1.5 rounded-full">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-xs font-medium text-primary">Live — syncing across all devices</span>
+                <span className="text-xs font-medium text-primary">Engine Active — real-time event pipeline</span>
               </div>
             </div>
             
@@ -80,8 +80,8 @@ export function FeaturesBento() {
               <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6 group-hover:bg-primary/15 group-hover:scale-105 transition-all duration-300">
                 <Trophy className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold tracking-tight mb-2">Tournaments</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed mb-6">Auto-generate brackets, manage leagues, and track scores with precision.</p>
+              <h3 className="text-xl font-bold tracking-tight mb-2">Tournament Bracket Engine</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-6">Automate single-elimination, round-robin, and league matches with public-facing live scoreboards.</p>
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                   <span className="text-lg font-bold text-primary">16</span>
@@ -101,10 +101,10 @@ export function FeaturesBento() {
               <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6 group-hover:bg-primary/15 group-hover:scale-105 transition-all duration-300">
                 <TrendingUp className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold tracking-tight mb-2">Revenue Analytics</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed mb-5">Deep financial insights, projections, and automated billing reports.</p>
+              <h3 className="text-xl font-bold tracking-tight mb-2">Financial Intelligence</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-5">Multi-dimensional revenue reporting, cohort retention tracking, and automated ledger integration.</p>
               <div className="flex items-end gap-3">
-                <span className="text-3xl font-bold tracking-tight text-primary text-glow">+24%</span>
+                <span className="text-3xl font-bold tracking-tight text-primary text-glow">+28%</span>
                 <span className="text-xs font-medium text-primary bg-primary/8 px-2 py-0.5 rounded-md mb-1">↑ revenue</span>
               </div>
             </div>
@@ -116,8 +116,8 @@ export function FeaturesBento() {
               <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6 group-hover:bg-primary/15 group-hover:scale-105 transition-all duration-300">
                 <Users className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold tracking-tight mb-2">Member Management</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed mb-5">Player profiles, membership tiers, attendance tracking — all centralized.</p>
+              <h3 className="text-xl font-bold tracking-tight mb-2">Member Lifecycle Hub</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed mb-5">Digital check-ins, automated subscription renewals, and loyalty tier management.</p>
               <div className="flex -space-x-2.5">
                 {[1,2,3,4,5].map(i => (
                   <div key={i} className="w-8 h-8 rounded-full border-2 border-card bg-gradient-to-br from-primary/30 to-primary/5 shadow-sm hover:scale-110 hover:-translate-y-1 transition-transform cursor-pointer" />
@@ -134,8 +134,8 @@ export function FeaturesBento() {
               <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6 group-hover:bg-primary/15 group-hover:scale-105 transition-all duration-300">
                 <Clock className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold tracking-tight mb-2">Real-time Scheduling</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">Dynamic court allocation with conflict detection and instant notifications for staff.</p>
+              <h3 className="text-xl font-bold tracking-tight mb-2">Dynamic Resource Allocator</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">Smart field and lane scheduling with physical access control trigger integration.</p>
             </div>
           </Card>
 
@@ -144,8 +144,8 @@ export function FeaturesBento() {
               <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6 group-hover:bg-primary/15 group-hover:scale-105 transition-all duration-300">
                 <CreditCard className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-bold tracking-tight mb-2">Automated Billing</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">Invoicing, payment tracking, subscription management — zero manual work needed.</p>
+              <h3 className="text-xl font-bold tracking-tight mb-2">Automated Ledger Core</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">Generate instant PDF invoices, track splits, collect recurring payments, and run dunning management.</p>
             </div>
           </Card>
 
