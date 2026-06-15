@@ -37,15 +37,15 @@ export default function InventoryPage() {
 
   useEffect(() => {
     async function checkAuth() {
-      if (facilityId) {
+      if (session?.user && facilityId) {
         const userRole = await getCurrentUserRole(facilityId)
         setRole(userRole)
+      } else {
+        setRole(null)
       }
       setIsVerifying(false)
     }
-    if (session?.user && facilityId) {
-        checkAuth()
-    }
+    checkAuth()
   }, [session, facilityId])
 
   useEffect(() => {

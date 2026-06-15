@@ -9,6 +9,10 @@ import {
   ChevronLeft, ChevronRight, Sparkles, Globe, ClipboardList
 } from "lucide-react"
 import { ThemeToggle } from "@/components/ThemeToggle"
+import { NotificationBell } from "@/components/ui/NotificationBell"
+import { NotificationDropdown } from "@/components/ui/NotificationDropdown"
+import { Toast, ToastType } from "@/components/ui/Toast"
+import { useNotifications } from "@/lib/hooks/useNotifications"
 import { useSport } from "@/components/providers/SportProvider"
 import { cn } from "@/lib/utils"
 import { logoutAction } from "@/lib/actions/auth"
@@ -36,8 +40,14 @@ interface SidebarProps {
 export function Sidebar({ subscriptionStatus, trialEnd, user }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [mounted, setMounted] = useState(false)
+  const [notificationOpen, setNotificationOpen] = useState(false)
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null)
   const { sport, setSport, facilityType } = useSport()
   const pathname = usePathname()
+
+  useNotifications({
+    showToast: (message, type) => setToast({ message, type }),
+  })
 
   useEffect(() => {
     setMounted(true)
@@ -60,6 +70,9 @@ export function Sidebar({ subscriptionStatus, trialEnd, user }: SidebarProps) {
       "border-r border-border bg-card hidden md:flex flex-col h-full transition-all duration-300 ease-in-out relative group/sidebar",
       isCollapsed ? "w-24" : "w-72"
     )}>
+      {toast && (
+        <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />
+      )}
       {/* Collapse Toggle Button */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
@@ -70,19 +83,32 @@ export function Sidebar({ subscriptionStatus, trialEnd, user }: SidebarProps) {
 
       {/* Logo + Org Switcher */}
       <div className={cn("p-6 border-b border-border space-y-6 overflow-hidden", isCollapsed && "px-4")}>
-        <Link href="/dashboard" className="flex items-center gap-3 group/logo">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-foreground shadow-xl transition-all group-hover/logo:scale-105 group-hover/logo:rotate-3">
-            <span className="text-xl font-black text-background">S</span>
-          </div>
-          {!isCollapsed && (
-            <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-300">
-              <span className="text-xl font-black tracking-tighter text-foreground italic uppercase leading-none truncate max-w-[150px]">
-                {user?.facilityName || "SportBaba"}
-              </span>
-              <span className="text-[10px] font-black text-primary uppercase tracking-widest mt-1">Command Hub</span>
+        <div className="flex items-center justify-between gap-3">
+          <Link href="/dashboard" className="flex items-center gap-3 group/logo">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-foreground shadow-xl transition-all group-hover/logo:scale-105 group-hover/logo:rotate-3">
+              <span className="text-xl font-black text-background">S</span>
             </div>
+            {!isCollapsed && (
+              <div className="flex flex-col animate-in fade-in slide-in-from-left-2 duration-300">
+                <span className="text-xl font-black tracking-tighter text-foreground italic uppercase leading-none truncate max-w-[150px]">
+                  {user?.facilityName || "SportBaba"}
+                </span>
+                <span className="text-[10px] font-black text-primary uppercase tracking-widest mt-1">Command Hub</span>
+              </div>
+            )}
+          </Link>
+
+          {!isCollapsed && (
+            <NotificationBell onClick={() => setNotificationOpen(!notificationOpen)} />
           )}
-        </Link>
+        </div>
+
+        {notificationOpen && !isCollapsed && (
+          <NotificationDropdown
+            isOpen={notificationOpen}
+            onClose={() => setNotificationOpen(false)}
+          />
+        )}
 
         {!isCollapsed && (
           <div className="flex flex-col gap-1 px-1">

@@ -1,6 +1,7 @@
 "use server"
 
 import { supabase } from "@/lib/supabase"
+import bcrypt from "bcryptjs"
 
 /**
  * Superadmin specific actions for platform-wide management.
@@ -288,5 +289,87 @@ export async function updatePlatformSettings(formData: FormData) {
         return { success: true };
     } catch (error: any) {
         return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Generate a random temporary password
+ */
+function generateTemporaryPassword(): string {
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const symbols = '!@#$%^&*';
+    const allChars = uppercase + lowercase + numbers + symbols;
+    
+    let password = '';
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += symbols[Math.floor(Math.random() * symbols.length)];
+    
+    for (let i = password.length; i < 12; i++) {
+        password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    return password.split('').sort(() => Math.random() - 0.5).join('');
+}
+
+export async function resetClientPassword(facilityId: string) {
+    try {
+        // 1. Get facility and its primary admin user
+        const { data: facility, error: facilityError } = await supabase
+            .from('facilities')
+            .select(`
+                id,
+                name,
+                email,
+                memberships(
+                    profile_id,
+                    role,
+                    profiles(id, email, full_name)
+                )
+            `)
+            .eq('id', facilityId)
+            .single();
+
+        if (facilityError || !facility) {
+            throw new Error('Facility not found');
+        }
+
+        // 2. Find the first admin or owner user
+        const adminMembership = (facility.memberships as any[])?.find(
+            m => m.role === 'admin' || m.role === 'owner'
+        );
+
+        if (!adminMembership || !adminMembership.profiles) {
+            throw new Error('No admin user found for this facility');
+        }
+
+        const userProfile = adminMembership.profiles as any;
+        const temporaryPassword = generateTemporaryPassword();
+        const hashedPassword = await bcrypt.hash(temporaryPassword, 10);
+
+        // 3. Update the user's password in the profiles table
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ password_hash: hashedPassword })
+            .eq('id', userProfile.id);
+
+        if (updateError) throw updateError;
+
+        return { 
+            success: true,
+            message: `Password reset for ${userProfile.email}`,
+            temporaryPassword,
+            email: userProfile.email,
+            facilityName: facility.name
+        };
+    } catch (error: any) {
+        console.error('Reset client password error:', error);
+        return { 
+            success: false, 
+            error: error.message || 'Failed to reset password' 
+        };
     }
 }

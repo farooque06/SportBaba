@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
-import { Globe, Activity, Clock, CreditCard, Search, X, Save, ShieldCheck, AlertTriangle } from "lucide-react";
+import { Globe, Activity, Clock, CreditCard, Search, X, Save, ShieldCheck, AlertTriangle, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { updateClientStatus } from "@/lib/actions/admin";
+import { updateClientStatus, resetClientPassword } from "@/lib/actions/admin";
 import { SubscriptionPlan } from "@/lib/actions/plans";
 import { Toast, ToastType } from "@/components/ui/Toast";
 import { ConfirmationModal } from "@/components/ui/Modal";
@@ -35,6 +35,8 @@ export function ClientRegistry({ facilities: initialFacilities, plans }: { facil
   // Artisan Feedback State
   const [toast, setToast] = useState<{ message: string, type: ToastType } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, facilityId: string | null }>({ isOpen: false, facilityId: null });
+  const [resetModal, setResetModal] = useState<{ isOpen: boolean, facilityId: string | null, facilityName: string | null }>({ isOpen: false, facilityId: null, facilityName: null });
+  const [passwordModal, setPasswordModal] = useState<{ isOpen: boolean, password: string, email: string, facilityName: string }>({ isOpen: false, password: "", email: "", facilityName: "" });
 
   const showToast = (message: string, type: ToastType = "success") => {
     setToast({ message, type });
@@ -102,6 +104,28 @@ export function ClientRegistry({ facilities: initialFacilities, plans }: { facil
     }
     setConfirmModal({ isOpen: false, facilityId: null });
     setLoading(false);
+  }
+
+  const handleResetPassword = async (facilityId: string) => {
+    setLoading(true);
+    const result = await resetClientPassword(facilityId);
+    if (result.success) {
+      setPasswordModal({
+        isOpen: true,
+        password: result.temporaryPassword || "",
+        email: result.email || "",
+        facilityName: result.facilityName || ""
+      });
+    } else {
+      showToast(result.error || "Failed to reset password. Please try again.", "error");
+    }
+    setResetModal({ isOpen: false, facilityId: null, facilityName: null });
+    setLoading(false);
+  }
+
+  const copyPasswordToClipboard = () => {
+    navigator.clipboard.writeText(passwordModal.password);
+    showToast("Password copied to clipboard!", "success");
   }
 
   return (
@@ -273,6 +297,14 @@ export function ClientRegistry({ facilities: initialFacilities, plans }: { facil
                     <button className="h-10 w-10 rounded-xl bg-muted/50 border border-border/50 flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white hover:border-primary transition-all">
                       <CreditCard className="h-4 w-4" />
                     </button>
+                    <button 
+                      onClick={() => setResetModal({ isOpen: true, facilityId: fac.id, facilityName: fac.name })}
+                      disabled={loading}
+                      className="h-10 w-10 rounded-xl bg-muted/50 border border-border/50 flex items-center justify-center text-muted-foreground hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-all"
+                      title="Reset Client Password"
+                    >
+                      <Lock className="h-4 w-4" />
+                    </button>
                     <button onClick={() => setEditingId(fac.id)} className="h-10 px-5 rounded-xl bg-primary/10 text-primary border border-primary/20 text-[9px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all">
                       Manage
                     </button>
@@ -301,6 +333,77 @@ export function ClientRegistry({ facilities: initialFacilities, plans }: { facil
         type="warning"
         isLoading={loading}
       />
+
+      <ConfirmationModal 
+        isOpen={resetModal.isOpen}
+        onClose={() => setResetModal({ isOpen: false, facilityId: null, facilityName: null })}
+        onConfirm={() => resetModal.facilityId && handleResetPassword(resetModal.facilityId)}
+        title="Reset Client Password?"
+        message={`Generate a temporary password for "${resetModal.facilityName}"? The admin will need to change it upon first login.`}
+        confirmLabel="Reset Password"
+        type="warning"
+        isLoading={loading}
+      />
+
+      {passwordModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border rounded-3xl shadow-2xl max-w-md w-full animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-border/50">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-black italic uppercase text-foreground">Temporary Password</h3>
+                <button
+                  onClick={() => setPasswordModal({ isOpen: false, password: "", email: "", facilityName: "" })}
+                  className="h-8 w-8 rounded-full bg-muted/50 hover:bg-red-500/10 hover:text-red-500 flex items-center justify-center transition-all"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="space-y-2">
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Facility</p>
+                <p className="text-sm font-bold text-foreground">{passwordModal.facilityName}</p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Admin Email</p>
+                <p className="text-sm font-bold text-foreground break-all">{passwordModal.email}</p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Temporary Password</p>
+                <div className="bg-muted/50 border border-primary/30 rounded-xl p-4 flex items-center justify-between gap-3">
+                  <code className="font-mono font-bold text-primary text-sm tracking-wider break-all">
+                    {passwordModal.password}
+                  </code>
+                </div>
+              </div>
+
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mt-4">
+                <p className="text-[9px] font-black uppercase tracking-widest text-amber-700 italic">
+                  ⚠️ Share this password securely with the client. They must change it on first login.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 p-6 border-t border-border/50 bg-muted/20">
+              <button
+                onClick={copyPasswordToClipboard}
+                className="flex-1 h-11 bg-primary text-white font-bold uppercase tracking-widest text-[9px] rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-[0.98]"
+              >
+                Copy Password
+              </button>
+              <button
+                onClick={() => setPasswordModal({ isOpen: false, password: "", email: "", facilityName: "" })}
+                className="flex-1 h-11 bg-muted border border-border/50 text-muted-foreground font-bold uppercase tracking-widest text-[9px] rounded-xl hover:bg-muted/80 transition-all active:scale-[0.98]"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <Toast 
