@@ -3,8 +3,8 @@
 -- 1. NOTIFICATIONS TABLE
 CREATE TABLE IF NOT EXISTS notifications (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    facility_id UUID REFERENCES facilities(id) ON DELETE CASCADE,
-    recipient_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    facility_id TEXT REFERENCES facilities(id) ON DELETE CASCADE,
+    recipient_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
     type TEXT NOT NULL CHECK (type IN ('booking_confirmed', 'booking_cancelled', 'booking_reminder', 'booking_updated', 'system')),
     title TEXT NOT NULL,
     message TEXT NOT NULL,
@@ -22,7 +22,7 @@ CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at
 -- 2. NOTIFICATION PREFERENCES TABLE
 CREATE TABLE IF NOT EXISTS notification_preferences (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    profile_id UUID UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
+    profile_id TEXT UNIQUE REFERENCES profiles(id) ON DELETE CASCADE,
     booking_confirmed BOOLEAN DEFAULT true,
     booking_cancelled BOOLEAN DEFAULT true,
     booking_reminder BOOLEAN DEFAULT true,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
 -- 3. PUSH SUBSCRIPTION TABLE (for browser push notifications)
 CREATE TABLE IF NOT EXISTS push_subscriptions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    profile_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    profile_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
     endpoint TEXT NOT NULL,
     p256dh TEXT NOT NULL,
     auth TEXT NOT NULL,
@@ -53,17 +53,17 @@ CREATE TABLE IF NOT EXISTS push_subscriptions (
 CREATE TABLE IF NOT EXISTS notification_queue (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     booking_id UUID REFERENCES bookings(id) ON DELETE CASCADE,
-    recipient_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    recipient_id TEXT REFERENCES profiles(id) ON DELETE CASCADE,
     notification_type TEXT NOT NULL,
     scheduled_for TIMESTAMPTZ NOT NULL,
     sent_at TIMESTAMPTZ,
     error_message TEXT,
     retry_count INTEGER DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT now(),
-    
-    INDEX idx_queue_scheduled ON notification_queue(scheduled_for),
-    INDEX idx_queue_sent ON notification_queue(sent_at)
+    created_at TIMESTAMPTZ DEFAULT now()
 );
+
+CREATE INDEX IF NOT EXISTS idx_queue_scheduled ON notification_queue(scheduled_for);
+CREATE INDEX IF NOT EXISTS idx_queue_sent ON notification_queue(sent_at);
 
 -- Enable RLS
 ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
@@ -83,3 +83,6 @@ CREATE POLICY "Users manage their own notification preferences" ON notification_
 
 CREATE POLICY "Users manage their own push subscriptions" ON push_subscriptions
   FOR ALL USING (auth.uid()::text = profile_id);
+
+-- 5. ENABLE REALTIME
+ALTER PUBLICATION supabase_realtime ADD TABLE notifications;

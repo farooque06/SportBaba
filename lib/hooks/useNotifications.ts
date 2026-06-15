@@ -42,7 +42,7 @@ export function useNotifications({ onNotification, showToast }: UseNotifications
       if (Notification.permission === 'granted') {
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+          applicationServerKey: urlBase64ToUint8Array(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '')
         })
 
         // Send subscription to backend
