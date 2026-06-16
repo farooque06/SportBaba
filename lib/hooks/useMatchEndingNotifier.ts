@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 export function useMatchEndingNotifier(facilityId?: string) {
+  /*
   const notifiedBookings = useRef<Set<string>>(new Set())
 
   useEffect(() => {
@@ -51,4 +52,5 @@ export function useMatchEndingNotifier(facilityId?: string) {
 
     return () => clearInterval(interval)
   }, [facilityId])
+  */
 }

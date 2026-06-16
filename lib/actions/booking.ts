@@ -155,6 +155,7 @@ export async function createBooking(data: {
 
   // Send in-app notification to all facility members
   const resourceName = resource?.name || 'Resource';
+  /*
   const startTimeStr = new Date(booking.start_time).toLocaleTimeString('en-US', {
     hour: 'numeric', minute: '2-digit', hour12: true
   });
@@ -174,14 +175,17 @@ export async function createBooking(data: {
       endTime: booking.end_time
     }
   );
+  */
 
   // Generate WhatsApp notification
   let whatsappUrl: string | undefined;
+  /*
   if (data.guest_phone) {
     const fullBooking = { ...booking, resource: { name: resourceName, base_price: Number(resource?.base_price) || 0 } };
     const notification = await generateWhatsAppNotification('booking_confirmed', fullBooking);
     whatsappUrl = notification.whatsappUrl;
   }
+  */
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/bookings");
@@ -265,6 +269,7 @@ export async function updatePaymentStatus(bookingId: string, status: string, met
 
   // Send in-app notification to all facility members
   const resourceName = (data?.resource as any)?.name || 'Resource';
+  /*
   await notifyFacilityMembers(
     facilityId,
     'booking_updated',
@@ -279,13 +284,16 @@ export async function updatePaymentStatus(bookingId: string, status: string, met
       status: finalStatus
     }
   );
+  */
   
   // Generate WhatsApp notification for payment
   let whatsappUrl: string | undefined;
+  /*
   if (data?.guest_phone) {
     const notification = await generateWhatsAppNotification('payment_received', data);
     whatsappUrl = notification.whatsappUrl;
   }
+  */
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/bookings");
@@ -314,6 +322,7 @@ export async function updateBookingStatus(bookingId: string, status: string, fac
   // Send in-app notification to all facility members
   const resourceName = (data?.resource as any)?.name || 'Resource';
   const isCancelled = status === 'cancelled';
+  /*
   await notifyFacilityMembers(
     facilityId,
     isCancelled ? 'booking_cancelled' : 'booking_confirmed',
@@ -327,9 +336,11 @@ export async function updateBookingStatus(bookingId: string, status: string, fac
       status
     }
   );
+  */
   
   // Generate WhatsApp notification based on status
   let whatsappUrl: string | undefined;
+  /*
   if (data?.guest_phone) {
     const notifType = status === 'completed' ? 'booking_completed' 
       : status === 'confirmed' ? 'booking_confirmed' 
@@ -340,6 +351,7 @@ export async function updateBookingStatus(bookingId: string, status: string, fac
       whatsappUrl = notification.whatsappUrl;
     }
   }
+  */
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/bookings");
@@ -381,6 +393,7 @@ export async function updateBookingStatus(bookingId: string, status: string, fac
 
   // Send in-app notification to all facility members
   const resourceName = (data as any)?.resource?.name || 'Resource';
+  /*
   await notifyFacilityMembers(
     facilityId,
     'booking_cancelled',
@@ -394,6 +407,7 @@ export async function updateBookingStatus(bookingId: string, status: string, fac
       creditIssued: paidAmount
     }
   );
+  */
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/bookings");

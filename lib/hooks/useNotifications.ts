@@ -12,6 +12,7 @@ interface UseNotificationsOptions {
 }
 
 export function useNotifications({ onNotification, showToast }: UseNotificationsOptions = {}) {
+  /*
   const { data: session } = useSession()
 
   // We rely on Supabase Realtime for in-app notifications
@@ -76,4 +77,5 @@ export function useNotifications({ onNotification, showToast }: UseNotifications
 
     return cleanup
   }, [session?.user?.id, setupRealtimeListener])
+  */
 }

@@ -14,6 +14,7 @@ export function NotificationBell({ onClick, className = '' }: NotificationBellPr
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    /*
     const fetchCount = async () => {
       const count = await getUnreadNotificationCount()
       setUnreadCount(count)
@@ -32,6 +33,7 @@ export function NotificationBell({ onClick, className = '' }: NotificationBellPr
       window.removeEventListener('new-notification', handleNew)
       window.removeEventListener('notifications-read', handleRead)
     }
+    */
   }, [])
 
   return (
