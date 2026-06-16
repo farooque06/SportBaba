@@ -81,7 +81,7 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
   if (!isOpen) return null
 
   return (
-    <div className="fixed right-0 top-16 w-96 max-w-[calc(100vw-1rem)] bg-background border border-border rounded-lg shadow-lg z-50 max-h-[500px] overflow-hidden flex flex-col">
+    <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-96 bg-background border border-border rounded-lg shadow-2xl z-[101] max-h-[500px] overflow-hidden flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-2">

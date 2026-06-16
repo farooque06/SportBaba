@@ -4,6 +4,8 @@ import Link from "next/link"
 import { Button } from "@/components/ui/Button"
 import { LogIn, Menu, X, Users, LogOut } from "lucide-react"
 import { ThemeToggle } from "@/components/ThemeToggle"
+import { NotificationBell } from "@/components/ui/NotificationBell"
+import { NotificationDropdown } from "@/components/ui/NotificationDropdown"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
@@ -14,6 +16,7 @@ export function Navbar({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean
   const isSuperAdmin = session?.user?.email === 'far00queapril17@gmail.com'
   const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
 
   return (
     <nav className="fixed top-0 z-[100] w-full">
@@ -67,7 +70,13 @@ export function Navbar({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* Notification Bell - visible on all screens when logged in */}
+                <div className="relative z-[101]">
+                  <NotificationBell onClick={() => setNotificationOpen(!notificationOpen)} />
+                  {notificationOpen && <NotificationDropdown isOpen={notificationOpen} onClose={() => setNotificationOpen(false)} />}
+                </div>
+
                 <Link href={isSuperAdmin ? "/admin" : "/dashboard"} className="hidden sm:block">
                   <Button variant="primary" size="md" className="h-10 px-5 rounded-xl font-semibold text-[13px] shadow-lg shadow-primary/25">
                     {isSuperAdmin ? "Admin Hub" : "Dashboard"}
