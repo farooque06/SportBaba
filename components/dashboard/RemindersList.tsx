@@ -23,13 +23,12 @@ export function RemindersList() {
   const reminders = rawReminders
     .filter((r: any) => !dismissedIds.includes(r.bookingId))
     .filter((r: any) => {
-      if (activeTab === 'unpaid') return r.type === 'past_due'
-      if (activeTab === 'upcoming') return r.type !== 'past_due'
+      if (activeTab === 'unpaid') return (r.dueAmount || 0) > 0
+      if (activeTab === 'upcoming') return r.type === 'upcoming'
       return true
     })
 
   const totalDue = rawReminders
-    .filter((r: any) => r.type === 'past_due' || r.paymentStatus === 'unpaid')
     .reduce((sum: number, r: any) => sum + (r.dueAmount || 0), 0)
 
   const handleSendReminder = (url: string) => {
@@ -85,8 +84,8 @@ export function RemindersList() {
         <div className="flex bg-muted/30 p-1.5 rounded-[24px] border border-border/20">
            {[
              { id: 'all', label: 'All Alerts', count: rawReminders.length },
-             { id: 'upcoming', label: 'Upcoming', count: rawReminders.filter((r: any) => r.type !== 'past_due').length },
-             { id: 'unpaid', label: 'Unpaid', count: rawReminders.filter((r: any) => r.type === 'past_due').length },
+             { id: 'upcoming', label: 'Upcoming', count: rawReminders.filter((r: any) => r.type === 'upcoming').length },
+             { id: 'unpaid', label: 'Unpaid', count: rawReminders.filter((r: any) => (r.dueAmount || 0) > 0).length },
            ].map((tab) => (
              <button 
                key={tab.id}
@@ -121,7 +120,8 @@ export function RemindersList() {
           </div>
         ) : (
           reminders.map((r: any, idx: number) => {
-            const isPastDue = r.type === 'past_due'
+            const isPastDue = r.type === 'unpaid' || (new Date(r.startTime).getTime() < new Date().getTime() && (r.dueAmount || 0) > 0)
+            const hasDue = (r.dueAmount || 0) > 0
             return (
               <div 
                 key={r.bookingId} 
@@ -144,7 +144,7 @@ export function RemindersList() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="text-sm font-black tracking-tight truncate uppercase italic">{r.guestName}</h4>
-                          {(isPastDue || r.paymentStatus === 'unpaid') && (
+                          {hasDue && (
                             <span className={cn(
                               "text-[7px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest shadow-md",
                               isPastDue ? "bg-red-500 text-white shadow-red-500/20" : "bg-amber-500 text-white shadow-amber-500/20"
@@ -156,11 +156,11 @@ export function RemindersList() {
                          <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">
                            <span className="flex items-center gap-1.5 shrink-0">
                              <Clock className="h-3 w-3 opacity-40" /> 
-                             {new Date(r.startTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+                             {new Date(r.startTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', month: 'short', day: 'numeric' })}
                            </span>
                            <span className="flex items-center gap-1.5 shrink-0 bg-muted/50 px-2 py-0.5 rounded-md text-[8px]">{r.resource}</span>
                         </div>
-                        {(isPastDue || r.paymentStatus === 'unpaid') && r.dueAmount > 0 && (
+                        {hasDue && (
                           <div className="mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-red-500/5 border border-red-500/10">
                              <span className="text-[8px] font-black text-red-600/60 uppercase">Amount Due:</span>
                              <span className="text-[10px] font-black text-red-600">{formatCurrency(r.dueAmount)}</span>

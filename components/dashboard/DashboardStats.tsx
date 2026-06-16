@@ -1,7 +1,7 @@
 "use client"
 
 import { Card } from "@/components/ui/Card"
-import { Activity, Users, Calendar, PlusSquare, RefreshCw } from "lucide-react"
+import { Activity, Users, Calendar, PlusSquare, RefreshCw, Banknote } from "lucide-react"
 import { fetchFacilityStats } from "@/lib/actions/members"
 import { cn } from "@/lib/utils"
 
@@ -10,7 +10,10 @@ interface Stats {
   totalBookings: number
   totalMembers: number
   liveMatches: number
+  pendingAmount: number
 }
+
+import { formatCurrency } from "@/lib/utils"
 
 import useSWR from "swr"
 
@@ -54,10 +57,17 @@ export function DashboardStats({ facilityId }: { facilityId: string }) {
       isLive: true,
       color: "text-red-500" 
     },
+    { 
+      label: "Pending Dues", 
+      value: stats?.pendingAmount ? formatCurrency(stats.pendingAmount) : "Rs. 0", 
+      icon: Banknote, 
+      delta: "Unpaid",
+      color: "text-amber-500" 
+    },
   ]
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5 px-1 md:px-2 relative group">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 md:gap-5 px-1 md:px-2 relative group">
       {/* Global Refresh Button */}
       <button 
         onClick={() => loadStats()}

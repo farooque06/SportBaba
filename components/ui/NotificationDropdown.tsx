@@ -46,6 +46,7 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
     try {
       await markNotificationAsRead(id)
       setNotifications(notifications.map(n => n.id === id ? { ...n, is_read: true } : n))
+      window.dispatchEvent(new CustomEvent('notifications-read'))
     } catch (error) {
       console.error('Failed to mark as read:', error)
     }
@@ -55,6 +56,7 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
     try {
       await markAllNotificationsAsRead()
       setNotifications(notifications.map(n => ({ ...n, is_read: true })))
+      window.dispatchEvent(new CustomEvent('notifications-read'))
     } catch (error) {
       console.error('Failed to mark all as read:', error)
     }
@@ -67,6 +69,9 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
       case 'booking_cancelled':
         return <AlertCircle className="h-4 w-4 text-red-500" />
       case 'booking_reminder':
+      case 'reminder_30m':
+      case 'reminder_15m':
+      case 'reminder_end_5m':
         return <Clock className="h-4 w-4 text-amber-500" />
       default:
         return <AlertCircle className="h-4 w-4 text-blue-500" />
@@ -79,7 +84,18 @@ export function NotificationDropdown({ isOpen, onClose }: NotificationDropdownPr
     <div className="fixed right-0 top-16 w-96 max-w-[calc(100vw-1rem)] bg-background border border-border rounded-lg shadow-lg z-50 max-h-[500px] overflow-hidden flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border">
-        <h2 className="font-bold text-sm uppercase tracking-wider">Notifications</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="font-bold text-sm uppercase tracking-wider">Notifications</h2>
+          {typeof window !== 'undefined' && Notification.permission === 'default' && (
+            <button 
+              onClick={() => Notification.requestPermission().then(() => window.location.reload())}
+              className="text-[9px] font-black uppercase tracking-widest bg-primary/10 text-primary px-2 py-1 rounded-full hover:bg-primary/20 transition-colors"
+              title="Enable Desktop Notifications"
+            >
+              Enable Push
+            </button>
+          )}
+        </div>
         <button
           onClick={onClose}
           className="p-1 hover:bg-muted rounded transition-colors"

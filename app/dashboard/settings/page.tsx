@@ -6,7 +6,7 @@ import Cookies from "js-cookie"
 import { fetchFacility, updateFacilitySettings } from "@/lib/actions/facility"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
-import { Settings, Palette, Clock, Globe, Bell, Shield, Loader2 } from "lucide-react"
+import { Settings, Palette, Clock, Globe, Bell, Shield, Loader2, BellRing, Timer, TimerOff } from "lucide-react"
 
 export default function SettingsPage() {
   const { data: session } = useSession()
@@ -20,6 +20,11 @@ export default function SettingsPage() {
   const [closeTime, setCloseTime] = useState("22:00")
   const [latitude, setLatitude] = useState("")
   const [longitude, setLongitude] = useState("")
+
+  // Notification reminder toggles
+  const [reminder30, setReminder30] = useState(true)
+  const [reminder15, setReminder15] = useState(true)
+  const [reminder5end, setReminder5end] = useState(true)
 
   useEffect(() => {
     if (!facilityId) {
@@ -36,6 +41,13 @@ export default function SettingsPage() {
           setCloseTime(facility.config?.close_time || "22:00")
           setLatitude(facility.config?.latitude || "")
           setLongitude(facility.config?.longitude || "")
+          // Load reminder preferences (default to true if not set)
+          const reminders = facility.config?.reminders
+          if (reminders) {
+            setReminder30(reminders.before_30m !== false)
+            setReminder15(reminders.before_15m !== false)
+            setReminder5end(reminders.before_end_5m !== false)
+          }
        }
        setLoading(false)
     }
@@ -54,7 +66,12 @@ export default function SettingsPage() {
           close_time: closeTime,
           latitude: latitude,
           longitude: longitude,
-          setup_completed: true
+          setup_completed: true,
+          reminders: {
+            before_30m: reminder30,
+            before_15m: reminder15,
+            before_end_5m: reminder5end,
+          }
        }
     })
     setSaving(false)
@@ -70,6 +87,30 @@ export default function SettingsPage() {
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
      </div>
   )
+
+  const reminderToggles = [
+    {
+      label: "30 Min Before Start",
+      desc: "Get alerted 30 minutes before a booking begins",
+      icon: BellRing,
+      value: reminder30,
+      onChange: setReminder30,
+    },
+    {
+      label: "15 Min Before Start",
+      desc: "Get alerted 15 minutes before a booking begins",
+      icon: Timer,
+      value: reminder15,
+      onChange: setReminder15,
+    },
+    {
+      label: "5 Min Before End",
+      desc: "Get alerted 5 minutes before a booking ends",
+      icon: TimerOff,
+      value: reminder5end,
+      onChange: setReminder5end,
+    },
+  ]
 
   return (
     <div className="space-y-12 animate-in fade-in duration-500 px-4 md:px-0 mb-32">
@@ -189,33 +230,48 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* Notifications */}
-        <Card className="p-6 md:p-10 bg-card border-border rounded-[40px] space-y-8 shadow-xl">
-          <div className="flex items-center gap-4 mb-2">
+        {/* Notification Reminders */}
+        <Card className="p-6 md:p-10 bg-card border-border rounded-[40px] space-y-8 shadow-xl relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Bell className="h-32 w-32 -rotate-12" />
+          </div>
+
+          <div className="flex items-center gap-4 mb-2 relative z-10">
             <div className="p-4 rounded-3xl bg-primary/10 text-primary border border-primary/20">
               <Bell className="h-6 w-6" />
             </div>
-            <h2 className="text-2xl font-black tracking-tighter uppercase italic">Alerts</h2>
+            <div>
+              <h2 className="text-2xl font-black tracking-tighter uppercase italic">Reminders</h2>
+              <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-1 opacity-60">Booking Alert Timing</p>
+            </div>
           </div>
 
-          <div className="space-y-4">
-            {[
-              { label: "New Booking Alerts", desc: "Push & Email notifications for intake", on: true },
-              { label: "Cancellation Alerts", desc: "Instant alerts on slot releases", on: true },
-              { label: "Daily Summary", desc: "Morning activity report at 7:00 AM", on: false },
-              { label: "System Updates", desc: "New feature & maintenance news", on: false },
-            ].map((item) => (
+          <div className="space-y-4 relative z-10">
+            {reminderToggles.map((item) => (
               <div key={item.label} className="flex items-center justify-between p-5 rounded-2xl bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors">
-                <div>
-                  <p className="text-xs font-black uppercase tracking-tight mb-1">{item.label}</p>
-                  <p className="text-[10px] text-muted-foreground font-bold italic">{item.desc}</p>
+                <div className="flex items-center gap-4">
+                  <div className={`p-2.5 rounded-xl ${item.value ? 'bg-primary/10 text-primary' : 'bg-muted/50 text-muted-foreground/40'} transition-colors`}>
+                    <item.icon className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-tight mb-1">{item.label}</p>
+                    <p className="text-[10px] text-muted-foreground font-bold italic">{item.desc}</p>
+                  </div>
                 </div>
-                <div className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-colors ${item.on ? 'bg-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.4)]' : 'bg-muted-foreground/20'}`}>
-                  <div className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${item.on ? 'translate-x-5' : 'translate-x-0'}`} />
-                </div>
+                <button
+                  type="button"
+                  onClick={() => item.onChange(!item.value)}
+                  className={`w-12 h-7 rounded-full p-1 cursor-pointer transition-colors duration-300 ${item.value ? 'bg-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.4)]' : 'bg-muted-foreground/20'}`}
+                >
+                  <div className={`h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${item.value ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
               </div>
             ))}
           </div>
+
+          <p className="text-[9px] font-medium text-muted-foreground/50 italic px-2 relative z-10">
+            Toggle which booking reminders are sent automatically. Changes apply to all future bookings for this facility.
+          </p>
         </Card>
 
         {/* Danger Zone */}
@@ -240,3 +296,4 @@ export default function SettingsPage() {
     </div>
   )
 }
+

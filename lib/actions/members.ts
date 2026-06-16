@@ -105,7 +105,7 @@ export async function addMemberByEmail(facilityId: string, email: string, role: 
 
 export async function fetchFacilityStats(facilityId: string) {
   const now = new Date().toISOString();
-  const [bookings, resources, members, live] = await Promise.all([
+  const [bookings, resources, members, live, pendingPayments] = await Promise.all([
     supabase.from('bookings').select('id', { count: 'exact' }).eq('facility_id', facilityId),
     supabase.from('resource_units').select('id', { count: 'exact' }).eq('facility_id', facilityId).eq('is_active', true),
     supabase.from('memberships').select('id', { count: 'exact' }).eq('facility_id', facilityId),
@@ -114,13 +114,30 @@ export async function fetchFacilityStats(facilityId: string) {
       .eq('facility_id', facilityId)
       .eq('status', 'confirmed')
       .lte('start_time', now)
-      .gte('end_time', now)
+      .gte('end_time', now),
+    supabase.from('bookings')
+      .select('total_price, paid_amount')
+      .eq('facility_id', facilityId)
+      .in('payment_status', ['unpaid', 'partial'])
+      .not('status', 'eq', 'cancelled')
   ]);
+
+  let pendingAmount = 0;
+  if (pendingPayments.data) {
+    pendingPayments.data.forEach((b: any) => {
+      const total = Number(b.total_price) || 0;
+      const paid = Number(b.paid_amount) || 0;
+      if (total > paid) {
+        pendingAmount += (total - paid);
+      }
+    });
+  }
 
   return {
     totalBookings: bookings.count || 0,
     totalResources: resources.count || 0,
     totalMembers: members.count || 0,
     liveMatches: live.count || 0,
+    pendingAmount: pendingAmount,
   };
 }

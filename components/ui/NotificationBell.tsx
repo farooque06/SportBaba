@@ -22,9 +22,16 @@ export function NotificationBell({ onClick, className = '' }: NotificationBellPr
 
     fetchCount()
 
-    // Refresh count every 10 seconds
-    const interval = setInterval(fetchCount, 10000)
-    return () => clearInterval(interval)
+    const handleNew = () => setUnreadCount(prev => prev + 1)
+    const handleRead = () => fetchCount()
+
+    window.addEventListener('new-notification', handleNew)
+    window.addEventListener('notifications-read', handleRead)
+
+    return () => {
+      window.removeEventListener('new-notification', handleNew)
+      window.removeEventListener('notifications-read', handleRead)
+    }
   }, [])
 
   return (

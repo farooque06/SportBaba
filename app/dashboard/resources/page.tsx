@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button"
 import { formatCurrency } from "@/lib/utils"
 import { useSession } from "next-auth/react"
 import Cookies from "js-cookie"
-import { fetchResourceUnits, createResourceUnit, deleteResourceUnit } from "@/lib/actions/resources"
+import { fetchResourceUnits, createResourceUnit, deleteResourceUnit, updateResourceUnit } from "@/lib/actions/resources"
 import { useSport } from "@/components/providers/SportProvider"
 import { ArtisanSelect } from "@/components/ui/ArtisanSelect"
 import { Toast, ToastType } from "@/components/ui/Toast"
@@ -22,13 +22,25 @@ export default function ResourcesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [toast, setToast] = useState<{ message: string, type: ToastType } | null>(null)
+  const [editingResourceId, setEditingResourceId] = useState<string | null>(null)
 
   // Form State
   const [formData, setFormData] = useState({
     name: "",
     base_price: "",
-    unit_type: "court"
+    unit_type: "court",
+    custom_pricing: [] as { startTime: string; endTime: string; price: string; days: number[] }[]
   })
+
+  const DAYS_OF_WEEK = [
+    { label: 'Su', value: 0 },
+    { label: 'Mo', value: 1 },
+    { label: 'Tu', value: 2 },
+    { label: 'We', value: 3 },
+    { label: 'Th', value: 4 },
+    { label: 'Fr', value: 5 },
+    { label: 'Sa', value: 6 },
+  ]
 
   useEffect(() => {
     if (session?.user && facilityId) {
@@ -51,7 +63,24 @@ export default function ResourcesPage() {
   const handleOpenModal = () => {
     // Default to 'pitch' if footshall, 'net' if cricshall, 'court' if both/empty
     const defaultType = sport === 'footshall' ? 'pitch' : (sport === 'cricshall' ? 'net' : 'court')
-    setFormData({ name: "", base_price: "", unit_type: defaultType })
+    setFormData({ name: "", base_price: "", unit_type: defaultType, custom_pricing: [] })
+    setEditingResourceId(null)
+    setIsModalOpen(true)
+  }
+
+  const handleEdit = (resource: any) => {
+    setFormData({
+      name: resource.name,
+      base_price: String(resource.base_price),
+      unit_type: resource.unit_type || 'court',
+      custom_pricing: (resource.custom_pricing || []).map((r: any) => ({
+        startTime: r.startTime || '17:00',
+        endTime: r.endTime || '19:00',
+        price: String(r.price || ''),
+        days: Array.isArray(r.days) ? r.days : [0,1,2,3,4,5,6]
+      }))
+    })
+    setEditingResourceId(resource.id)
     setIsModalOpen(true)
   }
 
@@ -64,18 +93,29 @@ export default function ResourcesPage() {
 
     setIsSaving(true)
     try {
-      const result = await createResourceUnit({
+      const payload = {
         name: formData.name,
         base_price: parseFloat(formData.base_price) || 0,
-        unit_type: formData.unit_type
-      }, facilityId)
+        unit_type: formData.unit_type,
+        custom_pricing: formData.custom_pricing.map(r => ({
+          startTime: r.startTime,
+          endTime: r.endTime,
+          price: parseFloat(r.price) || 0,
+          days: r.days || [0,1,2,3,4,5,6]
+        }))
+      }
+
+      const result = editingResourceId
+        ? await updateResourceUnit(editingResourceId, payload, facilityId)
+        : await createResourceUnit(payload, facilityId)
 
       if (result.success) {
-        showToast("Resource created successfully")
+        showToast(editingResourceId ? "Resource updated successfully" : "Resource created successfully")
         await loadResources()
         setIsModalOpen(false)
+        setEditingResourceId(null)
       } else {
-        showToast(result.error || "Failed to create resource", "error")
+        showToast(result.error || "Failed to save resource", "error")
       }
     } catch (error) {
        showToast("An unexpected error occurred", "error")
@@ -174,6 +214,12 @@ export default function ResourcesPage() {
                 </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button 
+                    onClick={() => handleEdit(resource)}
+                    className="p-2.5 rounded-xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors text-primary"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                  <button 
                     onClick={() => handleDelete(resource.id)}
                     className="p-2.5 rounded-xl bg-red-500/5 border border-red-500/10 hover:bg-red-500/10 transition-colors text-red-500"
                   >
@@ -190,6 +236,12 @@ export default function ResourcesPage() {
                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60 mb-1">Base Price / Hr</p>
                    <p className="text-xl font-black italic tracking-tighter text-foreground">{formatCurrency(resource.base_price)}</p>
                 </div>
+                {resource.custom_pricing && resource.custom_pricing.length > 0 && (
+                  <div>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-amber-500 opacity-80 mb-1">Peak Hours</p>
+                    <p className="text-sm font-black italic text-amber-500">{resource.custom_pricing.length} Active</p>
+                  </div>
+                )}
                 <div className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-[9px] font-black uppercase tracking-widest border border-emerald-500/20">
                    Active Map
                 </div>
@@ -209,9 +261,9 @@ export default function ResourcesPage() {
                  </div>
                  <div>
                    <h3 className="relative z-10 text-3xl font-black tracking-tighter italic uppercase text-foreground leading-none">
-                      Add Resource
-                   </h3>
-                   <p className="relative z-10 text-[10px] font-black uppercase tracking-widest text-primary mt-2">Create new playing area</p>
+                       {editingResourceId ? 'Edit Resource' : 'Add Resource'}
+                    </h3>
+                    <p className="relative z-10 text-[10px] font-black uppercase tracking-widest text-primary mt-2">{editingResourceId ? 'Update playing area details' : 'Create new playing area'}</p>
                  </div>
               </div>
 
@@ -258,11 +310,104 @@ export default function ResourcesPage() {
                      />
                  </div>
 
+                 <div className="space-y-4 pt-4">
+                     <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Custom Peak Pricing (Optional)</label>
+                        <Button
+                           type="button"
+                           variant="outline"
+                           onClick={() => setFormData({...formData, custom_pricing: [...formData.custom_pricing, { startTime: "17:00", endTime: "19:00", price: "", days: [0,1,2,3,4,5,6] }]})}
+                           className="h-8 rounded-xl text-[10px] uppercase font-black tracking-widest px-4"
+                        >
+                           <Plus className="h-3 w-3 mr-2" /> Add Rule
+                        </Button>
+                     </div>
+                     {formData.custom_pricing.map((rule, idx) => (
+                        <div key={idx} className="bg-muted/20 p-3 rounded-2xl border border-border/50">
+                           <div className="flex gap-2 items-center">
+                              <div className="flex-1">
+                              <label className="text-[8px] font-black uppercase text-muted-foreground mb-1 block">Start Time</label>
+                              <input 
+                                 type="time" 
+                                 value={rule.startTime}
+                                 onChange={(e) => {
+                                    const newRules = [...formData.custom_pricing]
+                                    newRules[idx].startTime = e.target.value
+                                    setFormData({...formData, custom_pricing: newRules})
+                                 }}
+                                 className="w-full h-10 bg-background border border-border/50 rounded-xl px-3 text-xs font-bold outline-none focus:ring-2 ring-primary/20"
+                              />
+                           </div>
+                           <div className="flex-1">
+                              <label className="text-[8px] font-black uppercase text-muted-foreground mb-1 block">End Time</label>
+                              <input 
+                                 type="time" 
+                                 value={rule.endTime}
+                                 onChange={(e) => {
+                                    const newRules = [...formData.custom_pricing]
+                                    newRules[idx].endTime = e.target.value
+                                    setFormData({...formData, custom_pricing: newRules})
+                                 }}
+                                 className="w-full h-10 bg-background border border-border/50 rounded-xl px-3 text-xs font-bold outline-none focus:ring-2 ring-primary/20"
+                              />
+                           </div>
+                           <div className="flex-1">
+                              <label className="text-[8px] font-black uppercase text-muted-foreground mb-1 block">Price / Hr</label>
+                              <input 
+                                 type="number" 
+                                 placeholder="1500"
+                                 value={rule.price}
+                                 onChange={(e) => {
+                                    const newRules = [...formData.custom_pricing]
+                                    newRules[idx].price = e.target.value
+                                    setFormData({...formData, custom_pricing: newRules})
+                                 }}
+                                 className="w-full h-10 bg-background border border-border/50 rounded-xl px-3 text-xs font-bold outline-none focus:ring-2 ring-primary/20"
+                              />
+                           </div>
+                           <button
+                              type="button"
+                              onClick={() => {
+                                 const newRules = formData.custom_pricing.filter((_, i) => i !== idx)
+                                 setFormData({...formData, custom_pricing: newRules})
+                              }}
+                              className="h-10 w-10 mt-4 rounded-xl bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors shrink-0"
+                           >
+                              <Trash2 className="h-4 w-4" />
+                           </button>
+                        </div>
+                        <div className="flex gap-1 mt-2 px-1">
+                           {DAYS_OF_WEEK.map(day => {
+                              const isSelected = rule.days.includes(day.value)
+                              return (
+                                 <button
+                                    key={day.value}
+                                    type="button"
+                                    onClick={() => {
+                                       const newRules = [...formData.custom_pricing]
+                                       if (isSelected) {
+                                          newRules[idx].days = rule.days.filter(d => d !== day.value)
+                                       } else {
+                                          newRules[idx].days = [...rule.days, day.value]
+                                       }
+                                       setFormData({...formData, custom_pricing: newRules})
+                                    }}
+                                    className={`h-6 w-6 rounded-full text-[8px] font-black transition-colors ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-background text-muted-foreground border border-border/50 hover:bg-muted'}`}
+                                 >
+                                    {day.label}
+                                 </button>
+                              )
+                           })}
+                        </div>
+                     </div>
+                     ))}
+                  </div>
+
                  <div className="flex gap-4 pt-6 mt-6 border-t border-border/50">
                     <Button 
                        type="button"
                        variant="ghost" 
-                       onClick={() => setIsModalOpen(false)}
+                       onClick={() => { setIsModalOpen(false); setEditingResourceId(null); }}
                        className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-xs border border-border/50"
                     >
                        Cancel
@@ -272,7 +417,7 @@ export default function ResourcesPage() {
                        disabled={isSaving}
                        className="flex-1 h-14 rounded-2xl bg-primary text-primary-foreground font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20"
                     >
-                       {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Area"}
+                       {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : (editingResourceId ? "Update Area" : "Save Area")}
                     </Button>
                  </div>
               </form>

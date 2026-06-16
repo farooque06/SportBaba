@@ -13,6 +13,7 @@ import { NotificationBell } from "@/components/ui/NotificationBell"
 import { NotificationDropdown } from "@/components/ui/NotificationDropdown"
 import { Toast, ToastType } from "@/components/ui/Toast"
 import { useNotifications } from "@/lib/hooks/useNotifications"
+import { useMatchEndingNotifier } from "@/lib/hooks/useMatchEndingNotifier"
 import { useSport } from "@/components/providers/SportProvider"
 import { cn } from "@/lib/utils"
 import { logoutAction } from "@/lib/actions/auth"
@@ -42,12 +43,15 @@ export function Sidebar({ subscriptionStatus, trialEnd, user }: SidebarProps) {
   const [mounted, setMounted] = useState(false)
   const [notificationOpen, setNotificationOpen] = useState(false)
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null)
-  const { sport, setSport, facilityType } = useSport()
+  const { sport, setSport, facilityType, facilityId } = useSport()
   const pathname = usePathname()
 
   useNotifications({
     showToast: (message, type) => setToast({ message, type }),
   })
+
+  // Poll for matches ending soon to show browser notifications
+  useMatchEndingNotifier(facilityId)
 
   useEffect(() => {
     setMounted(true)

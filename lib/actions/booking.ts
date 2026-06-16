@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { linkBookingToCustomer } from "./customers";
 import { generateWhatsAppNotification } from "@/lib/notifications";
+import { notifyFacilityMembers } from "./notifications";
 
 export async function createBooking(data: {
   resource_id: string;
@@ -39,15 +40,58 @@ export async function createBooking(data: {
   const start = new Date(data.start_time);
   const end = new Date(data.end_time);
   
-  // Fetch resource price
+  // Fetch resource details
   const { data: resource } = await supabase
     .from('resource_units')
-    .select('base_price')
+    .select('name, base_price, custom_pricing')
     .eq('id', data.resource_id)
     .single();
 
-  const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-  const total_price = (Number(resource?.base_price) || 0) * durationHours;
+  const basePrice = Number(resource?.base_price) || 0;
+  const customPricing = Array.isArray(resource?.custom_pricing) ? resource.custom_pricing : [];
+  let total_price = 0;
+
+  if (customPricing.length > 0) {
+    let currentTime = start.getTime();
+    const endTimeObj = end.getTime();
+    let priceSum = 0;
+    
+    while (currentTime < endTimeObj) {
+      const currentMinDate = new Date(currentTime);
+      const hours = currentMinDate.getHours().toString().padStart(2, '0');
+      const minutes = currentMinDate.getMinutes().toString().padStart(2, '0');
+      const timeStr = `${hours}:${minutes}`;
+      
+      let applicablePrice = basePrice;
+      
+      for (const rule of customPricing) {
+        // Default to all days if not specified
+        const ruleDays = Array.isArray(rule.days) ? rule.days : [0, 1, 2, 3, 4, 5, 6];
+        const currentDay = currentMinDate.getDay();
+        
+        if (!ruleDays.includes(currentDay)) continue;
+
+        let isWithin = false;
+        if (rule.startTime <= rule.endTime) {
+          isWithin = timeStr >= rule.startTime && timeStr < rule.endTime;
+        } else {
+          // Crosses midnight
+          isWithin = timeStr >= rule.startTime || timeStr < rule.endTime;
+        }
+        if (isWithin) {
+          applicablePrice = Number(rule.price) || basePrice;
+          break;
+        }
+      }
+      
+      priceSum += applicablePrice / 60; // price per minute
+      currentTime += 60000; // advance 1 minute
+    }
+    total_price = Math.round(priceSum);
+  } else {
+    const durationHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
+    total_price = Math.round(basePrice * durationHours);
+  }
 
   let paid_amount = data.payment_status === 'paid' ? total_price : (Number(data.paid_amount) || 0);
   let final_payment_status: 'paid' | 'unpaid' | 'partial' = data.payment_status || 'unpaid';
@@ -109,14 +153,32 @@ export async function createBooking(data: {
   // Auto-link to customer profile (already updates stats)
   await linkBookingToCustomer(facilityId, booking.id, data.guest_name, data.guest_phone, total_price, data.guest_email);
 
+  // Send in-app notification to all facility members
+  const resourceName = resource?.name || 'Resource';
+  const startTimeStr = new Date(booking.start_time).toLocaleTimeString('en-US', {
+    hour: 'numeric', minute: '2-digit', hour12: true
+  });
+  const dateStr = new Date(booking.start_time).toLocaleDateString('en-US');
+  
+  await notifyFacilityMembers(
+    facilityId,
+    'booking_confirmed',
+    'New Booking Created! 📅',
+    `New booking for ${resourceName} by ${booking.guest_name} on ${dateStr} at ${startTimeStr}.`,
+    booking.id,
+    {
+      bookingId: booking.id,
+      guestName: booking.guest_name,
+      resourceName,
+      startTime: booking.start_time,
+      endTime: booking.end_time
+    }
+  );
+
   // Generate WhatsApp notification
   let whatsappUrl: string | undefined;
   if (data.guest_phone) {
-    const fullBooking = { ...booking, resource: { name: '', base_price: Number(resource?.base_price) || 0 } };
-    // Fetch resource name for the notification
-    const { data: resData } = await supabase.from('resource_units').select('name').eq('id', data.resource_id).single();
-    if (resData) fullBooking.resource.name = resData.name;
-    
+    const fullBooking = { ...booking, resource: { name: resourceName, base_price: Number(resource?.base_price) || 0 } };
     const notification = await generateWhatsAppNotification('booking_confirmed', fullBooking);
     whatsappUrl = notification.whatsappUrl;
   }
@@ -197,6 +259,26 @@ export async function updatePaymentStatus(bookingId: string, status: string, met
     .single();
 
   if (error) return { error: error.message };
+
+  const amountPaidNow = amount !== undefined ? Number(amount) : (status === 'paid' ? Number(booking.total_price) - (Number(booking.paid_amount) || 0) : 0);
+  const paymentTypeStr = finalStatus === 'paid' ? 'Full Payment' : 'Partial Payment';
+
+  // Send in-app notification to all facility members
+  const resourceName = (data?.resource as any)?.name || 'Resource';
+  await notifyFacilityMembers(
+    facilityId,
+    'booking_updated',
+    'Payment Received 💳',
+    `${paymentTypeStr} of Rs. ${amountPaidNow} received for ${data.guest_name}'s booking of ${resourceName}. Status: ${finalStatus.toUpperCase()}.`,
+    bookingId,
+    {
+      bookingId,
+      guestName: data.guest_name,
+      resourceName,
+      amount: amountPaidNow,
+      status: finalStatus
+    }
+  );
   
   // Generate WhatsApp notification for payment
   let whatsappUrl: string | undefined;
@@ -228,6 +310,23 @@ export async function updateBookingStatus(bookingId: string, status: string, fac
     .single();
 
   if (error) return { error: error.message };
+
+  // Send in-app notification to all facility members
+  const resourceName = (data?.resource as any)?.name || 'Resource';
+  const isCancelled = status === 'cancelled';
+  await notifyFacilityMembers(
+    facilityId,
+    isCancelled ? 'booking_cancelled' : 'booking_confirmed',
+    isCancelled ? 'Booking Cancelled ❌' : 'Booking Confirmed ✅',
+    `Booking for ${resourceName} by ${data.guest_name} on ${new Date(data.start_time).toLocaleDateString()} has been ${status}.`,
+    bookingId,
+    {
+      bookingId,
+      guestName: data.guest_name,
+      resourceName,
+      status
+    }
+  );
   
   // Generate WhatsApp notification based on status
   let whatsappUrl: string | undefined;
@@ -266,7 +365,10 @@ export async function updateBookingStatus(bookingId: string, status: string, fac
     .from('bookings')
     .update({ status: 'cancelled' })
     .eq('id', bookingId)
-    .select()
+    .select(`
+      *,
+      resource:resource_units(name)
+    `)
     .single();
 
   if (updateError) return { error: updateError.message };
@@ -276,6 +378,22 @@ export async function updateBookingStatus(bookingId: string, status: string, fac
     const { issueCustomerCredit } = await import("./customers");
     await issueCustomerCredit(booking.customer_id, paidAmount);
   }
+
+  // Send in-app notification to all facility members
+  const resourceName = (data as any)?.resource?.name || 'Resource';
+  await notifyFacilityMembers(
+    facilityId,
+    'booking_cancelled',
+    'Booking Cancelled (Credit Issued) ❌',
+    `Booking for ${data.guest_name} on ${new Date(data.start_time).toLocaleDateString()} was cancelled. Rs. ${paidAmount} credit was issued.`,
+    bookingId,
+    {
+      bookingId,
+      guestName: data.guest_name,
+      resourceName,
+      creditIssued: paidAmount
+    }
+  );
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/bookings");
@@ -418,7 +536,7 @@ export async function extendBooking(bookingId: string, durationMinutes: number, 
   // Fetch current booking and resource price — scoped to facility
   const { data: booking, error: fetchError } = await supabase
     .from('bookings')
-    .select('*, resource:resource_units(base_price)')
+    .select('*, resource:resource_units(base_price, custom_pricing)')
     .eq('id', bookingId)
     .eq('facility_id', facilityId)
     .single();
@@ -444,8 +562,49 @@ export async function extendBooking(bookingId: string, durationMinutes: number, 
 
   // Calculate extra price
   const basePrice = Number((booking as any).resource?.base_price) || 0;
-  const extraHours = durationMinutes / 60;
-  const extraPrice = basePrice * extraHours;
+  const customPricing = Array.isArray((booking as any).resource?.custom_pricing) ? (booking as any).resource.custom_pricing : [];
+  let extraPrice = 0;
+
+  if (customPricing.length > 0) {
+    let currentTime = currentEnd.getTime();
+    const endTimeObj = newEnd.getTime();
+    let priceSum = 0;
+    
+    while (currentTime < endTimeObj) {
+      const currentMinDate = new Date(currentTime);
+      const hours = currentMinDate.getHours().toString().padStart(2, '0');
+      const minutes = currentMinDate.getMinutes().toString().padStart(2, '0');
+      const timeStr = `${hours}:${minutes}`;
+      
+      let applicablePrice = basePrice;
+      
+      for (const rule of customPricing) {
+        const ruleDays = Array.isArray(rule.days) ? rule.days : [0, 1, 2, 3, 4, 5, 6];
+        const currentDay = currentMinDate.getDay();
+        
+        if (!ruleDays.includes(currentDay)) continue;
+
+        let isWithin = false;
+        if (rule.startTime <= rule.endTime) {
+          isWithin = timeStr >= rule.startTime && timeStr < rule.endTime;
+        } else {
+          isWithin = timeStr >= rule.startTime || timeStr < rule.endTime;
+        }
+        if (isWithin) {
+          applicablePrice = Number(rule.price) || basePrice;
+          break;
+        }
+      }
+      
+      priceSum += applicablePrice / 60;
+      currentTime += 60000;
+    }
+    extraPrice = Math.round(priceSum);
+  } else {
+    const extraHours = durationMinutes / 60;
+    extraPrice = Math.round(basePrice * extraHours);
+  }
+
   const newTotalPrice = (Number(booking.total_price) || 0) + extraPrice;
   const newPaymentStatus = Number(booking.paid_amount) >= newTotalPrice ? 'paid' : (Number(booking.paid_amount) > 0 ? 'partial' : 'unpaid');
 

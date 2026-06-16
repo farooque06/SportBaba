@@ -1,6 +1,7 @@
 "use server"
 
 import { supabase } from "@/lib/supabase"
+import { notifyFacilityMembers } from "./notifications"
 
 // Fetch facility info securely without auth
 export async function getPublicFacility(slug: string) {
@@ -103,5 +104,35 @@ export async function submitPublicBooking(data: {
     .single()
 
   if (error) return { error: error.message }
+
+  // Fetch resource name for the notification message
+  const { data: resource } = await supabase
+    .from('resource_units')
+    .select('name')
+    .eq('id', booking.resource_id)
+    .single();
+
+  const resourceName = resource?.name || 'Resource';
+  const startTimeStr = new Date(booking.start_time).toLocaleTimeString('en-US', {
+    hour: 'numeric', minute: '2-digit', hour12: true
+  });
+  const dateStr = new Date(booking.start_time).toLocaleDateString('en-US');
+
+  // Trigger real-time notification to facility members
+  await notifyFacilityMembers(
+    booking.facility_id,
+    'booking_confirmed',
+    'New Online Booking! 🌐',
+    `New online booking request for ${resourceName} by ${booking.guest_name} on ${dateStr} at ${startTimeStr}.`,
+    booking.id,
+    {
+      bookingId: booking.id,
+      guestName: booking.guest_name,
+      resourceName,
+      startTime: booking.start_time,
+      endTime: booking.end_time
+    }
+  );
+
   return { success: true, booking }
 }

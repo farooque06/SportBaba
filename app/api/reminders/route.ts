@@ -49,34 +49,33 @@ export async function GET(request: Request) {
     .in('status', ['confirmed', 'pending'])
     .not('guest_phone', 'is', null)
 
-  // ─── 2. Fetch Past Due Matches (Ended in last 24h, not paid) ───
-  const pastWindowStart = new Date(now.getTime() - 24 * 60 * 60 * 1000)
-  
-  const pastDueQuery = supabase
+  // ─── 2. Fetch Unpaid Matches (Past, Current, Upcoming) ───
+  const unpaidQuery = supabase
     .from('bookings')
     .select(`*, resource:resource_units(name, unit_type, base_price)`)
     .eq('facility_id', facilityId)
-    .gte('end_time', pastWindowStart.toISOString())
-    .lt('end_time', now.toISOString())
-    .eq('payment_status', 'unpaid')
-    .in('status', ['confirmed', 'completed'])
+    .in('payment_status', ['unpaid', 'partial'])
+    .not('status', 'eq', 'cancelled')
     .not('guest_phone', 'is', null)
 
-  const [upcomingResult, pastDueResult] = await Promise.all([
+  const [upcomingResult, unpaidResult] = await Promise.all([
     upcomingQuery,
-    pastDueQuery
+    unpaidQuery
   ])
 
-  if (upcomingResult.error || pastDueResult.error) {
-    return NextResponse.json({ error: upcomingResult.error?.message || pastDueResult.error?.message }, { status: 500 })
+  if (upcomingResult.error || unpaidResult.error) {
+    return NextResponse.json({ error: upcomingResult.error?.message || unpaidResult.error?.message }, { status: 500 })
   }
 
   // ─── Process Reminders ───
   const reminders: any[] = []
 
+  const processedBookingIds = new Set<string>()
+
   // Process Upcoming
   if (upcomingResult.data) {
     for (const b of upcomingResult.data) {
+      processedBookingIds.add(b.id)
       const result = await generateWhatsAppNotification('reminder_1hr', b)
       reminders.push({
         type: 'upcoming',
@@ -92,18 +91,21 @@ export async function GET(request: Request) {
     }
   }
 
-  // Process Past Due
-  if (pastDueResult.data) {
-    for (const b of pastDueResult.data) {
+  // Process Unpaid
+  if (unpaidResult.data) {
+    for (const b of unpaidResult.data) {
+      if (processedBookingIds.has(b.id)) continue;
+      
       const result = await generateWhatsAppNotification('payment_request', b)
       reminders.push({
-        type: 'past_due',
+        type: 'unpaid',
         bookingId: b.id,
         guestName: b.guest_name,
         startTime: b.start_time,
         resource: b.resource?.name,
         whatsappUrl: result.whatsappUrl,
         message: result.message,
+        paymentStatus: b.payment_status,
         dueAmount: (Number(b.total_price) || 0) - (Number(b.paid_amount) || 0)
       })
     }

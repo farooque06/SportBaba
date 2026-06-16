@@ -71,6 +71,45 @@ export async function createNotification({
   }
 }
 
+// Notify all facility owners/managers/staff about an event
+export async function notifyFacilityMembers(
+  facilityId: string,
+  type: string,
+  title: string,
+  message: string,
+  relatedBookingId?: string,
+  data: Record<string, any> = {}
+) {
+  try {
+    const { data: members, error } = await supabase
+      .from('memberships')
+      .select('profile_id')
+      .eq('facility_id', facilityId)
+      .in('role', ['owner', 'manager', 'staff'])
+
+    if (error) throw error
+
+    const notifications = []
+    for (const member of members || []) {
+      if (!member.profile_id) continue
+      const notif = await createNotification({
+        facilityId,
+        recipientId: member.profile_id,
+        type,
+        title,
+        message,
+        relatedBookingId,
+        data
+      })
+      notifications.push(notif)
+    }
+    return notifications
+  } catch (error) {
+    console.error('Error notifying facility members:', error)
+    return []
+  }
+}
+
 // Get user notifications
 export async function getUserNotifications(limit = 20, offset = 0) {
   const session = await auth()

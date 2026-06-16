@@ -202,7 +202,52 @@ export function QuickBookingModal({
   const isInvalidCustomTime = isCustomTiming && (customEndHour * 60 + customEndMinute <= selectedHour * 60 + selectedMinute)
 
   const isPastMaxHour = selectedHour + selectedDuration > closeHour + 1
-  const totalPrice = (selectedResource?.base_price || 0) * selectedDuration
+  
+  // Calculate price considering custom_pricing rules (same logic as server-side createBooking)
+  const totalPrice = (() => {
+    const basePrice = Number(selectedResource?.base_price) || 0;
+    const customPricing = Array.isArray(selectedResource?.custom_pricing) ? selectedResource.custom_pricing : [];
+    
+    if (customPricing.length === 0) {
+      return basePrice * selectedDuration;
+    }
+    
+    let currentTime = bookingStart.getTime();
+    const endTimeMs = bookingEnd.getTime();
+    let priceSum = 0;
+    
+    while (currentTime < endTimeMs) {
+      const currentMinDate = new Date(currentTime);
+      const hours = currentMinDate.getHours().toString().padStart(2, '0');
+      const minutes = currentMinDate.getMinutes().toString().padStart(2, '0');
+      const timeStr = `${hours}:${minutes}`;
+      
+      let applicablePrice = basePrice;
+      
+      for (const rule of customPricing) {
+        const ruleDays = Array.isArray(rule.days) ? rule.days : [0, 1, 2, 3, 4, 5, 6];
+        const currentDay = currentMinDate.getDay();
+        
+        if (!ruleDays.includes(currentDay)) continue;
+        
+        let isWithin = false;
+        if (rule.startTime <= rule.endTime) {
+          isWithin = timeStr >= rule.startTime && timeStr < rule.endTime;
+        } else {
+          isWithin = timeStr >= rule.startTime || timeStr < rule.endTime;
+        }
+        if (isWithin) {
+          applicablePrice = Number(rule.price) || basePrice;
+          break;
+        }
+      }
+      
+      priceSum += applicablePrice / 60;
+      currentTime += 60000;
+    }
+    
+    return Math.round(priceSum);
+  })()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()

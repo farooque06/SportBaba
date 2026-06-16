@@ -4,11 +4,11 @@ import { supabase } from "@/lib/supabase";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 
-export async function createResourceUnit(payload: { name: string, unit_type: string, base_price: number }, facilityId: string) {
+export async function createResourceUnit(payload: { name: string, unit_type: string, base_price: number, custom_pricing?: any[] }, facilityId: string) {
   const session = await auth();
   if (!session?.user || !facilityId) throw new Error("Unauthorized");
 
-  const { name, unit_type, base_price } = payload;
+  const { name, unit_type, base_price, custom_pricing } = payload;
   //comment
 
   const { data: createdData, error } = await supabase
@@ -18,6 +18,7 @@ export async function createResourceUnit(payload: { name: string, unit_type: str
       name,
       unit_type,
       base_price,
+      custom_pricing: custom_pricing || [],
       is_active: true
     })
     .select()
@@ -62,4 +63,33 @@ export async function deleteResourceUnit(id: string, facilityId: string) {
   revalidatePath("/dashboard/resources");
   revalidatePath("/dashboard");
   return { success: true };
+}
+
+export async function updateResourceUnit(id: string, payload: { name: string, unit_type: string, base_price: number, custom_pricing?: any[] }, facilityId: string) {
+  const session = await auth();
+  if (!session?.user || !facilityId) throw new Error("Unauthorized");
+
+  const { name, unit_type, base_price, custom_pricing } = payload;
+
+  const { data: updatedData, error } = await supabase
+    .from('resource_units')
+    .update({
+      name,
+      unit_type,
+      base_price,
+      custom_pricing: custom_pricing || [],
+    })
+    .eq('id', id)
+    .eq('facility_id', facilityId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Supabase Error in updateResourceUnit:", error.message);
+    return { error: error.message };
+  }
+
+  revalidatePath("/dashboard/resources");
+  revalidatePath("/dashboard");
+  return { success: true, data: updatedData };
 }
