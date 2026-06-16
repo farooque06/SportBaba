@@ -13,8 +13,9 @@ import { CreditCard } from "lucide-react"
 export function RemindersList() {
   const [activeTab, setActiveTab] = useState<'all' | 'unpaid' | 'upcoming'>('all')
   const [dismissedIds, setDismissedIds] = useState<string[]>([])
+  const [isDataLoaded, setIsDataLoaded] = useState(false)
 
-  const { data, isValidating: loading } = useSWR('/api/reminders', (url) => fetch(url).then(res => res.json()), {
+  const { data, isValidating: loading } = useSWR(isDataLoaded ? '/api/reminders' : null, (url) => fetch(url).then(res => res.json()), {
     revalidateOnFocus: true,
     refreshInterval: 300000, // Refresh every 5 mins
   })
@@ -38,6 +39,23 @@ export function RemindersList() {
   const handleDismiss = (id: string) => {
     setDismissedIds(prev => [...prev, id])
   }
+
+  if (!isDataLoaded) return (
+    <Card className="p-10 flex flex-col items-center justify-center space-y-6 bg-card/40 backdrop-blur-3xl border-border/30 rounded-[48px] min-h-[300px]">
+       <div className="relative">
+          <div className="h-16 w-16 rounded-full border-4 border-primary/10 border-t-primary/40 flex items-center justify-center">
+            <Bell className="h-6 w-6 text-primary/60" />
+          </div>
+       </div>
+       <div className="text-center space-y-2">
+          <p className="text-sm font-black uppercase tracking-[0.2em] text-foreground">Control Center</p>
+          <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest max-w-[200px] mx-auto">Live Operational Alerts</p>
+       </div>
+       <Button onClick={() => setIsDataLoaded(true)} variant="outline" className="rounded-2xl font-black uppercase tracking-widest text-[10px] hover:bg-primary hover:text-white transition-all shadow-sm">
+         Load Live Alerts
+       </Button>
+    </Card>
+  )
 
   if (loading && !data) return (
     <Card className="p-10 flex flex-col items-center justify-center space-y-6 bg-card/40 backdrop-blur-3xl border-border/30 rounded-[48px] min-h-[300px]">

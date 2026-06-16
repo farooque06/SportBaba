@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { SportProvider } from "@/components/providers/SportProvider";
 import { QuickActionFab } from "@/components/ui/QuickActionFab";
 import { cookies } from "next/headers";
+import { GlobalRefreshButton } from "@/components/ui/GlobalRefreshButton";
+import { ImpersonationBanner } from "@/components/admin/ImpersonationBanner";
 
 export default async function DashboardLayout({
   children,
@@ -25,13 +27,15 @@ export default async function DashboardLayout({
   // Add other superadmin IDs here if needed
   const isSuperAdmin = isAdminEmail || userId === '48c52067-23b6-412c-a17b-1e7de8bc4f98';
 
-  if (isSuperAdmin) {
+  const cookieStore = await cookies();
+  const impersonatedFacilityId = cookieStore.get("impersonated_facility_id")?.value;
+
+  if (isSuperAdmin && !impersonatedFacilityId) {
     redirect("/admin"); 
   }
 
   // Get active facility from cookie or first membership
-  const cookieStore = await cookies();
-  let facilityId = cookieStore.get("active_facility_id")?.value;
+  let facilityId = isSuperAdmin ? impersonatedFacilityId : cookieStore.get("active_facility_id")?.value;
 
   if (!facilityId) {
     const { data: membership } = await supabase
@@ -51,7 +55,7 @@ export default async function DashboardLayout({
   // 2. Fetch facility status
   const { data: facility } = await supabase
     .from('facilities')
-    .select('name, subscription_status, trial_end, sport_type, status')
+    .select('name, subscription_status, trial_end, sport_type, status, subscription_end')
     .eq('id', facilityId)
     .maybeSingle();
 
@@ -113,7 +117,8 @@ export default async function DashboardLayout({
   // 3. Security Guard (Subscription Gating)
   const isTrialActive = facility?.subscription_status === 'trialing' && 
                         new Date(facility.trial_end) > new Date();
-  const isSubscribed = facility?.subscription_status === 'active';
+  const isSubscribed = facility?.subscription_status === 'active' &&
+                       (!facility.subscription_end || new Date(facility.subscription_end) > new Date());
 
   // Hard Gate (Bypassed for Superadmins)
   if (!isSuperAdmin && !isTrialActive && !isSubscribed && facility) {
@@ -143,7 +148,8 @@ export default async function DashboardLayout({
 
   return (
     <SportProvider facilityType={facility?.sport_type} facilityId={facilityId}>
-      <div className="flex flex-col md:flex-row md:h-screen md:overflow-hidden bg-background">
+      {isSuperAdmin && impersonatedFacilityId && <ImpersonationBanner facilityName={facility.name} />}
+      <div className={`flex flex-col md:flex-row md:h-screen md:overflow-hidden bg-background ${isSuperAdmin && impersonatedFacilityId ? 'mt-8' : ''}`}>
         <div className="print:hidden">
           <Sidebar 
             subscriptionStatus={facility?.subscription_status} 
@@ -154,6 +160,9 @@ export default async function DashboardLayout({
             }}
           />
         </div>
+        
+        <GlobalRefreshButton />
+        
         <main className="flex-1 md:overflow-y-auto w-full max-w-[1600px] mx-auto pt-[72px] md:pt-6 lg:pt-8 px-3 md:px-6 lg:px-8 pb-36 md:pb-12 bg-muted/10 print:p-0 print:m-0 print:bg-white print:overflow-visible">
           <div className="print:hidden">
             <MobileNav />
@@ -167,5 +176,3 @@ export default async function DashboardLayout({
     </SportProvider>
   );
 }
-
-

@@ -72,6 +72,7 @@ export async function fetchAllFacilities() {
         sport_type,
         subscription_status,
         trial_end,
+        subscription_end,
         created_at,
         plan_id,
         phone,
@@ -182,6 +183,166 @@ export async function approveFacility(id: string) {
 
 export async function suspendFacility(id: string) {
     return updateClientStatus(id, 'inactive', undefined, undefined, { orgStatus: 'suspended' });
+}
+
+export async function renewFacilitySubscription(
+    facilityId: string, 
+    planId: string,
+    amountPaid?: number,
+    notes?: string
+) {
+    try {
+        // 1. Fetch the plan details to get the interval and price
+        const { data: plan, error: planError } = await supabase
+            .from('subscription_plans')
+            .select('interval, price')
+            .eq('id', planId)
+            .single();
+
+        if (planError || !plan) throw new Error('Invalid subscription plan');
+
+        // 2. Calculate new end date based on interval
+        const now = new Date();
+        if (plan.interval === 'year') {
+            now.setFullYear(now.getFullYear() + 1);
+        } else {
+            now.setMonth(now.getMonth() + 1);
+        }
+        const newEndDate = now.toISOString();
+
+        // 3. Update the facility subscription
+        const { error } = await supabase
+            .from('facilities')
+            .update({
+                subscription_status: 'active',
+                plan_id: planId,
+                subscription_end: newEndDate
+            })
+            .eq('id', facilityId);
+
+        if (error) throw error;
+
+        // 4. Log the payment to the ledger
+        const totalAmount = plan.price;
+        const paidAmount = amountPaid ?? totalAmount; // if not specified, assume full payment
+        const paymentStatus = paidAmount >= totalAmount ? 'paid' : paidAmount > 0 ? 'partial' : 'pending';
+
+        const { error: paymentError } = await supabase
+            .from('platform_payments')
+            .insert({
+                facility_id: facilityId,
+                plan_id: planId,
+                total_amount: totalAmount,
+                amount_paid: paidAmount,
+                currency: 'NRS',
+                status: paymentStatus,
+                notes: notes || null
+            });
+
+        if (paymentError) console.error("Payment log error (non-fatal):", paymentError.message);
+
+        return { success: true, newEndDate };
+    } catch (error: any) {
+        console.error("Renew Facility Subscription Error:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function logManualPayment(
+    facilityId: string,
+    totalAmount: number,
+    amountPaid: number,
+    planId?: string,
+    notes?: string
+) {
+    try {
+        const paymentStatus = amountPaid >= totalAmount ? 'paid' : amountPaid > 0 ? 'partial' : 'pending';
+
+        const { error } = await supabase
+            .from('platform_payments')
+            .insert({
+                facility_id: facilityId,
+                plan_id: planId || null,
+                total_amount: totalAmount,
+                amount_paid: amountPaid,
+                currency: 'NRS',
+                status: paymentStatus,
+                notes: notes || null
+            });
+
+        if (error) throw error;
+        return { success: true };
+    } catch (error: any) {
+        console.error("Log Manual Payment Error:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function fetchPlatformLedger() {
+    try {
+        const { data, error } = await supabase
+            .from('platform_payments')
+            .select(`
+                id,
+                total_amount,
+                amount_paid,
+                amount_due,
+                currency,
+                status,
+                notes,
+                created_at,
+                facilities:facility_id(name, id),
+                subscription_plans:plan_id(name, price, interval)
+            `)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Compute summary stats
+        const totalCollected = data?.reduce((sum, p) => sum + (p.amount_paid ?? 0), 0) ?? 0;
+        const totalOutstanding = data?.reduce((sum, p) => sum + (p.amount_due ?? 0), 0) ?? 0;
+
+        return { success: true, data: data || [], totalCollected, totalOutstanding };
+    } catch (error: any) {
+        console.error("Fetch Platform Ledger Error:", error);
+        return { success: false, error: error.message, data: [], totalCollected: 0, totalOutstanding: 0 };
+    }
+}
+
+
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { auth } from "@/auth";
+
+export async function impersonateFacility(facilityId: string) {
+    const session = await auth();
+    if (!session?.user) return { success: false, error: "Unauthorized" };
+
+    const isAdminEmail = session.user.email === 'far00queapril17@gmail.com';
+    const isSuperAdmin = isAdminEmail || session.user.id === '48c52067-23b6-412c-a17b-1e7de8bc4f98';
+    
+    if (!isSuperAdmin) {
+        return { success: false, error: "Only Superadmins can impersonate." };
+    }
+
+    const cookieStore = await cookies();
+    cookieStore.set("impersonated_facility_id", facilityId, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+    });
+
+    // We can't redirect directly inside a try/catch if we want Next.js redirect to work, 
+    // but redirect throws a special error. So we return success and redirect on the client,
+    // OR we can just return success and let the client redirect.
+    return { success: true };
+}
+
+export async function stopImpersonation() {
+    const cookieStore = await cookies();
+    cookieStore.delete("impersonated_facility_id");
+    redirect("/admin");
 }
 
 export async function checkSystemHealth() {

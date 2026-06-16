@@ -7,6 +7,15 @@ export async function getFacilityId() {
   if (!session?.user) return null;
 
   const cookieStore = await cookies();
+  
+  const isAdminEmail = session.user.email === 'far00queapril17@gmail.com';
+  const isSuperAdmin = isAdminEmail || session.user.id === '48c52067-23b6-412c-a17b-1e7de8bc4f98';
+  
+  if (isSuperAdmin) {
+    const impersonatedId = cookieStore.get("impersonated_facility_id")?.value;
+    if (impersonatedId) return impersonatedId;
+  }
+
   const facilityId = cookieStore.get("active_facility_id")?.value;
 
   if (facilityId) return facilityId;

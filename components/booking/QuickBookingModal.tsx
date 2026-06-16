@@ -118,6 +118,16 @@ export function QuickBookingModal({
     }
   }, [isOpen, initialHour, initialMinute, initialResourceId, resources]);
 
+  // Auto-close modal after 5 seconds of success
+  useEffect(() => {
+    if (isSuccess && createdBooking) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [isSuccess, createdBooking, onClose]);
+
   // ─── Initial Load (Top 10 Customers Only) ───
   useEffect(() => {
     if (isOpen) {

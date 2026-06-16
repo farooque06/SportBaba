@@ -43,10 +43,13 @@ export default function ResourcesPage() {
   ]
 
   useEffect(() => {
-    if (session?.user && facilityId) {
+    if (facilityId) {
         loadResources()
+    } else {
+        const timer = setTimeout(() => setLoading(false), 2000)
+        return () => clearTimeout(timer)
     }
-  }, [session, facilityId])
+  }, [facilityId])
 
   const showToast = (message: string, type: ToastType = "success") => {
     setToast({ message, type })
@@ -212,7 +215,7 @@ export default function ResourcesPage() {
                 <div className="h-14 w-14 bg-primary/5 rounded-2xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                   <LandPlot className="h-6 w-6" />
                 </div>
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                   <button 
                     onClick={() => handleEdit(resource)}
                     className="p-2.5 rounded-xl bg-primary/5 border border-primary/10 hover:bg-primary/10 transition-colors text-primary"
@@ -254,8 +257,8 @@ export default function ResourcesPage() {
       {/* Add Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[500] flex items-end md:items-center justify-center bg-black/60 backdrop-blur-md p-0 md:p-4 animate-in fade-in duration-300">
-           <Card className="bg-card w-full md:max-w-lg rounded-t-[32px] md:rounded-[40px] border border-border/50 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 md:zoom-in duration-500">
-              <div className="relative h-24 md:h-32 bg-primary/10 flex items-center px-6 md:px-10 border-b border-border/20">
+           <Card className="bg-card w-full md:max-w-lg max-h-[90vh] flex flex-col rounded-t-[32px] md:rounded-[40px] border border-border/50 shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 md:zoom-in duration-500">
+              <div className="shrink-0 relative h-24 md:h-32 bg-primary/10 flex items-center px-6 md:px-10 border-b border-border/20">
                  <div className="absolute top-0 right-0 p-6 opacity-10">
                     <LandPlot className="h-32 w-32 -rotate-12" />
                  </div>
@@ -267,7 +270,7 @@ export default function ResourcesPage() {
                  </div>
               </div>
 
-              <form onSubmit={handleSave} className="p-6 md:p-10 space-y-5 md:space-y-6">
+              <form onSubmit={handleSave} className="p-6 md:p-10 space-y-5 md:space-y-6 overflow-y-auto">
                  <div className="space-y-2">
                     <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Area Name (e.g. Futsal Court A)</label>
                     <input 

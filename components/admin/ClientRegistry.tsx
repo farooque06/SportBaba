@@ -22,6 +22,7 @@ type FacilityProps = {
   email?: string;
   address?: string;
   status?: string;
+  subscription_end?: string;
   subscription_plans?: { name: string; price: number };
 };
 
@@ -37,6 +38,7 @@ export function ClientRegistry({ facilities: initialFacilities, plans }: { facil
   const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean, facilityId: string | null }>({ isOpen: false, facilityId: null });
   const [resetModal, setResetModal] = useState<{ isOpen: boolean, facilityId: string | null, facilityName: string | null }>({ isOpen: false, facilityId: null, facilityName: null });
   const [passwordModal, setPasswordModal] = useState<{ isOpen: boolean, password: string, email: string, facilityName: string }>({ isOpen: false, password: "", email: "", facilityName: "" });
+  const [renewModal, setRenewModal] = useState<{ isOpen: boolean, facilityId: string | null, facilityName: string | null, planId: string, planPrice: number, amountPaid: string, notes: string }>({ isOpen: false, facilityId: null, facilityName: null, planId: "", planPrice: 0, amountPaid: "", notes: "" });
 
   const showToast = (message: string, type: ToastType = "success") => {
     setToast({ message, type });
@@ -126,6 +128,43 @@ export function ClientRegistry({ facilities: initialFacilities, plans }: { facil
   const copyPasswordToClipboard = () => {
     navigator.clipboard.writeText(passwordModal.password);
     showToast("Password copied to clipboard!", "success");
+  }
+
+  const handleRenew = async () => {
+    if (!renewModal.facilityId || !renewModal.planId) {
+       showToast("Please select a plan.", "error");
+       return;
+    }
+    setLoading(true);
+    const { renewFacilitySubscription } = await import("@/lib/actions/admin");
+    const amountPaidNum = renewModal.amountPaid ? parseFloat(renewModal.amountPaid) : undefined;
+    const result = await renewFacilitySubscription(
+      renewModal.facilityId, 
+      renewModal.planId,
+      amountPaidNum,
+      renewModal.notes || undefined
+    );
+    
+    if (result.success) {
+      setFacilities(facilities.map(f => {
+        if (f.id === renewModal.facilityId) {
+          const selectedPlan = plans.find(p => p.id === renewModal.planId);
+          return {
+            ...f,
+            subscription_status: 'active',
+            plan_id: renewModal.planId,
+            subscription_end: result.newEndDate,
+            subscription_plans: selectedPlan ? { name: selectedPlan.name, price: selectedPlan.price } : undefined
+          };
+        }
+        return f;
+      }));
+      showToast("Subscription renewed & payment logged!");
+      setRenewModal({ isOpen: false, facilityId: null, facilityName: null, planId: "", planPrice: 0, amountPaid: "", notes: "" });
+    } else {
+      showToast(result.error || "Failed to renew subscription.", "error");
+    }
+    setLoading(false);
   }
 
   return (
@@ -276,11 +315,21 @@ export function ClientRegistry({ facilities: initialFacilities, plans }: { facil
 
                   <div className="space-y-1">
                     <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Subscription</p>
-                    <div className="flex items-center gap-2">
-                      <div className={cn("h-1.5 w-1.5 rounded-full", fac.subscription_status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500')} />
-                      <span className={cn("text-[10px] font-black uppercase italic tracking-widest", fac.subscription_status === 'active' ? 'text-emerald-500' : 'text-red-500')}>
-                        {fac.subscription_status}
-                      </span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <div className={cn("h-1.5 w-1.5 rounded-full", fac.subscription_status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500')} />
+                        <span className={cn("text-[10px] font-black uppercase italic tracking-widest", fac.subscription_status === 'active' ? 'text-emerald-500' : 'text-red-500')}>
+                          {fac.subscription_status}
+                        </span>
+                      </div>
+                      {fac.subscription_end && (
+                        <span className={cn(
+                          "text-[8px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border",
+                          new Date(fac.subscription_end) < new Date() ? "bg-red-500/10 text-red-500 border-red-500/20" : "bg-muted text-muted-foreground border-border/50"
+                        )}>
+                          {new Date(fac.subscription_end) < new Date() ? "EXPIRED" : `Valid: ${new Date(fac.subscription_end).toLocaleDateString()}`}
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -294,8 +343,34 @@ export function ClientRegistry({ facilities: initialFacilities, plans }: { facil
                          Approve Account
                        </button>
                     )}
-                    <button className="h-10 w-10 rounded-xl bg-muted/50 border border-border/50 flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white hover:border-primary transition-all">
-                      <CreditCard className="h-4 w-4" />
+                    <button 
+                      onClick={async () => {
+                        setLoading(true);
+                        const { impersonateFacility } = await import("@/lib/actions/admin");
+                        const result = await impersonateFacility(fac.id);
+                        if (!result.success) {
+                           showToast(result.error || "Failed to impersonate", "error");
+                           setLoading(false);
+                        } else {
+                           // Let the redirect happen
+                           window.location.href = "/dashboard";
+                        }
+                      }}
+                      disabled={loading}
+                      className="h-10 w-10 rounded-xl bg-muted/50 border border-border/50 flex items-center justify-center text-primary hover:bg-primary hover:text-white hover:border-primary transition-all"
+                      title="Login As (Impersonate)"
+                    >
+                      <Globe className="h-4 w-4" />
+                    </button>
+                    <button 
+                      onClick={() => {
+                        const defaultPlan = plans.find(p => p.id === (fac.plan_id || plans[0]?.id));
+                        setRenewModal({ isOpen: true, facilityId: fac.id, facilityName: fac.name, planId: fac.plan_id || plans[0]?.id || "", planPrice: defaultPlan?.price ?? 0, amountPaid: String(defaultPlan?.price ?? ""), notes: "" });
+                      }}
+                      className="h-10 w-10 rounded-xl bg-muted/50 border border-border/50 flex items-center justify-center text-emerald-500 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all"
+                      title="Renew Subscription"
+                    >
+                      <ShieldCheck className="h-4 w-4" />
                     </button>
                     <button 
                       onClick={() => setResetModal({ isOpen: true, facilityId: fac.id, facilityName: fac.name })}
@@ -399,6 +474,108 @@ export function ClientRegistry({ facilities: initialFacilities, plans }: { facil
                 className="flex-1 h-11 bg-muted border border-border/50 text-muted-foreground font-bold uppercase tracking-widest text-[9px] rounded-xl hover:bg-muted/80 transition-all active:scale-[0.98]"
               >
                 Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {renewModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border rounded-3xl shadow-2xl max-w-lg w-full animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-border/50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-black italic uppercase text-foreground">Renew Subscription</h3>
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Payment will be logged to ledger</p>
+                </div>
+                <button
+                  onClick={() => setRenewModal({ isOpen: false, facilityId: null, facilityName: null, planId: "", planPrice: 0, amountPaid: "", notes: "" })}
+                  className="h-8 w-8 rounded-full bg-muted/50 hover:bg-red-500/10 hover:text-red-500 flex items-center justify-center transition-all"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="space-y-2">
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Facility</p>
+                <p className="text-sm font-bold text-foreground">{renewModal.facilityName}</p>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Select Plan</p>
+                <select 
+                  value={renewModal.planId} 
+                  onChange={(e) => {
+                    const selected = plans.find(p => p.id === e.target.value);
+                    setRenewModal({ ...renewModal, planId: e.target.value, planPrice: selected?.price ?? 0, amountPaid: String(selected?.price ?? "") });
+                  }}
+                  className="w-full h-12 bg-muted/50 border border-border/50 px-4 rounded-xl text-sm font-bold outline-none focus:ring-2 ring-primary/20 uppercase tracking-wider transition-all"
+                >
+                  <option value="" disabled>Select a plan</option>
+                  {plans.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} — {p.price} NRS / {p.interval}</option>
+                  ))}
+                </select>
+              </div>
+
+              {renewModal.planId && (
+                <div className="grid grid-cols-2 gap-4 pt-2 border-t border-border/30">
+                  <div className="space-y-2">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Plan Price (NRS)</p>
+                    <div className="h-12 bg-muted/30 border border-border/30 px-4 rounded-xl text-sm font-bold flex items-center text-muted-foreground">
+                      {renewModal.planPrice.toLocaleString()} NRS
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Amount Paid Now (NRS)</p>
+                    <input
+                      type="number"
+                      placeholder={String(renewModal.planPrice)}
+                      value={renewModal.amountPaid}
+                      onChange={(e) => setRenewModal({ ...renewModal, amountPaid: e.target.value })}
+                      className="w-full h-12 bg-muted/50 border border-border/50 px-4 rounded-xl text-sm font-bold outline-none focus:ring-2 ring-primary/20 transition-all"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {renewModal.planId && renewModal.amountPaid && parseFloat(renewModal.amountPaid) < renewModal.planPrice && (
+                <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex items-center gap-2">
+                  <span className="text-amber-500 font-black text-sm">⚠</span>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-amber-600">
+                    Partial payment — Due: {(renewModal.planPrice - parseFloat(renewModal.amountPaid)).toLocaleString()} NRS
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Notes (Optional)</p>
+                <input
+                  type="text"
+                  placeholder='e.g. "Cash partial — rest next week"'
+                  value={renewModal.notes}
+                  onChange={(e) => setRenewModal({ ...renewModal, notes: e.target.value })}
+                  className="w-full h-12 bg-muted/50 border border-border/50 px-4 rounded-xl text-sm font-bold outline-none focus:ring-2 ring-primary/20 transition-all placeholder:italic placeholder:text-muted-foreground/40"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 p-6 border-t border-border/50 bg-muted/20">
+              <button
+                onClick={handleRenew}
+                disabled={loading || !renewModal.planId}
+                className="flex-1 h-11 bg-primary text-white font-bold uppercase tracking-widest text-[9px] rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 active:scale-[0.98] disabled:opacity-50"
+              >
+                {loading ? "Processing..." : "Confirm & Log Payment"}
+              </button>
+              <button
+                onClick={() => setRenewModal({ isOpen: false, facilityId: null, facilityName: null, planId: "", planPrice: 0, amountPaid: "", notes: "" })}
+                className="flex-1 h-11 bg-muted border border-border/50 text-muted-foreground font-bold uppercase tracking-widest text-[9px] rounded-xl hover:bg-muted/80 transition-all active:scale-[0.98]"
+              >
+                Cancel
               </button>
             </div>
           </div>
