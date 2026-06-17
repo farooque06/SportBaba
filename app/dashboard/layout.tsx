@@ -50,7 +50,69 @@ export default async function DashboardLayout({
     }
   }
 
-  if (!facilityId) redirect("/onboarding");
+  if (!facilityId) {
+    // User has no membership — could be a new staff member waiting to be added,
+    // or a new owner who needs to create a facility. Show a choice screen.
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-8 font-sans overflow-hidden">
+        <div className="relative max-w-lg w-full text-center space-y-10 animate-in fade-in zoom-in duration-1000">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-primary/10 rounded-full blur-[100px] animate-pulse -z-10" />
+
+          <div className="space-y-6">
+            <div className="h-28 w-28 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent rounded-[32px] flex items-center justify-center mx-auto border border-primary/20 shadow-2xl shadow-primary/10 rotate-3 hover:rotate-0 transition-transform duration-700">
+              <AlertCircle className="h-12 w-12 text-primary animate-pulse" />
+            </div>
+            
+            <div className="space-y-3">
+              <h1 className="text-5xl md:text-6xl font-black tracking-tighter italic uppercase text-foreground leading-[0.8]">
+                Welcome
+              </h1>
+              <p className="text-primary font-black text-[10px] tracking-[0.3em] uppercase pt-2">
+                {session.user.name || session.user.email}
+              </p>
+            </div>
+          </div>
+
+          <div className="glass-card p-8 rounded-[40px] border-primary/10 bg-card/60 backdrop-blur-xl relative overflow-hidden space-y-6">
+            <p className="text-muted-foreground font-medium text-sm leading-relaxed">
+              You're not currently assigned to any facility hub. If your manager or facility owner invited you, they need to add your email from their Members page. Once added, just refresh this page.
+            </p>
+            
+            <div className="space-y-3 pt-4 border-t border-border/50">
+              <a
+                href="/onboarding"
+                className="block w-full py-4 px-6 rounded-2xl bg-primary text-primary-foreground text-sm font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-primary/20"
+              >
+                Create My Own Facility Hub
+              </a>
+              <button
+                onClick={() => window.location.reload()}
+                className="block w-full py-4 px-6 rounded-2xl bg-muted text-foreground text-sm font-bold uppercase tracking-widest hover:bg-muted/80 transition-all"
+              >
+                Refresh — I've Been Added
+              </button>
+            </div>
+
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 pt-2">
+              Signed in as {email}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Fetch the user's membership role for this specific facility
+  let membershipRole = isSuperAdmin ? 'owner' : 'user';
+  if (!isSuperAdmin) {
+    const { data: membershipData } = await supabase
+      .from('memberships')
+      .select('role')
+      .eq('profile_id', userId)
+      .eq('facility_id', facilityId)
+      .maybeSingle();
+    membershipRole = membershipData?.role || 'staff';
+  }
 
   // 2. Fetch facility status
   const { data: facility } = await supabase
@@ -156,6 +218,7 @@ export default async function DashboardLayout({
             trialEnd={facility?.trial_end} 
             user={{
               ...session.user,
+              role: membershipRole,
               facilityName: (facility as any)?.name || "Facility Hub"
             }}
           />
@@ -165,7 +228,7 @@ export default async function DashboardLayout({
         
         <main className="flex-1 md:overflow-y-auto w-full max-w-[1600px] mx-auto pt-[72px] md:pt-6 lg:pt-8 px-3 md:px-6 lg:px-8 pb-36 md:pb-12 bg-muted/10 print:p-0 print:m-0 print:bg-white print:overflow-visible">
           <div className="print:hidden">
-            <MobileNav />
+            <MobileNav membershipRole={membershipRole} />
           </div>
           {children}
         </main>

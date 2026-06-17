@@ -33,7 +33,7 @@ const secondaryItems = [
   { icon: Settings, label: "Settings", href: "/dashboard/settings", allowedRoles: MANAGER_UP },
 ]
 
-export function MobileNav() {
+export function MobileNav({ membershipRole }: { membershipRole?: string }) {
   const pathname = usePathname()
   const { data: session } = useSession()
   const { sport, setSport, facilityType } = useSport()
@@ -91,7 +91,7 @@ export function MobileNav() {
       {/* ─── Bottom Tab Bar ─── */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-background border-t border-border safe-area-bottom">
         <div className="flex items-center justify-around h-16 px-2">
-          {primaryTabs.filter(t => t.allowedRoles.includes((session?.user as any)?.role || 'staff')).map((tab) => {
+          {primaryTabs.filter(t => t.allowedRoles.includes(membershipRole || (session?.user as any)?.role || 'staff')).map((tab) => {
             const active = isActive(tab.href)
             return (
               <Link
@@ -156,7 +156,7 @@ export function MobileNav() {
 
             {/* Secondary Nav Items */}
             <div className="px-4 pb-2 space-y-1">
-                {secondaryItems.filter(t => t.allowedRoles.includes((session?.user as any)?.role || 'staff')).map((item) => {
+                {secondaryItems.filter(t => t.allowedRoles.includes(membershipRole || (session?.user as any)?.role || 'staff')).map((item) => {
                   const active = isActive(item.href)
                   return (
                     <Link
