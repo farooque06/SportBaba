@@ -8,42 +8,14 @@ import { InventoryAlerts } from "@/components/dashboard/InventoryAlerts";
 import { DashboardStats } from "@/components/dashboard/DashboardStats";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { getFacilityId } from "@/lib/get-facility-id";
 
 export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const cookieStore = await cookies();
-  let facilityId = cookieStore.get("active_facility_id")?.value;
-  const isSuperAdmin = session.user.email === 'far00queapril17@gmail.com';
-
-  // If we have a cookie, we must verify the user actually belongs to this facility
-  // (Prevents new users from seeing old profiles if the cookie wasn't cleared)
-  if (facilityId && !isSuperAdmin) {
-    const { data: verifyMembership } = await supabase
-      .from('memberships')
-      .select('id')
-      .eq('profile_id', session.user.id)
-      .eq('facility_id', facilityId)
-      .maybeSingle();
-      
-    if (!verifyMembership) {
-      facilityId = undefined; // Invalid cookie for this user
-    }
-  }
-
-  // If no valid facilityId from cookie, fetch their first membership
-  if (!facilityId) {
-    const { data: membership } = await supabase
-      .from('memberships')
-      .select('facility_id')
-      .eq('profile_id', session.user.id)
-      .limit(1)
-      .maybeSingle();
-    
-    facilityId = membership?.facility_id;
-  }
+  const facilityId = await getFacilityId();
+  const isSuperAdmin = session.user.email === 'far00queapril17@gmail.com' || session.user.id === '48c52067-23b6-412c-a17b-1e7de8bc4f98';
 
   if (!facilityId && !isSuperAdmin) redirect("/onboarding");
 
@@ -57,7 +29,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ─── Quick Stats (Lazy Loaded via SWR) ─── */}
-      <DashboardStats facilityId={facilityId as string} />
+      {facilityId && <DashboardStats facilityId={facilityId as string} />}
 
       {/* ─── Notifications & Action Center (Non-Blocking) ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8 px-1 md:px-2">
@@ -81,7 +53,7 @@ export default async function DashboardPage() {
           </div>
         </div>
         <div className="glass-card rounded-2xl md:rounded-[48px] p-3 md:p-6 shadow-2xl overflow-hidden relative border border-border/20">
-          <BookingGrid initialResources={resources} facilityId={facilityId as string} />
+          {facilityId && <BookingGrid initialResources={resources} facilityId={facilityId as string} />}
         </div>
       </div>
     </div>

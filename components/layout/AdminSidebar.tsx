@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils"
 
 const adminMenuItems = [
   { icon: Globe, label: "Global Hub", href: "/admin" },
+  { icon: Activity, label: "Platform Analytics", href: "/admin/analytics" },
   { icon: Users, label: "Client Registry", href: "/admin/clients" },
   { icon: BarChart3, label: "Subscriptions", href: "/admin/subscriptions" },
   { icon: BookOpen, label: "Financial Ledger", href: "/admin/ledger" },

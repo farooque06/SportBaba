@@ -11,17 +11,15 @@ export function GlobalRefreshButton() {
 
   const handleRefresh = () => {
     setIsRefreshing(true);
-    router.refresh();
-    setTimeout(() => {
-      setIsRefreshing(false);
-    }, 1000); // Spin for at least 1s for visual feedback
+    // Hard refresh the current page
+    window.location.reload();
   };
 
   return (
     <button
       onClick={handleRefresh}
       disabled={isRefreshing}
-      className="fixed top-4 right-4 md:top-6 md:right-8 z-50 p-3 bg-background/80 backdrop-blur-md border border-border/50 rounded-full shadow-lg hover:shadow-primary/20 hover:border-primary/50 transition-all group active:scale-95 disabled:opacity-50"
+      className="fixed bottom-6 right-6 md:bottom-auto md:top-6 md:right-8 z-50 p-3 bg-background/90 backdrop-blur-md border border-border/50 rounded-full shadow-xl shadow-black/10 hover:shadow-primary/20 hover:border-primary/50 transition-all group active:scale-95 disabled:opacity-50"
       title="Refresh Current Page"
     >
       <RefreshCcw

@@ -534,3 +534,65 @@ export async function resetClientPassword(facilityId: string) {
         };
     }
 }
+
+export async function fetchPlatformAnalytics() {
+    try {
+        // 1. Fetch Hub Statistics
+        const { data: facilities, error: facError } = await supabase
+            .from('facilities')
+            .select('id, name, status, subscription_status');
+            
+        if (facError) throw facError;
+
+        const totalHubs = facilities.length;
+        const activeHubs = facilities.filter(f => f.status === 'active').length;
+        const pendingHubs = facilities.filter(f => f.status === 'pending').length;
+        const suspendedHubs = facilities.filter(f => f.status === 'suspended').length;
+
+        // 2. Fetch Total Revenue from Ledger
+        const { data: payments, error: payError } = await supabase
+            .from('platform_payments')
+            .select('amount_paid, facility_id, facilities(name)');
+
+        if (payError) throw payError;
+
+        const totalRevenue = payments.reduce((sum, p) => sum + (Number(p.amount_paid) || 0), 0);
+
+        // Calculate revenue per hub for Top 5
+        const revenueByHub: Record<string, { name: string; total: number }> = {};
+        payments.forEach(p => {
+            if (!p.facility_id) return;
+            if (!revenueByHub[p.facility_id]) {
+                revenueByHub[p.facility_id] = { name: (p.facilities as any)?.name || 'Unknown', total: 0 };
+            }
+            revenueByHub[p.facility_id].total += Number(p.amount_paid) || 0;
+        });
+
+        const topHubs = Object.values(revenueByHub)
+            .sort((a, b) => b.total - a.total)
+            .slice(0, 5);
+
+        // 3. Fetch Total Bookings Count
+        const { count: totalBookings, error: bookError } = await supabase
+            .from('bookings')
+            .select('*', { count: 'exact', head: true });
+
+        if (bookError) throw bookError;
+
+        return {
+            success: true,
+            data: {
+                totalHubs,
+                activeHubs,
+                pendingHubs,
+                suspendedHubs,
+                totalRevenue,
+                totalBookings: totalBookings || 0,
+                topHubs
+            }
+        };
+    } catch (error: any) {
+        console.error('Fetch Platform Analytics error:', error);
+        return { success: false, error: error.message };
+    }
+}

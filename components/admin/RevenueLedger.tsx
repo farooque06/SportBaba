@@ -58,7 +58,7 @@ export function RevenueLedger({ payments: initialPayments, totalCollected, total
     const { logManualPayment } = await import("@/lib/actions/admin");
     const result = await logManualPayment(
       topUpModal.facilityId!,
-      topUpModal.remaining + topAmt, // log it as a new entry for the remaining
+      0, // totalAmount = 0 because it's purely a payment credit, not a new liability
       topAmt,
       undefined,
       topUpModal.notes || "Top-up payment"
