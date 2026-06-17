@@ -6,7 +6,7 @@ import Cookies from "js-cookie"
 import { fetchFacility, updateFacilitySettings } from "@/lib/actions/facility"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
-import { Settings, Palette, Clock, Globe, Bell, Shield, Loader2, BellRing, Timer, TimerOff } from "lucide-react"
+import { Settings, Palette, Clock, Globe, Bell, Shield, Loader2, BellRing, Timer, TimerOff, Lock } from "lucide-react"
 
 export default function SettingsPage() {
   const { data: session } = useSession()
@@ -87,6 +87,25 @@ export default function SettingsPage() {
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
      </div>
   )
+
+  const role = (session?.user as any)?.role || 'staff'
+  if (role !== 'owner' && role !== 'manager' && role !== 'superadmin') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8 space-y-6 mesh-gradient rounded-[48px] border border-border/20">
+        <div className="h-20 w-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-2 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+          <Lock className="h-10 w-10" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-3xl font-black uppercase italic tracking-tighter">Access Restricted</h2>
+          <p className="text-muted-foreground text-xs max-w-xs mx-auto font-bold uppercase tracking-widest opacity-60">Facility settings are only accessible by owners and managers.</p>
+        </div>
+        <Button onClick={() => window.location.href = '/dashboard'} className="mt-4 px-8 py-4 bg-primary text-primary-foreground rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:scale-105 active:scale-95 transition-all">
+          Return to Dashboard
+        </Button>
+      </div>
+    )
+  }
+
 
   const reminderToggles = [
     {
@@ -272,6 +291,27 @@ export default function SettingsPage() {
           <p className="text-[9px] font-medium text-muted-foreground/50 italic px-2 relative z-10">
             Toggle which booking reminders are sent automatically. Changes apply to all future bookings for this facility.
           </p>
+        </Card>
+
+        {/* Account Security */}
+        <Card className="p-6 md:p-10 bg-card border-border rounded-[40px] space-y-8 shadow-xl group">
+          <div className="flex items-center gap-4">
+            <div className="p-4 rounded-3xl bg-primary/10 text-primary border border-primary/20">
+              <Shield className="h-6 w-6" />
+            </div>
+            <h2 className="text-2xl font-black tracking-tighter uppercase italic">Security</h2>
+          </div>
+          <div className="space-y-4">
+            <a href="/dashboard/settings/security" className="flex items-center justify-between p-6 rounded-2xl bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors cursor-pointer group/link">
+              <div>
+                <p className="text-xs font-black uppercase tracking-tight mb-1">Two-Factor Authentication</p>
+                <p className="text-[10px] text-muted-foreground font-medium">Protect your account with Google Authenticator.</p>
+              </div>
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover/link:translate-x-1 transition-transform">
+                →
+              </div>
+            </a>
+          </div>
         </Card>
 
         {/* Danger Zone */}

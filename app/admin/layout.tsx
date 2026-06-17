@@ -14,7 +14,7 @@ export default async function AdminLayout({
   }
 
   const userRole = (session.user as any).role;
-  const isSuperAdmin = userRole === 'superadmin' || session.user.email === 'far00queapril17@gmail.com';
+  const isSuperAdmin = userRole === 'superadmin' || session.user.email?.toLowerCase() === 'far00queapril17@gmail.com';
   
   if (!isSuperAdmin) {
     redirect("/dashboard");

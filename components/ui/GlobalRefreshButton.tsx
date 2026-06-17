@@ -19,7 +19,7 @@ export function GlobalRefreshButton() {
     <button
       onClick={handleRefresh}
       disabled={isRefreshing}
-      className="fixed bottom-6 right-6 md:bottom-auto md:top-6 md:right-8 z-50 p-3 bg-background/90 backdrop-blur-md border border-border/50 rounded-full shadow-xl shadow-black/10 hover:shadow-primary/20 hover:border-primary/50 transition-all group active:scale-95 disabled:opacity-50"
+      className="fixed bottom-24 right-6 md:bottom-auto md:top-6 md:right-8 z-50 p-3 bg-background/90 backdrop-blur-md border border-border/50 rounded-full shadow-xl shadow-black/10 hover:shadow-primary/20 hover:border-primary/50 transition-all group active:scale-95 disabled:opacity-50"
       title="Refresh Current Page"
     >
       <RefreshCcw

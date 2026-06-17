@@ -23,9 +23,9 @@ export default async function DashboardLayout({
   const email = session.user.email;
 
   // 0. Superadmin Redirect
-  const isAdminEmail = (email === 'far00queapril17@gmail.com');
+  const isAdminEmail = email?.toLowerCase() === 'far00queapril17@gmail.com';
   // Add other superadmin IDs here if needed
-  const isSuperAdmin = isAdminEmail || userId === '48c52067-23b6-412c-a17b-1e7de8bc4f98';
+  const isSuperAdmin = isAdminEmail || (session.user as any).role === 'superadmin' || userId === '48c52067-23b6-412c-a17b-1e7de8bc4f98';
 
   const cookieStore = await cookies();
   const impersonatedFacilityId = cookieStore.get("impersonated_facility_id")?.value;

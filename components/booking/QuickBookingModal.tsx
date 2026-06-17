@@ -118,15 +118,28 @@ export function QuickBookingModal({
     }
   }, [isOpen, initialHour, initialMinute, initialResourceId, resources]);
 
-  // Auto-close modal after 5 seconds of success
+  const resetForm = () => {
+    setIsSuccess(false);
+    setCreatedBooking(null);
+    setGuestName('');
+    setGuestPhone('');
+    setGuestEmail('');
+    setSelectedCustomerId(null);
+    setPaymentStatus('unpaid');
+    setPartialAmount('');
+    setPaymentMethod('cash');
+    setUseCredit(false);
+  };
+
+  // Auto-return to new booking form after 3 seconds of success
   useEffect(() => {
     if (isSuccess && createdBooking) {
       const timer = setTimeout(() => {
-        onClose();
-      }, 5000);
+        resetForm();
+      }, 3000);
       return () => clearTimeout(timer);
     }
-  }, [isSuccess, createdBooking, onClose]);
+  }, [isSuccess, createdBooking]);
 
   // ─── Initial Load (Top 10 Customers Only) ───
   useEffect(() => {
@@ -355,9 +368,14 @@ export function QuickBookingModal({
                   Notify via WhatsApp
                 </a>
               )}
-              <Button variant="ghost" className="w-full h-11 rounded-xl font-black uppercase tracking-widest text-[10px]" onClick={onClose}>
-                Done
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="ghost" className="flex-1 h-11 rounded-xl font-black uppercase tracking-widest text-[10px]" onClick={onClose}>
+                  Close
+                </Button>
+                <Button variant="primary" className="flex-1 h-11 rounded-xl font-black uppercase tracking-widest text-[10px]" onClick={resetForm}>
+                  Book Another
+                </Button>
+              </div>
             </div>
           </div>
         </div>

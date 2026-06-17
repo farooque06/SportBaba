@@ -157,7 +157,7 @@ export default function SecurityPage() {
               <p className="text-sm text-muted-foreground font-medium mt-0.5">
                 {is2FAEnabled 
                   ? "Your account is protected with two-factor authentication"
-                  : "Add an extra layer of security to your superadmin account"
+                  : "Add an extra layer of security to your account"
                 }
               </p>
             </div>

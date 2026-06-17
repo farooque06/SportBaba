@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/Card"
-import { TrendingUp, Banknote, Users, Calendar, Activity, X } from "lucide-react"
+import { TrendingUp, Banknote, Users, Calendar, Activity, X, Lock } from "lucide-react"
 import { fetchAnalyticsData, getDeepAnalytics } from "@/lib/actions/analytics";
+import { getCurrentUserRole } from "@/lib/actions/auth";
 import { formatCurrency } from "@/lib/utils";
 import { RevenueGauge } from "@/components/dashboard/RevenueGauge";
 import { BookingTrends } from "@/components/dashboard/BookingTrends";
@@ -11,6 +12,24 @@ import { Star } from "lucide-react";
 export default async function AnalyticsPage() {
   const facilityId = await getFacilityId();
   if (!facilityId) return null;
+
+  const role = await getCurrentUserRole(facilityId)
+  if (role !== 'owner' && role !== 'manager' && role !== 'superadmin') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8 space-y-6 mesh-gradient rounded-[48px] border border-border/20">
+        <div className="h-20 w-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-2 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
+          <Lock className="h-10 w-10" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-3xl font-black uppercase italic tracking-tighter">Access Restricted</h2>
+          <p className="text-muted-foreground text-xs max-w-xs mx-auto font-bold uppercase tracking-widest opacity-60">Analytics are only accessible by facility owners and managers.</p>
+        </div>
+        <a href="/dashboard" className="mt-4 px-8 py-4 bg-primary text-primary-foreground rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl hover:scale-105 active:scale-95 transition-all outline-none">
+          Return to Dashboard
+        </a>
+      </div>
+    )
+  }
 
   const [data, deepData] = await Promise.all([
     fetchAnalyticsData(facilityId),

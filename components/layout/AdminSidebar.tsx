@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { 
   Globe, LayoutDashboard, Users, ShieldAlert, 
   Settings, LogOut, Activity, BarChart3,
-  ChevronLeft, ChevronRight, Package, BookOpen
+  ChevronLeft, ChevronRight, Package, BookOpen, Lock
 } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -20,6 +20,7 @@ const adminMenuItems = [
   { icon: BookOpen, label: "Financial Ledger", href: "/admin/ledger" },
   { icon: ShieldAlert, label: "System Health", href: "/admin/health" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
+  { icon: Lock, label: "Security", href: "/admin/security" },
 ]
 
 export function AdminSidebar() {

@@ -44,7 +44,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             email: user.email,
             name: user.full_name,
             image: user.avatar_url,
-            facilityName: facilityName
+            facilityName: facilityName,
+            role: user.role
           }
         } catch (err) {
           console.error("[AUTH] authorize error:", err)

@@ -55,36 +55,33 @@ export async function registerAction(formData: FormData) {
 }
 
 export async function loginAction(formData: FormData) {
-  const email = formData.get("email") as string;
+  const email = (formData.get("email") as string).trim();
   const password = formData.get("password") as string;
 
-  const isSuperAdmin = email === 'far00queapril17@gmail.com';
+  // First validate credentials manually
+  const { data: user, error: userError } = await supabase
+    .from("profiles")
+    .select("id, password_hash, role, totp_enabled, totp_secret")
+    .eq("email", email)
+    .single();
 
-  // If superadmin, check if 2FA is enabled BEFORE signing in
-  if (isSuperAdmin) {
-    // First validate credentials manually
-    const { data: user, error: userError } = await supabase
-      .from("profiles")
-      .select("id, password_hash, totp_enabled, totp_secret")
-      .eq("email", email)
-      .single();
-
-    if (userError || !user || !user.password_hash) {
-      return { error: "Invalid email or password" };
-    }
-
-    const isValid = await bcrypt.compare(password, user.password_hash);
-    if (!isValid) {
-      return { error: "Invalid email or password" };
-    }
-
-    // If 2FA is enabled, don't sign in yet — ask for the code
-    if (user.totp_enabled && user.totp_secret) {
-      return { requires2FA: true, email };
-    }
+  if (userError || !user || !user.password_hash) {
+    return { error: "Invalid email or password" };
   }
 
-  // Normal login flow (no 2FA or non-superadmin)
+  const isValid = await bcrypt.compare(password, user.password_hash);
+  if (!isValid) {
+    return { error: "Invalid email or password" };
+  }
+
+  const isSuperAdmin = user.role === 'superadmin' || email.toLowerCase() === 'far00queapril17@gmail.com';
+
+  // Check if 2FA is enabled BEFORE signing in
+  if (user.totp_enabled && user.totp_secret) {
+    return { requires2FA: true, email };
+  }
+
+  // Normal login flow (no 2FA)
   try {
     await signIn("credentials", {
       email,
@@ -161,11 +158,6 @@ export async function setup2FA() {
   const session = await auth();
   if (!session?.user?.email) return { error: "Unauthorized" };
 
-  // Only allow superadmin
-  if (session.user.email !== 'far00queapril17@gmail.com') {
-    return { error: "Only superadmin can enable 2FA" };
-  }
-
   // Generate a new TOTP secret
   const secret = new OTPAuth.Secret({ size: 20 });
 
@@ -197,10 +189,6 @@ export async function setup2FA() {
 export async function confirm2FASetup(code: string) {
   const session = await auth();
   if (!session?.user?.email) return { error: "Unauthorized" };
-
-  if (session.user.email !== 'far00queapril17@gmail.com') {
-    return { error: "Only superadmin can enable 2FA" };
-  }
 
   // Fetch the stored secret
   const { data: user, error: fetchError } = await supabase
@@ -242,10 +230,6 @@ export async function confirm2FASetup(code: string) {
 export async function disable2FA(code: string) {
   const session = await auth();
   if (!session?.user?.email) return { error: "Unauthorized" };
-
-  if (session.user.email !== 'far00queapril17@gmail.com') {
-    return { error: "Only superadmin can manage 2FA" };
-  }
 
   // Fetch and validate
   const { data: user, error: fetchError } = await supabase

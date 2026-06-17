@@ -5,25 +5,32 @@ import { usePathname } from "next/navigation"
 import { useState } from "react"
 import { 
   LayoutDashboard, Calendar, Package, BarChart3, MoreHorizontal,
-  Trophy, Users, CreditCard, Settings, LogOut, X, ChevronUp, UserCheck
+  Trophy, Users, CreditCard, Settings, LogOut, X, ChevronUp, UserCheck,
+  Sparkles, ClipboardList
 } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { useSport } from "@/components/providers/SportProvider"
 
+const ALL_ROLES = ['superadmin', 'owner', 'manager', 'staff'];
+const MANAGER_UP = ['superadmin', 'owner', 'manager'];
+const OWNER_UP = ['superadmin', 'owner'];
+
 const primaryTabs = [
-  { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
-  { icon: Calendar, label: "Bookings", href: "/dashboard/bookings" },
-  { icon: Package, label: "Inventory", href: "/dashboard/inventory" },
-  { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics" },
+  { icon: LayoutDashboard, label: "Overview", href: "/dashboard", allowedRoles: ALL_ROLES },
+  { icon: Calendar, label: "Bookings", href: "/dashboard/bookings", allowedRoles: ALL_ROLES },
+  { icon: Package, label: "Inventory", href: "/dashboard/inventory", allowedRoles: ALL_ROLES },
+  { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics", allowedRoles: MANAGER_UP },
 ]
 
 const secondaryItems = [
-  { icon: Trophy, label: "Tournaments", href: "/dashboard/tournaments" },
-  { icon: UserCheck, label: "Customers", href: "/dashboard/customers" },
-  { icon: Users, label: "Members", href: "/dashboard/members" },
-  { icon: CreditCard, label: "Billing", href: "/dashboard/billing" },
-  { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+  { icon: Sparkles, label: "Resources", href: "/dashboard/resources", allowedRoles: ALL_ROLES },
+  { icon: Trophy, label: "Tournaments", href: "/dashboard/tournaments", allowedRoles: ALL_ROLES },
+  { icon: UserCheck, label: "Customers", href: "/dashboard/customers", allowedRoles: ALL_ROLES },
+  { icon: Users, label: "Members", href: "/dashboard/members", allowedRoles: MANAGER_UP },
+  { icon: ClipboardList, label: "Reports", href: "/dashboard/reports", allowedRoles: MANAGER_UP },
+  { icon: CreditCard, label: "Billing", href: "/dashboard/billing", allowedRoles: OWNER_UP },
+  { icon: Settings, label: "Settings", href: "/dashboard/settings", allowedRoles: MANAGER_UP },
 ]
 
 export function MobileNav() {
@@ -84,7 +91,7 @@ export function MobileNav() {
       {/* ─── Bottom Tab Bar ─── */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-[100] bg-background border-t border-border safe-area-bottom">
         <div className="flex items-center justify-around h-16 px-2">
-          {primaryTabs.map((tab) => {
+          {primaryTabs.filter(t => t.allowedRoles.includes((session?.user as any)?.role || 'staff')).map((tab) => {
             const active = isActive(tab.href)
             return (
               <Link
@@ -149,7 +156,7 @@ export function MobileNav() {
 
             {/* Secondary Nav Items */}
             <div className="px-4 pb-2 space-y-1">
-                {secondaryItems.map((item) => {
+                {secondaryItems.filter(t => t.allowedRoles.includes((session?.user as any)?.role || 'staff')).map((item) => {
                   const active = isActive(item.href)
                   return (
                     <Link

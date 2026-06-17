@@ -18,18 +18,22 @@ import { useSport } from "@/components/providers/SportProvider"
 import { cn } from "@/lib/utils"
 import { logoutAction } from "@/lib/actions/auth"
 
+const ALL_ROLES = ['superadmin', 'owner', 'manager', 'staff'];
+const MANAGER_UP = ['superadmin', 'owner', 'manager'];
+const OWNER_UP = ['superadmin', 'owner'];
+
 const menuItems = [
-  { icon: LayoutDashboard, label: "Overview", href: "/dashboard" },
-  { icon: Sparkles, label: "Resources", href: "/dashboard/resources" },
-  { icon: Calendar, label: "Bookings", href: "/dashboard/bookings" },
-  { icon: Trophy, label: "Tournaments", href: "/dashboard/tournaments" },
-  { icon: Package, label: "Inventory", href: "/dashboard/inventory" },
-  { icon: Users, label: "Members", href: "/dashboard/members" },
-  { icon: UserCheck, label: "Customers", href: "/dashboard/customers" },
-  { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics" },
-  { icon: ClipboardList, label: "Reports", href: "/dashboard/reports" },
-  { icon: CreditCard, label: "Billing", href: "/dashboard/billing" },
-  { icon: Settings, label: "Settings", href: "/dashboard/settings" },
+  { icon: LayoutDashboard, label: "Overview", href: "/dashboard", allowedRoles: ALL_ROLES },
+  { icon: Sparkles, label: "Resources", href: "/dashboard/resources", allowedRoles: ALL_ROLES },
+  { icon: Calendar, label: "Bookings", href: "/dashboard/bookings", allowedRoles: ALL_ROLES },
+  { icon: Trophy, label: "Tournaments", href: "/dashboard/tournaments", allowedRoles: ALL_ROLES },
+  { icon: Package, label: "Inventory", href: "/dashboard/inventory", allowedRoles: ALL_ROLES },
+  { icon: Users, label: "Members", href: "/dashboard/members", allowedRoles: MANAGER_UP },
+  { icon: UserCheck, label: "Customers", href: "/dashboard/customers", allowedRoles: ALL_ROLES },
+  { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics", allowedRoles: MANAGER_UP },
+  { icon: ClipboardList, label: "Reports", href: "/dashboard/reports", allowedRoles: MANAGER_UP },
+  { icon: CreditCard, label: "Billing", href: "/dashboard/billing", allowedRoles: OWNER_UP },
+  { icon: Settings, label: "Settings", href: "/dashboard/settings", allowedRoles: MANAGER_UP },
 ]
 
 interface SidebarProps {
@@ -181,7 +185,7 @@ export function Sidebar({ subscriptionStatus, trialEnd, user }: SidebarProps) {
           </Link>
         )}
 
-        {menuItems.map((item) => {
+        {menuItems.filter(item => item.allowedRoles.includes(user?.role || 'staff')).map((item) => {
           const isActive = pathname === item.href
           return (
             <Link
