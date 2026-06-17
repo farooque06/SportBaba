@@ -3,16 +3,19 @@
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import Cookies from "js-cookie"
+import { useSport } from "@/components/providers/SportProvider"
 import { fetchFacility, updateFacilitySettings } from "@/lib/actions/facility"
+import { getCurrentUserRole } from "@/lib/actions/auth"
 import { Card } from "@/components/ui/Card"
 import { Button } from "@/components/ui/Button"
 import { Settings, Palette, Clock, Globe, Bell, Shield, Loader2, BellRing, Timer, TimerOff, Lock } from "lucide-react"
 
 export default function SettingsPage() {
   const { data: session } = useSession()
-  const facilityId = Cookies.get("active_facility_id")
+  const { facilityId } = useSport()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [role, setRole] = useState<string | null>(null)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [phone, setPhone] = useState("")
@@ -28,28 +31,30 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (!facilityId) {
-        setLoading(false)
-        return
+      setLoading(false)
+      return
     }
     async function loadData() {
-       const facility = await fetchFacility(facilityId as string)
-       if (facility) {
-          setName(facility.name || "")
-          setEmail(facility.config?.contact_email || "")
-          setPhone(facility.config?.contact_phone || "")
-          setOpenTime(facility.config?.open_time || "08:00")
-          setCloseTime(facility.config?.close_time || "22:00")
-          setLatitude(facility.config?.latitude || "")
-          setLongitude(facility.config?.longitude || "")
-          // Load reminder preferences (default to true if not set)
-          const reminders = facility.config?.reminders
-          if (reminders) {
-            setReminder30(reminders.before_30m !== false)
-            setReminder15(reminders.before_15m !== false)
-            setReminder5end(reminders.before_end_5m !== false)
-          }
-       }
-       setLoading(false)
+      const userRole = await getCurrentUserRole(facilityId as string)
+      setRole(userRole || 'staff')
+      const facility = await fetchFacility(facilityId as string)
+      if (facility) {
+        setName(facility.name || "")
+        setEmail(facility.config?.contact_email || "")
+        setPhone(facility.config?.contact_phone || "")
+        setOpenTime(facility.config?.open_time || "08:00")
+        setCloseTime(facility.config?.close_time || "22:00")
+        setLatitude(facility.config?.latitude || "")
+        setLongitude(facility.config?.longitude || "")
+        // Load reminder preferences (default to true if not set)
+        const reminders = facility.config?.reminders
+        if (reminders) {
+          setReminder30(reminders.before_30m !== false)
+          setReminder15(reminders.before_15m !== false)
+          setReminder5end(reminders.before_end_5m !== false)
+        }
+      }
+      setLoading(false)
     }
     loadData()
   }, [facilityId])
@@ -58,38 +63,38 @@ export default function SettingsPage() {
     if (!facilityId) return
     setSaving(true)
     const result = await updateFacilitySettings(facilityId, {
-       name,
-       config: {
-          contact_email: email,
-          contact_phone: phone,
-          open_time: openTime,
-          close_time: closeTime,
-          latitude: latitude,
-          longitude: longitude,
-          setup_completed: true,
-          reminders: {
-            before_30m: reminder30,
-            before_15m: reminder15,
-            before_end_5m: reminder5end,
-          }
-       }
+      name,
+      config: {
+        contact_email: email,
+        contact_phone: phone,
+        open_time: openTime,
+        close_time: closeTime,
+        latitude: latitude,
+        longitude: longitude,
+        setup_completed: true,
+        reminders: {
+          before_30m: reminder30,
+          before_15m: reminder15,
+          before_end_5m: reminder5end,
+        }
+      }
     })
     setSaving(false)
     if (result.success) {
-       alert("Settings updated successfully!")
+      alert("Settings updated successfully!")
     } else {
-       alert("Failed to update settings: " + result.error)
+      alert("Failed to update settings: " + result.error)
     }
   }
 
   if (loading) return (
-     <div className="h-[60vh] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-     </div>
+    <div className="h-[60vh] flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
   )
 
-  const role = (session?.user as any)?.role || 'staff'
-  if (role !== 'owner' && role !== 'manager' && role !== 'superadmin') {
+  const activeRole = role || 'staff'
+  if (activeRole !== 'owner' && activeRole !== 'manager' && activeRole !== 'superadmin') {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8 space-y-6 mesh-gradient rounded-[48px] border border-border/20">
         <div className="h-20 w-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-2 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
@@ -138,8 +143,8 @@ export default function SettingsPage() {
           <h1 className="text-6xl font-black tracking-tighter italic uppercase text-foreground leading-[0.8] mb-4">Settings</h1>
           <p className="text-muted-foreground font-bold uppercase tracking-widest text-[10px] opacity-70">Facility Configuration Center</p>
         </div>
-        <Button 
-          variant="primary" 
+        <Button
+          variant="primary"
           className="rounded-[24px] px-10 h-16 font-black uppercase tracking-widest text-xs shadow-2xl shadow-primary/20 w-full md:w-auto"
           onClick={handleSave}
           disabled={saving}
@@ -223,29 +228,29 @@ export default function SettingsPage() {
           </div>
 
           <div className="p-8 rounded-[32px] bg-primary/5 border border-primary/10 flex flex-col gap-8 relative overflow-hidden">
-             <div className="absolute top-0 right-0 p-4 opacity-10">
-                <div className="h-2 w-2 rounded-full bg-primary animate-ping" />
-             </div>
-             
-             <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1 opacity-70">Opening Time</label>
-                <input 
-                  type="time" 
-                  value={openTime}
-                  onChange={(e) => setOpenTime(e.target.value)}
-                  className="w-full bg-background border border-primary/10 p-5 rounded-2xl text-2xl font-black outline-none ring-primary focus:ring-2 [color-scheme:dark]"
-                />
-             </div>
-             <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1 opacity-70">Closing Time</label>
-                <input 
-                  type="time" 
-                  value={closeTime}
-                  onChange={(e) => setCloseTime(e.target.value)}
-                  className="w-full bg-background border border-primary/10 p-5 rounded-2xl text-2xl font-black outline-none ring-primary focus:ring-2 [color-scheme:dark]"
-                />
-             </div>
-             <p className="text-[10px] font-bold text-muted-foreground italic uppercase leading-relaxed text-center opacity-40">Global availability for all pitch resources will be synchronized to these hours.</p>
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <div className="h-2 w-2 rounded-full bg-primary animate-ping" />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1 opacity-70">Opening Time</label>
+              <input
+                type="time"
+                value={openTime}
+                onChange={(e) => setOpenTime(e.target.value)}
+                className="w-full bg-background border border-primary/10 p-5 rounded-2xl text-2xl font-black outline-none ring-primary focus:ring-2 [color-scheme:dark]"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-primary ml-1 opacity-70">Closing Time</label>
+              <input
+                type="time"
+                value={closeTime}
+                onChange={(e) => setCloseTime(e.target.value)}
+                className="w-full bg-background border border-primary/10 p-5 rounded-2xl text-2xl font-black outline-none ring-primary focus:ring-2 [color-scheme:dark]"
+              />
+            </div>
+            <p className="text-[10px] font-bold text-muted-foreground italic uppercase leading-relaxed text-center opacity-40">Global availability for all pitch resources will be synchronized to these hours.</p>
           </div>
         </Card>
 
