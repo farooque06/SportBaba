@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Calendar, Users, Trophy, Settings,
   BarChart3, LogOut, CreditCard, Package, UserCheck,
-  ChevronLeft, ChevronRight, Sparkles, Globe, ClipboardList
+  ChevronLeft, ChevronRight, Sparkles, Globe, ClipboardList, Activity
 } from "lucide-react"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { NotificationBell } from "@/components/ui/NotificationBell"
@@ -32,6 +32,7 @@ const menuItems = [
   { icon: UserCheck, label: "Customers", href: "/dashboard/customers", allowedRoles: ALL_ROLES },
   { icon: BarChart3, label: "Analytics", href: "/dashboard/analytics", allowedRoles: MANAGER_UP },
   { icon: ClipboardList, label: "Reports", href: "/dashboard/reports", allowedRoles: MANAGER_UP },
+  { icon: Activity, label: "Logs", href: "/dashboard/logs", allowedRoles: MANAGER_UP },
   { icon: CreditCard, label: "Billing", href: "/dashboard/billing", allowedRoles: OWNER_UP },
   { icon: Settings, label: "Settings", href: "/dashboard/settings", allowedRoles: MANAGER_UP },
 ]

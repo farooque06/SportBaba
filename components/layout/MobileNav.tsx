@@ -6,7 +6,7 @@ import { useState } from "react"
 import { 
   LayoutDashboard, Calendar, Package, BarChart3, MoreHorizontal,
   Trophy, Users, CreditCard, Settings, LogOut, X, ChevronUp, UserCheck,
-  Sparkles, ClipboardList
+  Sparkles, ClipboardList, Activity
 } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -29,6 +29,7 @@ const secondaryItems = [
   { icon: UserCheck, label: "Customers", href: "/dashboard/customers", allowedRoles: ALL_ROLES },
   { icon: Users, label: "Members", href: "/dashboard/members", allowedRoles: MANAGER_UP },
   { icon: ClipboardList, label: "Reports", href: "/dashboard/reports", allowedRoles: MANAGER_UP },
+  { icon: Activity, label: "Logs", href: "/dashboard/logs", allowedRoles: MANAGER_UP },
   { icon: CreditCard, label: "Billing", href: "/dashboard/billing", allowedRoles: OWNER_UP },
   { icon: Settings, label: "Settings", href: "/dashboard/settings", allowedRoles: MANAGER_UP },
 ]

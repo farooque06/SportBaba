@@ -3,6 +3,7 @@
 import { supabase } from "@/lib/supabase";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/actions/logs";
 
 export async function registerFacility(formData: FormData) {
   const session = await auth();
@@ -98,6 +99,16 @@ export async function updateFacilitySettings(id: string, updates: any) {
     .single();
 
   if (error) return { error: error.message };
+
+  // Log the activity (fire-and-forget)
+  logActivity({
+    facilityId: id,
+    action: 'facility.settings.updated',
+    entityType: 'facility',
+    entityId: id,
+    details: { updated_fields: Object.keys(updates) }
+  });
+
   revalidatePath("/dashboard/settings");
   return { success: true, data };
 }

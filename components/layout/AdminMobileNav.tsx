@@ -6,7 +6,7 @@ import { useState } from "react"
 import { 
   Globe, Activity, Users, BarChart3,
   BookOpen, ShieldAlert, Settings, Lock,
-  ChevronUp, X, LogOut
+  ChevronUp, X, LogOut, FileText
 } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -21,6 +21,7 @@ const primaryTabs = [
 const secondaryItems = [
   { icon: BookOpen, label: "Financial Ledger", href: "/admin/ledger" },
   { icon: ShieldAlert, label: "System Health", href: "/admin/health" },
+  { icon: FileText, label: "Audit Logs", href: "/admin/logs" },
   { icon: Settings, label: "Settings", href: "/admin/settings" },
   { icon: Lock, label: "Security", href: "/admin/security" },
 ]
