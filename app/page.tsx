@@ -2,6 +2,8 @@ import { auth } from "@/auth"
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { Hero } from "@/components/sections/Hero"
+import { FacilitiesShowcase } from "@/components/sections/FacilitiesShowcase"
+import { getFeaturedFacilities } from "@/lib/actions/public"
 import { SportSection } from "@/components/sections/SportSection"
 import { Button } from "@/components/ui/Button"
 import { FeaturesBento } from "@/components/sections/FeaturesBento"
@@ -12,12 +14,15 @@ import Link from "next/link"
 export default async function Home() {
   const session = await auth();
   const isLoggedIn = !!session?.user;
+  const featuredFacilities = await getFeaturedFacilities(10);
 
   return (
     <main className="min-h-screen selection:bg-primary/20 selection:text-primary bg-background">
       <Navbar isLoggedIn={isLoggedIn} />
       
       <Hero isLoggedIn={isLoggedIn} />
+
+      <FacilitiesShowcase facilities={featuredFacilities} />
 
       {/* Scrolling Marquee — Social Proof */}
       <div className="relative border-y border-border/40 bg-card/20 backdrop-blur-xl overflow-hidden py-4">

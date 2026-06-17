@@ -136,3 +136,38 @@ export async function submitPublicBooking(data: {
 
   return { success: true, booking }
 }
+
+// ─── Marketplace / Directory Actions ───
+
+export async function getFeaturedFacilities(limit = 10) {
+  const { data, error } = await supabase
+    .from('facilities')
+    .select('id, name, slug, sport_type, logo_url')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    console.error("Error fetching featured facilities:", error)
+    return []
+  }
+  return data || []
+}
+
+export async function getAllFacilities(page = 1, limit = 20) {
+  const offset = (page - 1) * limit
+
+  const { data, error, count } = await supabase
+    .from('facilities')
+    .select('id, name, slug, sport_type, logo_url', { count: 'exact' })
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+
+  if (error) {
+    console.error("Error fetching all facilities:", error)
+    return { data: [], count: 0, error: error.message }
+  }
+  
+  return { data: data || [], count: count || 0, success: true }
+}

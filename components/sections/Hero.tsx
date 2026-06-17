@@ -47,17 +47,17 @@ export function Hero({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean }
         {/* Badge */}
         <div className="reveal-up inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 text-xs font-medium text-primary mb-8 shadow-sm">
           <Sparkles className="h-3.5 w-3.5" />
-          <span>The Operating System for Sports Facilities</span>
+          <span>The Ultimate Sports Marketplace & Management OS</span>
         </div>
         
         {/* Headline */}
         <h1 className="reveal-up delay-100">
           <span className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-foreground leading-[1.08]">
-            The Operating System
+            Find and Book the
           </span>
           <span className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-[1.08] mt-1 sm:mt-2">
-            for Sports <span className="text-primary text-glow relative">
-              Facilities
+            Best <span className="text-primary text-glow relative">
+              Turfs & Venues
               {/* Underline accent */}
               <svg className="absolute -bottom-2 left-0 w-full h-3 text-primary/30" viewBox="0 0 200 12" fill="none" preserveAspectRatio="none">
                 <path d="M2 8.5C30 3 70 1 100 4C130 7 170 9 198 3.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/>
@@ -68,23 +68,29 @@ export function Hero({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean }
         
         {/* Subhead */}
         <p className="reveal-up delay-200 mt-6 sm:mt-8 text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed">
-          SportBaba orchestrates bookings, automates membership billing, and tracks real-time revenue analytics for elite sports venues and complex arenas.
+          Players: Book your next game instantly. Facility Owners: Run your venue on autopilot with our industry-leading management OS.
         </p>
 
         {/* CTA buttons */}
         <div className="reveal-up delay-300 flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mt-10 sm:mt-12 w-full sm:w-auto">
+          <Button 
+            variant="primary" 
+            size="lg" 
+            onClick={() => document.getElementById('find-turf')?.scrollIntoView({ behavior: 'smooth' })}
+            className="w-full sm:w-auto h-12 sm:h-13 px-7 sm:px-8 text-sm sm:text-base rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all group font-semibold"
+          >
+            <span className="flex items-center gap-2.5">
+              Find a Turf
+              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+            </span>
+          </Button>
+          
           <Link href={isLoggedIn ? "/dashboard" : "/register"} className="w-full sm:w-auto">
-            <Button variant="primary" size="lg" className="w-full sm:w-auto h-12 sm:h-13 px-7 sm:px-8 text-sm sm:text-base rounded-xl shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all group font-semibold">
-              <span className="flex items-center gap-2.5">
-                {isLoggedIn ? "Open Dashboard" : "Start Free Trial"} 
-                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </span>
+            <Button variant="outline" size="lg" className="w-full sm:w-auto h-12 sm:h-13 px-7 sm:px-8 text-sm sm:text-base rounded-xl bg-card/40 backdrop-blur-xl hover:bg-card/60 border-border/60 transition-all font-semibold group">
+              <Sparkles className="mr-2 h-4 w-4 text-primary" />
+              {isLoggedIn ? "Open Dashboard" : "Partner With Us"}
             </Button>
           </Link>
-          <Button variant="outline" size="lg" className="w-full sm:w-auto h-12 sm:h-13 px-7 sm:px-8 text-sm sm:text-base rounded-xl bg-card/40 backdrop-blur-xl hover:bg-card/60 border-border/60 transition-all font-semibold group">
-            <Play className="mr-2 h-4 w-4 text-primary fill-primary/20 group-hover:fill-primary/40 transition-colors" />
-            Watch Demo
-          </Button>
         </div>
 
         {/* Social proof */}

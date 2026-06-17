@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getCurrentUserRole } from "./auth";
+import { logActivity } from "@/lib/actions/logs";
 
 export async function fetchMembers(facilityId: string) {
   const session = await auth();
@@ -36,6 +37,15 @@ export async function updateMemberRole(membershipId: string, newRole: string, fa
     .single();
 
   if (error) return { error: error.message };
+
+  await logActivity({
+    facilityId,
+    action: 'member.role_updated',
+    entityType: 'member',
+    entityId: membershipId,
+    details: { new_role: newRole }
+  });
+
   revalidatePath("/dashboard/members");
   return { success: true, data };
 }
@@ -56,6 +66,14 @@ export async function removeMember(membershipId: string, facilityId: string) {
     .eq('id', membershipId);
 
   if (error) return { error: error.message };
+
+  await logActivity({
+    facilityId,
+    action: 'member.removed',
+    entityType: 'member',
+    entityId: membershipId
+  });
+
   revalidatePath("/dashboard/members");
   return { success: true };
 }

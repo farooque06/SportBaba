@@ -3,6 +3,7 @@
 import { supabase } from "@/lib/supabase";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/actions/logs";
 import { linkBookingToCustomer } from "./customers";
 import { generateWhatsAppNotification } from "@/lib/notifications";
 import { notifyFacilityMembers } from "./notifications";
@@ -149,6 +150,20 @@ export async function createBooking(data: {
     .single();
 
   if (error) return { error: error.message };
+  
+  logActivity({
+    facilityId: facilityId,
+    action: 'booking.created',
+    entityType: 'booking',
+    entityId: booking.id,
+    details: {
+      guest_name: data.guest_name,
+      resource_id: data.resource_id,
+      start_time: data.start_time,
+      end_time: data.end_time,
+      total_price: total_price
+    }
+  });
   
   // Auto-link to customer profile (already updates stats)
   await linkBookingToCustomer(facilityId, booking.id, data.guest_name, data.guest_phone, total_price, data.guest_email);
