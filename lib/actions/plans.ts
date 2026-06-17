@@ -96,3 +96,39 @@ export async function deleteSubscriptionPlan(id: string) {
     return { success: false, error: error.message };
   }
 }
+export async function updateSubscriptionPlan(formData: FormData) {
+  try {
+    const id = formData.get("id") as string;
+    if (!id) throw new Error("Plan ID is required");
+
+    const name = formData.get("name") as string;
+    const description = formData.get("description") as string;
+    const price = parseFloat(formData.get("price") as string);
+    const interval = formData.get("interval") as string;
+    
+    // Parse features from a comma-separated string or array
+    const featuresRaw = formData.get("features") as string;
+    const features = featuresRaw ? featuresRaw.split(",").map(f => f.trim()).filter(f => f) : [];
+
+    const { data: updatedPlan, error } = await supabase
+      .from("subscription_plans")
+      .update({
+        name,
+        description,
+        price,
+        interval,
+        features,
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    
+    revalidatePath("/admin");
+    return { success: true, plan: updatedPlan as SubscriptionPlan };
+  } catch (error: any) {
+    console.error("Update Plan Error:", error);
+    return { success: false, error: error.message };
+  }
+}
