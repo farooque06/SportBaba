@@ -7,10 +7,28 @@ import Link from "next/link"
 import Image from "next/image"
 import { useSession } from "next-auth/react"
 
-export function Hero({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean }) {
+export function Hero({ 
+  isLoggedIn: initialIsLoggedIn,
+  activeTab = 'player',
+  onTabChange
+}: { 
+  isLoggedIn?: boolean;
+  activeTab?: 'player' | 'partner';
+  onTabChange?: (tab: 'player' | 'partner') => void;
+}) {
   const { status } = useSession()
   const isLoggedIn = status === "authenticated"
-  const [activeTab, setActiveTab] = useState<'player' | 'partner'>('player')
+  const [internalTab, setInternalTab] = useState<'player' | 'partner'>(activeTab)
+
+  const currentTab = onTabChange ? activeTab : internalTab
+  const setTab = (tab: 'player' | 'partner') => {
+    if (onTabChange) {
+      onTabChange(tab)
+    } else {
+      setInternalTab(tab)
+    }
+  }
+
   const [searchQuery, setSearchQuery] = useState('')
 
   const popularSports = [
@@ -87,9 +105,9 @@ export function Hero({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean }
         <div className="reveal-up delay-100 inline-flex p-1 rounded-2xl bg-card/60 backdrop-blur-xl border border-border/80 mb-6 shadow-md">
           <button
             type="button"
-            onClick={() => setActiveTab('player')}
-            className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              activeTab === 'player'
+            onClick={() => setTab('player')}
+            className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              currentTab === 'player'
                 ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25 scale-[1.02]'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
             }`}
@@ -98,9 +116,9 @@ export function Hero({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean }
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('partner')}
-            className={`px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              activeTab === 'partner'
+            onClick={() => setTab('partner')}
+            className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              currentTab === 'partner'
                 ? 'bg-primary text-primary-foreground shadow-md shadow-primary/25 scale-[1.02]'
                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/40'
             }`}
@@ -110,7 +128,7 @@ export function Hero({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean }
         </div>
 
         {/* Dynamic Headline Based on Active Persona */}
-        {activeTab === 'player' ? (
+        {currentTab === 'player' ? (
           <div className="reveal-up delay-100 max-w-4xl">
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-foreground leading-[1.08]">
               Book Your Next Pitch <br className="hidden sm:inline" />
@@ -121,7 +139,7 @@ export function Hero({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean }
                 </svg>
               </span>
             </h1>
-            <p className="mt-5 text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            <p className="mt-5 text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed font-medium">
               Explore verified futsal turfs, cricket pitches, and indoor lanes with real-time slot availability, instant confirmation, and downloadable receipts.
             </p>
           </div>
@@ -136,14 +154,14 @@ export function Hero({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean }
                 </svg>
               </span>
             </h1>
-            <p className="mt-5 text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            <p className="mt-5 text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed font-medium">
               Eliminate double-bookings, automate lights & POS billing, accept public match bookings, and supercharge court revenue by 28%+.
             </p>
           </div>
         )}
 
         {/* ─── Interactive Search & Quick Action Card ─── */}
-        {activeTab === 'player' ? (
+        {currentTab === 'player' ? (
           <div className="reveal-up delay-200 w-full max-w-2xl mt-8">
             <form onSubmit={handleSearchSubmit} className="relative p-2 rounded-2xl sm:rounded-3xl bg-card/80 backdrop-blur-2xl border border-border/80 shadow-2xl flex flex-col sm:flex-row gap-2 items-center">
               <div className="relative flex-1 w-full">
