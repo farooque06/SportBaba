@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation"
 import { getPublicFacility } from "@/lib/actions/public"
-import { MapPin, Trophy, Clock, CheckCircle2, ShieldCheck, ArrowLeft, Home } from "lucide-react"
+import { MapPin, Trophy, Clock, CheckCircle2, ShieldCheck, ArrowLeft, Home, Users } from "lucide-react"
 import { PublicBookingEngine } from "@/components/booking/PublicBookingEngine"
 import Link from "next/link"
 
@@ -37,6 +37,15 @@ export default async function PublicStorefrontPage({ params }: { params: Promise
               className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
             >
               <span>Browse Other Venues</span>
+            </Link>
+
+            {/* Find Players CTA */}
+            <Link 
+              href="/open-games" 
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-primary/10 border border-primary/20 text-xs font-bold text-primary hover:bg-primary/20 transition-all"
+            >
+              <Users className="h-3.5 w-3.5" />
+              <span>Find Players</span>
             </Link>
           </div>
 

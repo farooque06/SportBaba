@@ -118,6 +118,20 @@ export async function submitPublicBooking(data: {
   });
   const dateStr = new Date(booking.start_time).toLocaleDateString('en-US');
 
+  // Automatically link/create entry in customers table
+  try {
+    const { linkBookingToCustomer } = await import("./customers")
+    await linkBookingToCustomer(
+      booking.facility_id,
+      booking.id,
+      booking.guest_name,
+      booking.guest_phone || undefined,
+      booking.total_price
+    )
+  } catch (err) {
+    console.error("Failed to link customer on public booking:", err)
+  }
+
   // Trigger real-time notification to facility members
   await notifyFacilityMembers(
     booking.facility_id,

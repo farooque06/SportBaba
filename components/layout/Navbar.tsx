@@ -37,10 +37,18 @@ export function Navbar({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean
           
           {/* Desktop Nav */}
           <div className="hidden items-center gap-8 lg:flex">
+            <Link 
+              href="/open-games" 
+              className="text-[13px] font-bold text-primary hover:text-primary/80 transition-colors duration-200 relative group flex items-center gap-1.5"
+            >
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              Open Games
+              <span className="absolute -bottom-1 left-0 w-0 h-[2px] bg-primary rounded-full transition-all duration-300 group-hover:w-full" />
+            </Link>
             {["Features", "Sports", "Pricing"].map((item) => (
               <Link 
                 key={item} 
-                href={`#${item.toLowerCase()}`} 
+                href={`/#${item.toLowerCase()}`} 
                 className="text-[13px] font-medium text-muted-foreground hover:text-foreground transition-colors duration-200 relative group"
               >
                 {item}
@@ -107,10 +115,18 @@ export function Navbar({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean
         {/* Mobile menu */}
         {mobileOpen && (
           <div className="lg:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl px-5 py-4 space-y-1">
+            <Link
+              href="/open-games"
+              className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-bold text-primary hover:bg-primary/10 transition-colors"
+              onClick={() => setMobileOpen(false)}
+            >
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              Open Games (Find Players)
+            </Link>
             {["Features", "Sports", "Pricing"].map((item) => (
               <Link
                 key={item}
-                href={`#${item.toLowerCase()}`}
+                href={`/#${item.toLowerCase()}`}
                 className="block px-4 py-3 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
                 onClick={() => setMobileOpen(false)}
               >
