@@ -6,7 +6,7 @@ import { useState } from "react"
 import { 
   LayoutDashboard, Calendar, Package, BarChart3, MoreHorizontal,
   Trophy, Users, CreditCard, Settings, LogOut, X, ChevronUp, UserCheck,
-  Sparkles, ClipboardList, Activity
+  Sparkles, ClipboardList, Activity, Zap
 } from "lucide-react"
 import { useSession, signOut } from "next-auth/react"
 import { ThemeToggle } from "@/components/ThemeToggle"
@@ -24,6 +24,7 @@ const primaryTabs = [
 ]
 
 const secondaryItems = [
+  { icon: Zap, label: "Counter POS", href: "/dashboard/pos", allowedRoles: ALL_ROLES },
   { icon: Sparkles, label: "Resources", href: "/dashboard/resources", allowedRoles: ALL_ROLES },
   { icon: Trophy, label: "Tournaments", href: "/dashboard/tournaments", allowedRoles: ALL_ROLES },
   { icon: UserCheck, label: "Customers", href: "/dashboard/customers", allowedRoles: ALL_ROLES },

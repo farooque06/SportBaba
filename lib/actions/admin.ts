@@ -278,6 +278,46 @@ export async function logManualPayment(
     }
 }
 
+export async function recordPaymentTopUp(
+    paymentId: string,
+    payingAmount: number,
+    notes?: string
+) {
+    try {
+        // 1. Fetch current payment row
+        const { data: current, error: fetchErr } = await supabase
+            .from('platform_payments')
+            .select('id, total_amount, amount_paid, notes')
+            .eq('id', paymentId)
+            .single();
+
+        if (fetchErr || !current) throw new Error("Payment record not found");
+
+        const newPaid = Number(current.amount_paid || 0) + payingAmount;
+        const total = Number(current.total_amount || 0);
+        const newStatus = newPaid >= total ? 'paid' : newPaid > 0 ? 'partial' : 'pending';
+        const updatedNotes = notes 
+            ? (current.notes ? `${current.notes} | Top-up: ${notes}` : notes)
+            : current.notes;
+
+        const { error: updateErr } = await supabase
+            .from('platform_payments')
+            .update({
+                amount_paid: newPaid,
+                status: newStatus,
+                notes: updatedNotes
+            })
+            .eq('id', paymentId);
+
+        if (updateErr) throw updateErr;
+
+        return { success: true, newPaid, total, status: newStatus };
+    } catch (error: any) {
+        console.error("Record Payment Top Up Error:", error);
+        return { success: false, error: error.message };
+    }
+}
+
 export async function fetchPlatformLedger() {
     try {
         const { data, error } = await supabase

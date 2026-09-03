@@ -596,3 +596,45 @@ body.modal-open {
     animation: none !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════
+   PRINT STYLES (Clean Digital Booking Receipt)
+   ═══════════════════════════════════════════════════════════ */
+@media print {
+  @page {
+    margin: 10mm;
+    size: auto;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  /* Hide navigation, page headers, hero sections, footers, etc. */
+  nav, header, section, footer, .print\:hidden {
+    display: none !important;
+  }
+
+  /* Unhide the main canvas container */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Make sure only the receipt card shows centered and clean */
+  #booking-receipt-canvas {
+    display: block !important;
+    border: 1px dashed #aaaaaa !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    width: 100% !important;
+    max-width: 420px !important;
+    margin: 20px auto !important;
+    padding: 24px !important;
+    border-radius: 16px !important;
+  }
+}
+
+

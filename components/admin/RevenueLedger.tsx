@@ -55,21 +55,24 @@ export function RevenueLedger({ payments: initialPayments, totalCollected, total
     if (!topUpModal.paymentId || !topUpModal.topUpAmount) return;
     setLoading(true);
     const topAmt = parseFloat(topUpModal.topUpAmount);
-    const { logManualPayment } = await import("@/lib/actions/admin");
-    const result = await logManualPayment(
-      topUpModal.facilityId!,
-      0, // totalAmount = 0 because it's purely a payment credit, not a new liability
+    if (isNaN(topAmt) || topAmt <= 0) {
+      setToast({ message: "Please enter a valid amount.", type: "error" });
+      setLoading(false);
+      return;
+    }
+
+    const { recordPaymentTopUp } = await import("@/lib/actions/admin");
+    const result = await recordPaymentTopUp(
+      topUpModal.paymentId,
       topAmt,
-      undefined,
-      topUpModal.notes || "Top-up payment"
+      topUpModal.notes || undefined
     );
     if (result.success) {
-      setToast({ message: "Top-up payment logged!", type: "success" });
+      setToast({ message: "Top-up recorded & due updated!", type: "success" });
       setTopUpModal({ isOpen: false, paymentId: null, facilityId: null, remaining: 0, notes: "", topUpAmount: "" });
-      // Refresh page data - simple approach
       window.location.reload();
     } else {
-      setToast({ message: "Failed to log payment.", type: "error" });
+      setToast({ message: result.error || "Failed to update payment.", type: "error" });
     }
     setLoading(false);
   };
@@ -242,8 +245,24 @@ export function RevenueLedger({ payments: initialPayments, totalCollected, total
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
-                <p className="text-[9px] font-black uppercase tracking-widest text-amber-600">Outstanding: {formatCurrency(topUpModal.remaining)}</p>
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 flex justify-between items-center">
+                <div>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Current Due</p>
+                  <p className="text-base font-black text-amber-600">{formatCurrency(topUpModal.remaining)}</p>
+                </div>
+                {topUpModal.topUpAmount && !isNaN(parseFloat(topUpModal.topUpAmount)) && (
+                  <div className="text-right">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Remaining After Pay</p>
+                    <p className={cn(
+                      "text-base font-black",
+                      (topUpModal.remaining - parseFloat(topUpModal.topUpAmount)) <= 0 ? "text-emerald-500" : "text-amber-500"
+                    )}>
+                      {(topUpModal.remaining - parseFloat(topUpModal.topUpAmount)) <= 0 
+                        ? "CLEAR (NRS 0)" 
+                        : formatCurrency(topUpModal.remaining - parseFloat(topUpModal.topUpAmount))}
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="space-y-2">
                 <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Amount Being Paid (NRS)</p>
@@ -251,6 +270,7 @@ export function RevenueLedger({ payments: initialPayments, totalCollected, total
                   type="number"
                   value={topUpModal.topUpAmount}
                   onChange={(e) => setTopUpModal({ ...topUpModal, topUpAmount: e.target.value })}
+                  placeholder="Enter amount to pay"
                   className="w-full h-12 bg-muted/50 border border-border/50 px-4 rounded-xl text-sm font-bold outline-none focus:ring-2 ring-primary/20 transition-all"
                 />
               </div>
@@ -258,7 +278,7 @@ export function RevenueLedger({ payments: initialPayments, totalCollected, total
                 <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Notes (Optional)</p>
                 <input
                   type="text"
-                  placeholder="e.g. Cash received"
+                  placeholder="e.g. Cash received by Farooque"
                   value={topUpModal.notes}
                   onChange={(e) => setTopUpModal({ ...topUpModal, notes: e.target.value })}
                   className="w-full h-12 bg-muted/50 border border-border/50 px-4 rounded-xl text-sm font-bold outline-none focus:ring-2 ring-primary/20 transition-all placeholder:italic placeholder:text-muted-foreground/40"

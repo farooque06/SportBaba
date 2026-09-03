@@ -3,6 +3,9 @@ import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
 import { Hero } from "@/components/sections/Hero"
 import { FacilitiesShowcase } from "@/components/sections/FacilitiesShowcase"
+import { HowItWorks } from "@/components/sections/HowItWorks"
+import { VenueRoiCalculator } from "@/components/sections/VenueRoiCalculator"
+import { FaqSection } from "@/components/sections/FaqSection"
 import { getFeaturedFacilities } from "@/lib/actions/public"
 import { SportSection } from "@/components/sections/SportSection"
 import { Button } from "@/components/ui/Button"
@@ -14,17 +17,19 @@ import Link from "next/link"
 export default async function Home() {
   const session = await auth();
   const isLoggedIn = !!session?.user;
-  const featuredFacilities = await getFeaturedFacilities(10);
+  const featuredFacilities = await getFeaturedFacilities(12);
 
   return (
     <main className="min-h-screen selection:bg-primary/20 selection:text-primary bg-background">
       <Navbar isLoggedIn={isLoggedIn} />
       
+      {/* 1. Hero Section */}
       <Hero isLoggedIn={isLoggedIn} />
 
+      {/* 2. Interactive Venue Showcase & Live Turfs */}
       <FacilitiesShowcase facilities={featuredFacilities} />
 
-      {/* Scrolling Marquee — Social Proof */}
+      {/* 3. Scrolling Marquee — Social Proof */}
       <div className="relative border-y border-border/40 bg-card/20 backdrop-blur-xl overflow-hidden py-4">
         <div className="flex animate-marquee whitespace-nowrap">
           {[...Array(2)].map((_, setIdx) => (
@@ -49,15 +54,27 @@ export default async function Home() {
         </div>
       </div>
 
+      {/* 4. How It Works (3 Steps for Players & Facility Owners) */}
+      <HowItWorks />
+
+      <div className="section-line mx-auto max-w-6xl" />
+
+      {/* 5. Core Platform Features Bento */}
       <FeaturesBento />
 
       <div className="section-line mx-auto max-w-6xl" />
       
+      {/* 6. Sport Specific Adaptations */}
       <SportSection isLoggedIn={isLoggedIn} />
 
       <div className="section-line mx-auto max-w-6xl" />
 
-      {/* Trust & Infrastructure Section */}
+      {/* 7. Interactive Revenue ROI Calculator */}
+      <VenueRoiCalculator />
+
+      <div className="section-line mx-auto max-w-6xl" />
+
+      {/* 8. Trust & Infrastructure Section */}
       <section className="py-20 sm:py-28 md:py-36 relative overflow-hidden bg-background">
         <div className="absolute inset-0 glow-orb opacity-20 pointer-events-none" />
         
@@ -119,12 +136,17 @@ export default async function Home() {
 
       <div className="section-line mx-auto max-w-6xl" />
 
-      {/* Testimonials */}
+      {/* 9. Testimonials */}
       <Testimonials />
 
       <div className="section-line mx-auto max-w-6xl" />
 
-      {/* Final CTA */}
+      {/* 10. FAQ Section */}
+      <FaqSection />
+
+      <div className="section-line mx-auto max-w-6xl" />
+
+      {/* 11. Final CTA */}
       <section className="relative py-24 sm:py-32 md:py-40 px-5 sm:px-8 overflow-hidden">
         {/* Background */}
         <div className="absolute inset-0 bg-gradient-to-b from-background via-card/30 to-background -z-20" />

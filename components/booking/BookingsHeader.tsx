@@ -39,17 +39,26 @@ export function BookingsHeader({ facilityId, resources }: { facilityId: string, 
           </h1>
           <p className="text-muted-foreground font-black uppercase tracking-[0.2em] text-[10px] opacity-40">Internal Record Management & Match Logistics</p>
         </div>
-        <Button 
-          variant="primary" 
-          onClick={() => setIsModalOpen(true)}
-          className="h-16 px-10 rounded-[28px] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl flex items-center justify-center gap-4 group overflow-hidden relative active:scale-95 transition-all"
-        >
-          <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-          <div className="h-6 w-6 rounded-xl bg-white/20 flex items-center justify-center group-hover:rotate-90 transition-transform duration-500">
-             <Plus className="h-4 w-4" />
-          </div>
-          Quick Entry
-        </Button>
+        <div className="flex items-center gap-3">
+          <a
+            href="/dashboard/pos"
+            className="h-16 px-6 rounded-[28px] font-black uppercase tracking-[0.2em] text-[10px] bg-card border border-border/80 hover:bg-muted hover:border-primary/40 text-foreground flex items-center justify-center gap-2.5 transition-all shadow-sm active:scale-95"
+          >
+            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+            Counter POS
+          </a>
+          <Button 
+            variant="primary" 
+            onClick={() => setIsModalOpen(true)}
+            className="h-16 px-8 rounded-[28px] font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl flex items-center justify-center gap-4 group overflow-hidden relative active:scale-95 transition-all"
+          >
+            <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+            <div className="h-6 w-6 rounded-xl bg-white/20 flex items-center justify-center group-hover:rotate-90 transition-transform duration-500">
+               <Plus className="h-4 w-4" />
+            </div>
+            Quick Entry
+          </Button>
+        </div>
       </div>
 
       <QuickBookingModal 

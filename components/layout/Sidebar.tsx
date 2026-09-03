@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation"
 import {
   LayoutDashboard, Calendar, Users, Trophy, Settings,
   BarChart3, LogOut, CreditCard, Package, UserCheck,
-  ChevronLeft, ChevronRight, Sparkles, Globe, ClipboardList, Activity
+  ChevronLeft, ChevronRight, Sparkles, Globe, ClipboardList, Activity, Zap
 } from "lucide-react"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { NotificationBell } from "@/components/ui/NotificationBell"
@@ -24,6 +24,7 @@ const OWNER_UP = ['superadmin', 'owner'];
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Overview", href: "/dashboard", allowedRoles: ALL_ROLES },
+  { icon: Zap, label: "Counter POS", href: "/dashboard/pos", allowedRoles: ALL_ROLES },
   { icon: Sparkles, label: "Resources", href: "/dashboard/resources", allowedRoles: ALL_ROLES },
   { icon: Calendar, label: "Bookings", href: "/dashboard/bookings", allowedRoles: ALL_ROLES },
   { icon: Trophy, label: "Tournaments", href: "/dashboard/tournaments", allowedRoles: ALL_ROLES },

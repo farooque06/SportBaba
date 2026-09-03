@@ -7,6 +7,8 @@ const withPWA = withPWAInit({
   register: true,
   workboxOptions: {
     skipWaiting: true,
+    clientsClaim: true,
+    navigateFallbackDenylist: [/^\/admin/, /^\/dashboard/, /^\/api/],
   },
 });
 
