@@ -16,7 +16,7 @@ interface LandingPageInteractiveProps {
   featuredFacilities: any[];
 }
 
-export function LandingPageInteractive({ isLoggedIn, featuredFacilities }: LandingPageInteractiveProps) {
+export default function LandingPageInteractive({ isLoggedIn, featuredFacilities }: LandingPageInteractiveProps) {
   const [persona, setPersona] = useState<'player' | 'partner'>('player')
 
   return (
@@ -137,3 +137,4 @@ export function LandingPageInteractive({ isLoggedIn, featuredFacilities }: Landi
     </>
   )
 }
+

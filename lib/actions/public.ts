@@ -2,6 +2,7 @@
 
 import { supabase } from "@/lib/supabase"
 import { notifyFacilityMembers } from "./notifications"
+import { auth } from "@/auth"
 
 // Fetch facility info securely without auth
 export async function getPublicFacility(slug: string) {
@@ -72,11 +73,13 @@ export async function submitPublicBooking(data: {
   total_price: number;
 }) {
   // ─── Input Validation ───
-  if (!data.guest_name || data.guest_name.trim().length < 2) {
-    return { error: "Name must be at least 2 characters." }
+  const guestName = data.guest_name?.trim() || ""
+  const guestPhone = data.guest_phone?.trim() || ""
+  if (guestName.length < 2 || guestName.length > 80) {
+    return { error: "Name must be between 2 and 80 characters." }
   }
-  if (!data.guest_phone || !/^[\d+\-\s()]{7,20}$/.test(data.guest_phone)) {
-    return { error: "Please provide a valid phone number." }
+  if (!/^\d{10}$/.test(guestPhone)) {
+    return { error: "Contact number must contain exactly 10 digits." }
   }
   if (!data.facility_id || !data.resource_id) {
     return { error: "Missing facility or resource information." }
@@ -88,13 +91,24 @@ export async function submitPublicBooking(data: {
     return { error: "Invalid booking time range." }
   }
 
+  const session = await auth()
+  const userId = session?.user?.id || null
+  const userEmail = session?.user?.email || null
+
   // ─── Sanitize strings ───
-  const cleanData = {
+  const cleanData: any = {
     ...data,
     guest_name: sanitize(data.guest_name, 80),
     guest_phone: sanitize(data.guest_phone, 20),
     payment_status: 'unpaid' as const,
     status: 'pending' as const,
+  }
+
+  if (userId) {
+    cleanData.user_id = userId
+  }
+  if (userEmail) {
+    cleanData.guest_email = userEmail
   }
 
   const { data: booking, error } = await supabase
@@ -126,7 +140,8 @@ export async function submitPublicBooking(data: {
       booking.id,
       booking.guest_name,
       booking.guest_phone || undefined,
-      booking.total_price
+      booking.total_price,
+      userEmail || undefined
     )
   } catch (err) {
     console.error("Failed to link customer on public booking:", err)

@@ -6,8 +6,9 @@ import {
   CheckCircle2, ChevronLeft, ChevronRight, Loader2, MapPin,
   Sparkles, ShieldCheck, AlertCircle, Info, RefreshCw
 } from "lucide-react"
+import Link from "next/link"
 import { getPublicAvailability, submitPublicBooking } from "@/lib/actions/public"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, isValidName, isValidPhone, MAX_NAME_LENGTH, MAX_PHONE_LENGTH } from "@/lib/utils"
 import { PublicBookingReceipt } from "./PublicBookingReceipt"
 
 interface Resource {
@@ -28,12 +29,14 @@ export function PublicBookingEngine({
   facilityId, 
   resources, 
   config,
-  facilityMeta 
+  facilityMeta,
+  currentUser
 }: { 
   facilityId: string; 
   resources: Resource[]; 
   config: any;
   facilityMeta?: FacilityMeta;
+  currentUser?: any;
 }) {
   // ─── State ───
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -44,7 +47,7 @@ export function PublicBookingEngine({
   const [duration, setDuration] = useState(60) // minutes
   
   // Checkout
-  const [guestName, setGuestName] = useState("")
+  const [guestName, setGuestName] = useState(currentUser?.name || "")
   const [guestPhone, setGuestPhone] = useState("")
   const [bookingNote, setBookingNote] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -175,6 +178,14 @@ export function PublicBookingEngine({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedResource || !startTime || !endTime) return
+    if (!isValidName(guestName)) {
+      setErrorMsg(`Name must be 2-${MAX_NAME_LENGTH} characters.`)
+      return
+    }
+    if (!isValidPhone(guestPhone)) {
+      setErrorMsg(`Contact number must contain exactly ${MAX_PHONE_LENGTH} digits.`)
+      return
+    }
     setIsSubmitting(true)
     setErrorMsg(null)
 
@@ -232,6 +243,7 @@ export function PublicBookingEngine({
         durationMinutes={duration}
         totalPrice={totalPrice}
         paymentStatus="unpaid"
+        isLoggedIn={!!currentUser}
         onBookAnother={() => {
           setSuccess(false)
           setConfirmedBooking(null)
@@ -247,13 +259,13 @@ export function PublicBookingEngine({
       
       {/* ─── Top Navigation Bar inside Booking Engine ─── */}
       <div className="flex items-center justify-between mb-6">
-        <a 
-          href="/" 
-          className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-primary transition-colors py-1 px-2.5 rounded-lg hover:bg-muted"
+        <Link 
+          href={currentUser ? "/player" : "/facilities"} 
+          className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-primary transition-colors py-1.5 px-3 rounded-xl bg-card border border-border/70 hover:bg-muted"
         >
-          <ChevronLeft className="h-4 w-4" />
-          <span>Back to Landing Page</span>
-        </a>
+          <ChevronLeft className="h-4 w-4 text-primary" />
+          <span>{currentUser ? "Back to Player Hub" : "Back to Venues"}</span>
+        </Link>
       </div>
 
       {/* ─── Breadcrumb / Step Indicator ─── */}
@@ -621,6 +633,29 @@ export function PublicBookingEngine({
                   <p className="text-xs text-muted-foreground">We will use this to confirm and hold your pitch</p>
                 </div>
 
+                {currentUser ? (
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">
+                        <ShieldCheck className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-wider text-emerald-400">Authenticated Player</div>
+                        <div className="text-xs font-bold text-foreground">{currentUser.name || "Logged In"} <span className="text-muted-foreground font-normal">({currentUser.email})</span></div>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 px-2.5 py-1 rounded-full border border-emerald-500/30 shrink-0">
+                      Auto-Linked
+                    </span>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-between gap-3">
+                    <p className="text-xs text-muted-foreground">
+                      Have a player profile? <Link href={`/login?callbackUrl=/${facilityMeta?.slug || ''}`} className="text-primary font-bold hover:underline">Sign in</Link> to automatically save this reservation to your Hub.
+                    </p>
+                  </div>
+                )}
+
                 {errorMsg && (
                   <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/25 flex items-start gap-3 text-red-400 text-xs font-medium animate-in fade-in">
                     <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -639,6 +674,9 @@ export function PublicBookingEngine({
                       <input 
                         type="text"
                         required
+                        minLength={2}
+                        maxLength={MAX_NAME_LENGTH}
+                        autoComplete="name"
                         value={guestName}
                         onChange={(e) => setGuestName(e.target.value)}
                         placeholder="e.g. John Doe"
@@ -657,6 +695,10 @@ export function PublicBookingEngine({
                       <input 
                         type="tel"
                         required
+                        inputMode="numeric"
+                        maxLength={MAX_PHONE_LENGTH}
+                        pattern="[0-9]{10}"
+                        autoComplete="tel"
                         value={guestPhone}
                         onChange={(e) => setGuestPhone(e.target.value)}
                         placeholder="e.g. 98XXXXXXXX"
@@ -672,6 +714,7 @@ export function PublicBookingEngine({
                     </label>
                     <input 
                       type="text"
+                      maxLength={300}
                       value={bookingNote}
                       onChange={(e) => setBookingNote(e.target.value)}
                       placeholder="e.g. Needs extra bibs / balls"

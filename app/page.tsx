@@ -1,7 +1,7 @@
 import { auth } from "@/auth"
 import { Navbar } from "@/components/layout/Navbar"
 import { Footer } from "@/components/layout/Footer"
-import { LandingPageInteractive } from "@/components/sections/LandingPageInteractive"
+import LandingPageInteractive from "@/components/sections/LandingPageInteractive"
 import { getFeaturedFacilities } from "@/lib/actions/public"
 
 export default async function Home() {

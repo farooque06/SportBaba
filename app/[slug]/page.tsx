@@ -1,12 +1,16 @@
 import { notFound } from "next/navigation"
 import { getPublicFacility } from "@/lib/actions/public"
-import { MapPin, Trophy, Clock, CheckCircle2, ShieldCheck, ArrowLeft, Home, Users } from "lucide-react"
+import { auth } from "@/auth"
+import { MapPin, Trophy, Clock, CheckCircle2, ShieldCheck, ArrowLeft, Home, Users, User } from "lucide-react"
 import { PublicBookingEngine } from "@/components/booking/PublicBookingEngine"
 import Link from "next/link"
 
 export default async function PublicStorefrontPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const facility = await getPublicFacility(slug)
+  const session = await auth()
+  const currentUser = session?.user || null
+  const isPlayer = (currentUser as any)?.role === 'player'
 
   if (!facility) {
     return notFound()
@@ -17,18 +21,18 @@ export default async function PublicStorefrontPage({ params }: { params: Promise
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 selection:text-primary pb-24">
-      {/* Top Navigation Bar with Back & Home actions */}
+      {/* Top Navigation Bar with Back & Hub actions */}
       <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border/60 shadow-xs print:hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           
           <div className="flex items-center gap-3">
-            {/* Direct Back to Landing Page Button */}
+            {/* Direct Back Button (routes to Player Hub if player, or Venues, never leaves user confused) */}
             <Link 
-              href="/" 
+              href={isPlayer ? "/player" : "/facilities"} 
               className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-card border border-border/70 text-xs sm:text-sm font-semibold text-foreground hover:bg-muted hover:border-border transition-all shadow-xs group"
             >
               <ArrowLeft className="h-4 w-4 text-primary group-hover:-translate-x-0.5 transition-transform" />
-              <span>Back to Home</span>
+              <span>{isPlayer ? "Back to Player Hub" : "Back to Venues"}</span>
             </Link>
 
             {/* View other venues */}
@@ -49,21 +53,42 @@ export default async function PublicStorefrontPage({ params }: { params: Promise
             </Link>
           </div>
 
-          {/* Brand Logo & Verification Badge */}
+          {/* Brand Logo & User Auth Status */}
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2 text-foreground font-extrabold tracking-tight text-sm sm:text-base hover:opacity-90 transition-opacity">
+            <Link href="/" className="hidden md:flex items-center gap-2 text-foreground font-extrabold tracking-tight text-sm sm:text-base hover:opacity-90 transition-opacity">
               <div className="h-7 w-7 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-black text-xs shadow-xs">
                 S
               </div>
-              <span className="hidden sm:inline">Sport<span className="text-primary">Baba</span></span>
+              <span>Sport<span className="text-primary">Baba</span></span>
             </Link>
 
-            <div className="h-4 w-px bg-border/60 mx-1 hidden sm:block" />
+            <div className="h-4 w-px bg-border/60 mx-1 hidden md:block" />
 
             <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-500 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
               <ShieldCheck className="h-3.5 w-3.5" />
               <span className="text-[11px] font-bold">Verified Partner</span>
             </div>
+
+            {currentUser ? (
+              <Link 
+                href={isPlayer ? "/player" : "/dashboard"}
+                className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-xl bg-card border border-border/80 hover:border-primary/40 hover:bg-muted/60 transition-all shadow-2xs"
+              >
+                <div className="h-6 w-6 rounded-full bg-primary/20 border border-primary/30 text-primary font-black text-[11px] flex items-center justify-center">
+                  {(currentUser.name || 'U').charAt(0).toUpperCase()}
+                </div>
+                <span className="text-xs font-bold text-foreground max-w-[100px] truncate">
+                  {currentUser.name || (isPlayer ? "Player" : "Dashboard")}
+                </span>
+              </Link>
+            ) : (
+              <Link 
+                href={`/login?callbackUrl=/${slug}`}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold shadow-xs hover:opacity-95 transition-opacity"
+              >
+                Sign In
+              </Link>
+            )}
           </div>
         </div>
       </header>
@@ -129,6 +154,7 @@ export default async function PublicStorefrontPage({ params }: { params: Promise
             logo_url: facility.logo_url,
             sport_type: facility.sport_type
           }}
+          currentUser={currentUser}
         />
       </main>
     </div>

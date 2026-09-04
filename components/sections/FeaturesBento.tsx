@@ -1,3 +1,5 @@
+"use client"
+
 import { Card } from "@/components/ui/Card"
 import { Calendar, Trophy, TrendingUp, Users, Zap, Shield, Clock, CreditCard } from "lucide-react"
 

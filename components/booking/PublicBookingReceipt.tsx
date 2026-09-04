@@ -3,8 +3,9 @@
 import { useState } from "react"
 import { 
   CheckCircle2, Download, Printer, Share2, 
-  MapPin, Clock, Calendar, Phone, ArrowLeft, RefreshCw
+  MapPin, Clock, Calendar, Phone, ArrowLeft, RefreshCw, UserCheck
 } from "lucide-react"
+import Link from "next/link"
 import { formatCurrency, getWhatsAppLink } from "@/lib/utils"
 
 interface BookingReceiptProps {
@@ -23,6 +24,7 @@ interface BookingReceiptProps {
   durationMinutes: number;
   totalPrice: number;
   paymentStatus?: string;
+  isLoggedIn?: boolean;
   onBookAnother?: () => void;
 }
 
@@ -40,6 +42,8 @@ export function PublicBookingReceipt({
   endTime,
   durationMinutes,
   totalPrice,
+  paymentStatus,
+  isLoggedIn,
   onBookAnother
 }: BookingReceiptProps) {
   const dateFormatted = startTime.toLocaleDateString('en-US', {
@@ -125,17 +129,16 @@ export function PublicBookingReceipt({
         </div>
       </div>
 
-      {/* ─── Simple Direct Action Buttons ─── */}
+      {/* ─── Direct Action Buttons ─── */}
       <div className="mt-5 space-y-2.5 print:hidden">
-        {/* Download / Print */}
-        <button
-          type="button"
-          onClick={handlePrint}
+        {/* Go to Player Hub */}
+        <Link
+          href="/player"
           className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center gap-2 hover:opacity-95 active:scale-[0.98] transition-all shadow-md shadow-primary/20 cursor-pointer"
         >
-          <Download className="h-4 w-4" />
-          Download / Print Receipt
-        </button>
+          <UserCheck className="h-4 w-4" />
+          {isLoggedIn ? "View in My Player Hub" : "Go to Player Hub"}
+        </Link>
 
         {/* WhatsApp Share */}
         <a
@@ -148,7 +151,17 @@ export function PublicBookingReceipt({
           Share to WhatsApp Squad
         </a>
 
-        {/* Bottom clean links */}
+        {/* Download / Print */}
+        <button
+          type="button"
+          onClick={handlePrint}
+          className="w-full h-11 rounded-xl bg-card border border-border/80 hover:bg-muted text-foreground font-bold text-xs sm:text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all cursor-pointer shadow-2xs"
+        >
+          <Download className="h-4 w-4" />
+          Download / Print Receipt
+        </button>
+
+        {/* Bottom Navigation Options */}
         <div className="flex items-center justify-between pt-3 px-1 text-xs font-semibold">
           <button
             type="button"
@@ -158,9 +171,15 @@ export function PublicBookingReceipt({
             <RefreshCw className="h-3.5 w-3.5" /> Book Another Slot
           </button>
 
-          <a href="/" className="text-muted-foreground hover:text-foreground">
-            Back to Home
-          </a>
+          <div className="flex items-center gap-3">
+            <Link href="/facilities" className="text-muted-foreground hover:text-foreground">
+              All Venues
+            </Link>
+            <span className="text-muted-foreground/40">•</span>
+            <Link href="/" className="text-muted-foreground hover:text-foreground">
+              Home
+            </Link>
+          </div>
         </div>
       </div>
 

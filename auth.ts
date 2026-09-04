@@ -29,15 +29,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           if (!isValid) return null
 
-          // Fetch the first facility name for the initial session
+          // Check user membership role if any
           const { data: membership } = await supabase
             .from('memberships')
-            .select('facilities(name)')
+            .select('role, facilities(name)')
             .eq('profile_id', user.id)
             .limit(1)
             .maybeSingle()
 
           const facilityName = (membership?.facilities as any)?.name || null
+          const membershipRole = membership?.role || null
+
+          // Determine final role:
+          // 1. superadmin if profile.role is superadmin or specific email
+          // 2. owner / manager / staff if they have facility membership
+          // 3. user.role (defaults to 'player' or 'user')
+          const isSuperAdmin = user.role === 'superadmin' || credentials.email === 'far00queapril17@gmail.com'
+          const effectiveRole = isSuperAdmin 
+            ? 'superadmin' 
+            : (membershipRole || user.role || 'player')
 
           return {
             id: user.id,
@@ -45,7 +55,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             name: user.full_name,
             image: user.avatar_url,
             facilityName: facilityName,
-            role: user.role
+            role: effectiveRole
           }
         } catch (err) {
           console.error("[AUTH] authorize error:", err)

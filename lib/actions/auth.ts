@@ -5,28 +5,55 @@ import { signIn, signOut, auth } from "@/auth";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import * as OTPAuth from "otpauth";
+import { isValidEmail, isValidName, MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH } from "@/lib/utils";
+
+function getValidDestination(callbackUrl: string | null | undefined, defaultDestination: string): string {
+  if (!callbackUrl) return defaultDestination;
+  const trimmed = callbackUrl.trim();
+  if (
+    trimmed.startsWith("/") &&
+    !trimmed.startsWith("//") &&
+    !trimmed.startsWith("/login") &&
+    !trimmed.startsWith("/register")
+  ) {
+    return trimmed;
+  }
+  return defaultDestination;
+}
 
 export async function registerAction(formData: FormData) {
-  const email = formData.get("email") as string;
+  const email = (formData.get("email") as string)?.trim().toLowerCase();
   const password = formData.get("password") as string;
-  const fullName = formData.get("fullName") as string;
+  const fullName = (formData.get("fullName") as string)?.trim();
+  const accountType = (formData.get("accountType") as string) || "player"; // "player" | "facility"
+  const callbackUrl = formData.get("callbackUrl") as string | null;
 
   if (!email || !password || !fullName) {
     return { error: "All fields are required" };
   }
+  if (!isValidName(fullName)) {
+    return { error: `Name must be 2-${MAX_NAME_LENGTH} characters` };
+  }
+  if (!isValidEmail(email)) {
+    return { error: `Enter a valid email address up to ${MAX_EMAIL_LENGTH} characters` };
+  }
+  if (password.length < 8 || password.length > MAX_PASSWORD_LENGTH) {
+    return { error: `Password must be 8-${MAX_PASSWORD_LENGTH} characters` };
+  }
 
   const isSuperAdmin = email === 'far00queapril17@gmail.com';
+  const role = isSuperAdmin ? 'superadmin' : (accountType === 'facility' ? 'user' : 'player');
 
-  console.log("Registering user:", email);
+  console.log("Registering user:", email, "with role:", role);
   const hashedPassword = await bcrypt.hash(password, 10);
 
   // 1. Create user in profiles table
   console.log("Inserting into Supabase profiles...");
-  const { data, error } = await supabase.from('profiles').insert({
+  const { data: newProfile, error } = await supabase.from('profiles').insert({
     email,
     full_name: fullName,
     password_hash: hashedPassword,
-    role: isSuperAdmin ? 'superadmin' : 'user'
+    role: role
   }).select().single();
 
   if (error) {
@@ -35,14 +62,36 @@ export async function registerAction(formData: FormData) {
     return { error: error.message };
   }
 
+  // 2. Link existing customer bookings/profile if email matches existing customers
+  if (role === 'player') {
+    try {
+      await supabase
+        .from('bookings')
+        .update({ user_id: newProfile.id })
+        .eq('guest_email', email)
+        .is('user_id', null);
+    } catch (linkErr) {
+      console.warn("Auto-link customer bookings warning:", linkErr);
+    }
+  }
+
   console.log("User registered successfully. Signing in...");
 
-  // 2. Sign in the user
+  // 3. Destination routing (respecting callbackUrl)
+  let defaultDestination = "/player";
+  if (isSuperAdmin) {
+    defaultDestination = "/admin";
+  } else if (role !== 'player') {
+    defaultDestination = "/dashboard";
+  }
+  const destination = getValidDestination(callbackUrl, defaultDestination);
+
+  // 4. Sign in the user
   try {
     await signIn("credentials", {
       email,
       password,
-      redirectTo: isSuperAdmin ? "/admin" : "/dashboard",
+      redirectTo: destination,
     });
   } catch (error: any) {
     if (error.type === "CredentialsSignin") {
@@ -55,8 +104,9 @@ export async function registerAction(formData: FormData) {
 }
 
 export async function loginAction(formData: FormData) {
-  const email = (formData.get("email") as string).trim();
+  const email = (formData.get("email") as string).trim().toLowerCase();
   const password = formData.get("password") as string;
+  const callbackUrl = formData.get("callbackUrl") as string | null;
 
   // First validate credentials manually
   const { data: user, error: userError } = await supabase
@@ -76,6 +126,27 @@ export async function loginAction(formData: FormData) {
 
   const isSuperAdmin = user.role === 'superadmin' || email.toLowerCase() === 'far00queapril17@gmail.com';
 
+  // Determine redirect destination based on membership, role & callbackUrl
+  let defaultDestination = "/player";
+  if (isSuperAdmin) {
+    defaultDestination = "/admin";
+  } else {
+    // Check if user has an owner/manager/staff membership
+    const { data: membership } = await supabase
+      .from('memberships')
+      .select('role')
+      .eq('profile_id', user.id)
+      .in('role', ['owner', 'manager', 'staff'])
+      .limit(1)
+      .maybeSingle();
+
+    if (membership || user.role === 'owner' || user.role === 'manager' || user.role === 'user') {
+      defaultDestination = "/dashboard";
+    }
+  }
+
+  const destination = getValidDestination(callbackUrl, defaultDestination);
+
   // Check if 2FA is enabled BEFORE signing in
   if (user.totp_enabled && user.totp_secret) {
     return { requires2FA: true, email };
@@ -86,7 +157,7 @@ export async function loginAction(formData: FormData) {
     await signIn("credentials", {
       email,
       password,
-      redirectTo: isSuperAdmin ? "/admin" : "/dashboard",
+      redirectTo: destination,
     });
   } catch (error: any) {
     if (error.type === "CredentialsSignin" || error.message?.includes("CredentialsSignin")) {
@@ -101,11 +172,11 @@ export async function loginAction(formData: FormData) {
   }
 }
 
-export async function verify2FAAction(email: string, password: string, totpCode: string) {
+export async function verify2FAAction(email: string, password: string, totpCode: string, callbackUrl?: string) {
   // 1. Re-validate credentials
   const { data: user, error: userError } = await supabase
     .from("profiles")
-    .select("id, password_hash, totp_secret, totp_enabled")
+    .select("id, password_hash, role, totp_secret, totp_enabled")
     .eq("email", email)
     .single();
 
@@ -137,18 +208,39 @@ export async function verify2FAAction(email: string, password: string, totpCode:
     return { error: "Invalid authentication code. Please try again." };
   }
 
+  const isSuperAdmin = user.role === 'superadmin' || email.toLowerCase() === 'far00queapril17@gmail.com';
+  let defaultDestination = "/player";
+  if (isSuperAdmin) {
+    defaultDestination = "/admin";
+  } else {
+    const { data: membership } = await supabase
+      .from('memberships')
+      .select('role')
+      .eq('profile_id', user.id)
+      .in('role', ['owner', 'manager', 'staff'])
+      .limit(1)
+      .maybeSingle();
+
+    if (membership || user.role === 'owner' || user.role === 'manager' || user.role === 'user') {
+      defaultDestination = "/dashboard";
+    }
+  }
+
+  const destination = getValidDestination(callbackUrl, defaultDestination);
+
   // 3. Code is valid — sign in
   try {
     await signIn("credentials", {
       email,
       password,
-      redirectTo: "/admin",
+      redirectTo: destination,
     });
   } catch (error: any) {
     if (error.digest?.includes("NEXT_REDIRECT") || error.message?.includes("NEXT_REDIRECT")) {
       throw error;
     }
-    return { error: "An unexpected error occurred." };
+    console.error("2FA Signin Error:", error);
+    return { error: "Failed to complete authentication." };
   }
 }
 

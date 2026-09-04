@@ -7,7 +7,7 @@ import { ThemeToggle } from "@/components/ThemeToggle"
 import { NotificationBell } from "@/components/ui/NotificationBell"
 import { NotificationDropdown } from "@/components/ui/NotificationDropdown"
 import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 
 export function Navbar({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean }) {
@@ -15,8 +15,12 @@ export function Navbar({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean
   const isLoggedIn = status === "authenticated"
   const isSuperAdmin = session?.user?.email === 'far00queapril17@gmail.com'
   const router = useRouter();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+
+  const loginUrl = pathname && pathname !== '/' ? `/login?callbackUrl=${encodeURIComponent(pathname)}` : '/login'
+  const registerUrl = pathname && pathname !== '/' ? `/register?callbackUrl=${encodeURIComponent(pathname)}` : '/register'
 
   return (
     <nav className="fixed top-0 z-[100] w-full">
@@ -64,14 +68,14 @@ export function Navbar({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean
             {!isLoggedIn ? (
               <div className="flex items-center gap-2 sm:gap-3">
                 <button 
-                  onClick={() => router.push('/login')} 
+                  onClick={() => router.push(loginUrl)} 
                   className="hidden md:inline-flex items-center gap-2 h-9 px-4 rounded-lg text-[13px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all cursor-pointer outline-none"
                 >
                   <LogIn className="h-4 w-4" />
                   Sign In
                 </button>
                 <button 
-                  onClick={() => router.push('/register')} 
+                  onClick={() => router.push(registerUrl)} 
                   className="inline-flex items-center justify-center rounded-xl font-semibold text-[13px] transition-all active:scale-95 bg-primary text-primary-foreground hover:opacity-90 shadow-lg shadow-primary/25 h-9 sm:h-10 px-5 sm:px-6 cursor-pointer outline-none"
                 >
                   Get Started
@@ -85,11 +89,27 @@ export function Navbar({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean
                   {notificationOpen && <NotificationDropdown isOpen={notificationOpen} onClose={() => setNotificationOpen(false)} />}
                 </div>
 
-                <Link href={isSuperAdmin ? "/admin" : "/dashboard"} className="hidden sm:block">
-                  <Button variant="primary" size="md" className="h-10 px-5 rounded-xl font-semibold text-[13px] shadow-lg shadow-primary/25">
-                    {isSuperAdmin ? "Admin Hub" : "Dashboard"}
-                  </Button>
-                </Link>
+                {(() => {
+                  const role = (session?.user as any)?.role
+                  let targetHref = "/dashboard"
+                  let label = "Dashboard"
+
+                  if (isSuperAdmin) {
+                    targetHref = "/admin"
+                    label = "Admin Hub"
+                  } else if (role === "player") {
+                    targetHref = "/player"
+                    label = "Player Hub"
+                  }
+
+                  return (
+                    <Link href={targetHref} className="hidden sm:block">
+                      <Button variant="primary" size="md" className="h-10 px-5 rounded-xl font-semibold text-[13px] shadow-lg shadow-primary/25">
+                        {label}
+                      </Button>
+                    </Link>
+                  )
+                })()}
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => signOut({ callbackUrl: '/' })}
@@ -120,8 +140,8 @@ export function Navbar({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean
               className="flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-bold text-primary hover:bg-primary/10 transition-colors"
               onClick={() => setMobileOpen(false)}
             >
-              <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-              Open Games (Find Players)
+              <Users className="h-4 w-4" />
+              Open Games
             </Link>
             {["Features", "Sports", "Pricing"].map((item) => (
               <Link
@@ -134,6 +154,15 @@ export function Navbar({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean
               </Link>
             ))}
             {isLoggedIn && (
+              <Link
+                href={isSuperAdmin ? "/admin" : ((session?.user as any)?.role === "player" ? "/player" : "/dashboard")}
+                className="block px-4 py-3 rounded-lg text-sm font-bold text-primary hover:bg-primary/10 transition-colors"
+                onClick={() => setMobileOpen(false)}
+              >
+                {isSuperAdmin ? "Admin Hub" : ((session?.user as any)?.role === "player" ? "Player Hub" : "Dashboard")}
+              </Link>
+            )}
+            {isLoggedIn && (
               <button
                 onClick={() => signOut({ callbackUrl: '/' })}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-red-500 hover:bg-red-500/5 transition-colors mt-2"
@@ -141,6 +170,25 @@ export function Navbar({ isLoggedIn: initialIsLoggedIn }: { isLoggedIn?: boolean
                 <LogOut className="h-4 w-4" />
                 Sign Out
               </button>
+            )}
+            {!isLoggedIn && (
+              <div className="pt-3 border-t border-border/40 flex flex-col gap-2">
+                <Link
+                  href={loginUrl}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-border/60 text-foreground hover:bg-muted/50 transition-colors"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <LogIn className="h-4 w-4" />
+                  Sign In
+                </Link>
+                <Link
+                  href={registerUrl}
+                  className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-primary text-primary-foreground shadow-md transition-all active:scale-95"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  Get Started
+                </Link>
+              </div>
             )}
           </div>
         )}
