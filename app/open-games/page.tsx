@@ -44,7 +44,15 @@ export default async function OpenGamesPage() {
           </div>
 
           {/* Open Games List Component */}
-          <OpenGamesList initialGames={initialGames} />
+          <OpenGamesList 
+            initialGames={initialGames} 
+            isLoggedIn={isLoggedIn}
+            currentUser={session?.user?.id ? {
+              id: session.user.id,
+              name: session.user.name || null,
+              email: session.user.email || null,
+            } : null}
+          />
         </div>
       </div>
 

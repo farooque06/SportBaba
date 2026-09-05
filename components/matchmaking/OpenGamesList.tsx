@@ -12,9 +12,15 @@ import { getOpenGames, type OpenGame } from "@/lib/actions/matchmaking"
 interface OpenGamesListProps {
   initialGames?: OpenGame[]
   facilityId?: string
+  isLoggedIn?: boolean
+  currentUser?: {
+    id: string
+    name: string | null
+    email: string | null
+  } | null
 }
 
-export function OpenGamesList({ initialGames, facilityId }: OpenGamesListProps) {
+export function OpenGamesList({ initialGames, facilityId, isLoggedIn = false, currentUser }: OpenGamesListProps) {
   const [games, setGames] = useState<OpenGame[]>(initialGames || [])
   const [loading, setLoading] = useState(!initialGames)
   const [refreshing, setRefreshing] = useState(false)
@@ -26,6 +32,7 @@ export function OpenGamesList({ initialGames, facilityId }: OpenGamesListProps) 
 
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false)
   const [joinGame, setJoinGame] = useState<OpenGame | null>(null)
   const [detailGame, setDetailGame] = useState<OpenGame | null>(null)
 
@@ -135,7 +142,13 @@ export function OpenGamesList({ initialGames, facilityId }: OpenGamesListProps) 
             variant="primary"
             size="sm"
             className="h-11 px-4 sm:px-5 rounded-xl font-bold text-xs shadow-md shadow-primary/15 shrink-0"
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => {
+              if (!isLoggedIn) {
+                setShowLoginPrompt(true)
+              } else {
+                setShowCreateModal(true)
+              }
+            }}
           >
             <span className="flex items-center gap-1.5">
               <Plus className="h-4 w-4" />
@@ -178,25 +191,28 @@ export function OpenGamesList({ initialGames, facilityId }: OpenGamesListProps) 
             <Trophy className="h-8 w-8 text-primary" />
           </div>
           <h3 className="text-lg font-extrabold tracking-tight text-foreground mb-2">No Open Games Yet</h3>
-          <p className="text-sm text-muted-foreground mb-6 max-w-sm">
-            Be the first to post a game and find players near you. Click &ldquo;Post Game&rdquo; to get started!
+          <p className="text-sm text-muted-foreground max-w-sm mb-6">
+            Be the first to post a game and invite community players to complete your squad!
           </p>
           <Button
             variant="primary"
-            size="md"
-            className="h-11 px-6 rounded-xl font-bold text-sm shadow-md shadow-primary/15"
-            onClick={() => setShowCreateModal(true)}
+            onClick={() => {
+              if (!isLoggedIn) {
+                setShowLoginPrompt(true)
+              } else {
+                setShowCreateModal(true)
+              }
+            }}
+            className="rounded-xl font-bold text-xs"
           >
-            <span className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Post Your First Game
-            </span>
+            <Plus className="h-4 w-4 mr-2" />
+            Host First Match
           </Button>
         </div>
       ) : (
         <>
-          {/* Stats bar */}
-          <div className="flex items-center gap-3 mb-5">
+          {/* Results count bar */}
+          <div className="flex items-center justify-between mb-4 px-1">
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/8 border border-primary/15 text-xs font-bold text-primary">
               <Users className="h-3 w-3" />
               {filteredGames.length} open game{filteredGames.length !== 1 ? 's' : ''}
@@ -212,6 +228,7 @@ export function OpenGamesList({ initialGames, facilityId }: OpenGamesListProps) 
               <OpenGameCard
                 key={game.id}
                 game={game}
+                currentUser={currentUser}
                 onJoin={(g) => setJoinGame(g)}
                 onViewDetails={(g) => setDetailGame(g)}
               />
@@ -223,6 +240,7 @@ export function OpenGamesList({ initialGames, facilityId }: OpenGamesListProps) 
       {/* Modals */}
       <CreateOpenGameModal
         isOpen={showCreateModal}
+        currentUser={currentUser}
         onClose={() => setShowCreateModal(false)}
         onCreated={handleCreated}
         preselectedFacilityId={facilityId}
@@ -231,6 +249,7 @@ export function OpenGamesList({ initialGames, facilityId }: OpenGamesListProps) 
       <JoinGameModal
         isOpen={!!joinGame}
         game={joinGame}
+        currentUser={currentUser}
         onClose={() => setJoinGame(null)}
         onJoined={handleJoined}
       />
@@ -238,9 +257,64 @@ export function OpenGamesList({ initialGames, facilityId }: OpenGamesListProps) 
       <GameDetailModal
         isOpen={!!detailGame}
         game={detailGame}
+        currentUser={currentUser}
         onClose={() => setDetailGame(null)}
         onJoin={(g) => { setDetailGame(null); setJoinGame(g) }}
+        onGameUpdated={fetchGames}
       />
+
+      {/* Logged-in Player Only Prompt Modal */}
+      {showLoginPrompt && (
+        <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div 
+            className="bg-card w-full max-w-md rounded-3xl border border-primary/20 shadow-2xl p-6 sm:p-8 relative overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Background glow */}
+            <div className="absolute top-0 right-0 w-48 h-48 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
+
+            <button
+              onClick={() => setShowLoginPrompt(false)}
+              className="absolute top-4 right-4 h-8 w-8 rounded-full bg-muted/60 flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-5 text-primary">
+              <Trophy className="h-7 w-7" />
+            </div>
+
+            <h3 className="text-xl font-black tracking-tight text-foreground uppercase italic mb-2">
+              Sign In to Host Games
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+              Only registered and logged-in players can post open matchmaking games and manage their match squads.
+            </p>
+
+            <div className="space-y-2.5">
+              <a
+                href="/login?callbackUrl=/open-games"
+                className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center hover:opacity-95 active:scale-[0.98] transition-all shadow-md shadow-primary/25"
+              >
+                Sign In to Post Game
+              </a>
+              <a
+                href="/register?callbackUrl=/open-games"
+                className="w-full h-12 rounded-xl bg-card border border-border/80 hover:bg-muted text-foreground font-bold text-sm flex items-center justify-center active:scale-[0.98] transition-all"
+              >
+                Create Player Account
+              </a>
+            </div>
+
+            <button
+              onClick={() => setShowLoginPrompt(false)}
+              className="w-full mt-4 text-xs font-semibold text-muted-foreground hover:text-foreground text-center"
+            >
+              Cancel & Continue Browsing
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

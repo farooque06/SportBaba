@@ -6,11 +6,18 @@ import type { OpenGame } from "@/lib/actions/matchmaking"
 
 interface OpenGameCardProps {
   game: OpenGame
+  currentUser?: {
+    id: string
+    name: string | null
+    email: string | null
+  } | null
   onJoin: (game: OpenGame) => void
   onViewDetails: (game: OpenGame) => void
 }
 
-export function OpenGameCard({ game, onJoin, onViewDetails }: OpenGameCardProps) {
+export function OpenGameCard({ game, currentUser, onJoin, onViewDetails }: OpenGameCardProps) {
+  const isHost = !!(currentUser?.id && game.host_user_id === currentUser.id)
+  const isJoined = !!(currentUser?.id && game.participants?.some(p => p.player_user_id === currentUser.id))
   const isFull = game.status === 'full' || game.current_players >= game.max_players
   const spotsLeft = game.max_players - game.current_players
   const fillPercent = Math.round((game.current_players / game.max_players) * 100)
@@ -132,7 +139,30 @@ export function OpenGameCard({ game, onJoin, onViewDetails }: OpenGameCardProps)
 
         {/* Action buttons */}
         <div className="flex items-center gap-2.5">
-          {!isFull ? (
+          {isHost ? (
+            <Button
+              variant="primary"
+              size="sm"
+              className="flex-1 h-11 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-600 text-black border-amber-400 shadow-md shadow-amber-500/20 group/btn"
+              onClick={() => onViewDetails(game)}
+            >
+              <span className="flex items-center gap-2 font-black">
+                <Star className="h-3.5 w-3.5 fill-black text-black" />
+                Manage Roster (Host)
+              </span>
+            </Button>
+          ) : isJoined ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 h-11 rounded-xl font-bold text-xs border-emerald-500/40 text-emerald-600 bg-emerald-500/10"
+              onClick={() => onViewDetails(game)}
+            >
+              <span className="flex items-center gap-1.5 font-bold">
+                ✓ Joined Match
+              </span>
+            </Button>
+          ) : !isFull ? (
             <Button
               variant="primary"
               size="sm"

@@ -5,7 +5,7 @@ import { signIn, signOut, auth } from "@/auth";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import * as OTPAuth from "otpauth";
-import { isValidEmail, isValidName, MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH } from "@/lib/utils";
+import { isValidEmail, isValidName, isValidPhone, isValidDateOfBirth, isValidCity, MAX_EMAIL_LENGTH, MAX_NAME_LENGTH, MAX_PASSWORD_LENGTH } from "@/lib/utils";
 
 function getValidDestination(callbackUrl: string | null | undefined, defaultDestination: string): string {
   if (!callbackUrl) return defaultDestination;
@@ -28,11 +28,17 @@ export async function registerAction(formData: FormData) {
   const accountType = (formData.get("accountType") as string) || "player"; // "player" | "facility"
   const callbackUrl = formData.get("callbackUrl") as string | null;
 
+  // New optional profile fields
+  const phone = (formData.get("phone") as string)?.trim() || "";
+  const dateOfBirth = (formData.get("dateOfBirth") as string)?.trim() || "";
+  const preferredSport = (formData.get("preferredSport") as string)?.trim() || "";
+  const city = (formData.get("city") as string)?.trim() || "";
+
   if (!email || !password || !fullName) {
     return { error: "All fields are required" };
   }
   if (!isValidName(fullName)) {
-    return { error: `Name must be 2-${MAX_NAME_LENGTH} characters` };
+    return { error: `Name must contain only letters and spaces (2-${MAX_NAME_LENGTH} characters)` };
   }
   if (!isValidEmail(email)) {
     return { error: `Enter a valid email address up to ${MAX_EMAIL_LENGTH} characters` };
@@ -41,20 +47,37 @@ export async function registerAction(formData: FormData) {
     return { error: `Password must be 8-${MAX_PASSWORD_LENGTH} characters` };
   }
 
+  // Validate optional fields if provided
+  if (phone && !isValidPhone(phone)) {
+    return { error: "Phone number must be exactly 10 digits" };
+  }
+  if (dateOfBirth && !isValidDateOfBirth(dateOfBirth)) {
+    return { error: "Invalid date of birth. You must be at least 13 years old." };
+  }
+  if (city && !isValidCity(city)) {
+    return { error: "City must contain only letters and spaces (2-100 characters)" };
+  }
+
   const isSuperAdmin = email === 'far00queapril17@gmail.com';
   const role = isSuperAdmin ? 'superadmin' : (accountType === 'facility' ? 'user' : 'player');
 
   console.log("Registering user:", email, "with role:", role);
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  // 1. Create user in profiles table
+  // 1. Create user in profiles table (with optional extended fields)
   console.log("Inserting into Supabase profiles...");
-  const { data: newProfile, error } = await supabase.from('profiles').insert({
+  const profileData: Record<string, any> = {
     email,
     full_name: fullName,
     password_hash: hashedPassword,
-    role: role
-  }).select().single();
+    role: role,
+  };
+  if (phone) profileData.phone = phone;
+  if (dateOfBirth) profileData.date_of_birth = dateOfBirth;
+  if (preferredSport) profileData.preferred_sport = preferredSport;
+  if (city) profileData.city = city;
+
+  const { data: newProfile, error } = await supabase.from('profiles').insert(profileData).select().single();
 
   if (error) {
     console.error("Supabase Insertion Error:", error);

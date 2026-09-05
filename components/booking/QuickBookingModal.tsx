@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button"
 import { createBooking, fetchResourceWithBookings } from "@/lib/actions/booking"
 import { searchCustomers, fetchCustomers } from "@/lib/actions/customers"
 import { X, AlertCircle, CreditCard, Banknote, CheckCircle2, Phone, Clock, MapPin, User, Calendar, Timer, MessageCircle, Loader2, ChevronDown, Zap, Receipt, ChevronRight, RefreshCcw, Search, Star, History, Users, Globe } from "lucide-react"
-import { cn, formatCurrency, getWhatsAppLink } from "@/lib/utils"
+import { cn, formatCurrency, getWhatsAppLink, sanitizeNumericInput, sanitizeDecimalInput } from "@/lib/utils"
 import { ArtisanSelect } from "@/components/ui/ArtisanSelect"
 import { Toast, ToastType } from "@/components/ui/Toast"
 import { useRouter } from "next/navigation"
@@ -607,10 +607,11 @@ export function QuickBookingModal({
                 <div className="relative group/field">
                   <input 
                     name="guest_name"
-                    placeholder="Player Name"
+                    placeholder="Player Name (Letters only)"
                     value={guestName}
                     onChange={(e) => {
-                      setGuestName(e.target.value);
+                      const filtered = e.target.value.replace(/[^a-zA-Z\s.'-]/g, "");
+                      setGuestName(filtered);
                       if (selectedCustomerId) setSelectedCustomerId(null);
                     }}
                     className="w-full bg-muted/40 border border-border/30 p-3 rounded-xl text-sm font-bold outline-none ring-primary focus:ring-2 transition-all placeholder:text-muted-foreground/40 pl-10"
@@ -622,10 +623,13 @@ export function QuickBookingModal({
                 <div className="relative group/field">
                   <input 
                     name="guest_phone"
-                    placeholder="+977 98XXXXXXXX"
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder="98XXXXXXXX (10 digits)"
                     value={guestPhone}
                     onChange={(e) => {
-                      setGuestPhone(e.target.value);
+                      const filtered = sanitizeNumericInput(e.target.value, 10);
+                      setGuestPhone(filtered);
                       if (selectedCustomerId) setSelectedCustomerId(null);
                     }}
                     className="w-full bg-muted/40 border border-border/30 p-3 rounded-xl text-sm font-bold outline-none ring-primary focus:ring-2 transition-all placeholder:text-muted-foreground/40 pl-10 pr-10"
@@ -740,10 +744,11 @@ export function QuickBookingModal({
                 <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
                    <div className="relative">
                       <input 
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         placeholder="Deposit Amount (e.g. 500)"
                         value={partialAmount}
-                        onChange={(e) => setPartialAmount(e.target.value)}
+                        onChange={(e) => setPartialAmount(sanitizeDecimalInput(e.target.value))}
                         className="w-full bg-muted/40 border border-border/30 p-3 rounded-xl text-sm font-bold outline-none ring-amber-500 focus:ring-2 transition-all pl-10"
                         required
                       />

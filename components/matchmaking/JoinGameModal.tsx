@@ -6,20 +6,32 @@ import { Button } from "@/components/ui/Button"
 import { Portal } from "@/components/ui/Portal"
 import { joinOpenGame } from "@/lib/actions/matchmaking"
 import type { OpenGame } from "@/lib/actions/matchmaking"
+import { sanitizeNumericInput } from "@/lib/utils"
 
 interface JoinGameModalProps {
   isOpen: boolean
   game: OpenGame | null
+  currentUser?: {
+    id: string
+    name: string | null
+    email: string | null
+  } | null
   onClose: () => void
   onJoined: () => void
 }
 
-export function JoinGameModal({ isOpen, game, onClose, onJoined }: JoinGameModalProps) {
-  const [playerName, setPlayerName] = useState("")
+export function JoinGameModal({ isOpen, game, currentUser, onClose, onJoined }: JoinGameModalProps) {
+  const [playerName, setPlayerName] = useState(currentUser?.name || "")
   const [playerPhone, setPlayerPhone] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    if (currentUser?.name && !playerName) {
+      setPlayerName(currentUser.name)
+    }
+  }, [currentUser])
 
   useEffect(() => {
     if (isOpen) {
@@ -137,20 +149,24 @@ export function JoinGameModal({ isOpen, game, onClose, onJoined }: JoinGameModal
                   <input
                     type="text"
                     value={playerName}
-                    onChange={(e) => setPlayerName(e.target.value)}
-                    placeholder="Enter your name"
+                    onChange={(e) => {
+                      const filtered = e.target.value.replace(/[^a-zA-Z\s.'-]/g, "")
+                      setPlayerName(filtered)
+                    }}
+                    placeholder="Enter your name (letters only)"
                     autoFocus
                     className="w-full h-12 px-4 rounded-xl border border-border/60 bg-muted/30 text-sm font-medium text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all"
                   />
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Phone</label>
+                  <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Phone (Digits only)</label>
                   <input
                     type="tel"
+                    inputMode="numeric"
                     value={playerPhone}
-                    onChange={(e) => setPlayerPhone(e.target.value)}
-                    placeholder="Your phone number"
+                    onChange={(e) => setPlayerPhone(sanitizeNumericInput(e.target.value, 10))}
+                    placeholder="98XXXXXXXX (10 digits)"
                     className="w-full h-12 px-4 rounded-xl border border-border/60 bg-muted/30 text-sm font-medium text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all"
                   />
                 </div>

@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS open_game_participants (
     player_name TEXT NOT NULL,
     player_phone TEXT,
     player_user_id TEXT REFERENCES profiles(id) ON DELETE SET NULL,
+    status TEXT NOT NULL DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected')),
     joined_at TIMESTAMPTZ DEFAULT now(),
     UNIQUE(game_id, player_phone)
 );

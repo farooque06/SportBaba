@@ -2,6 +2,8 @@
 
 import { supabase } from "@/lib/supabase"
 import { revalidatePath } from "next/cache"
+import { auth } from "@/auth"
+import { isAlphabeticName, isValidPhone } from "@/lib/utils"
 
 // ─── Types ───
 export interface OpenGame {
@@ -33,6 +35,7 @@ export interface OpenGameParticipant {
   player_name: string
   player_phone: string | null
   player_user_id: string | null
+  status?: 'pending' | 'approved' | 'rejected'
   joined_at: string
 }
 
@@ -60,7 +63,7 @@ export async function getOpenGames(filters?: {
       *,
       facility:facilities(id, name, slug, logo_url, sport_type),
       resource:resource_units(id, name, unit_type),
-      participants:open_game_participants(id, player_name, player_phone, joined_at)
+      participants:open_game_participants(id, player_name, player_phone, player_user_id, status, joined_at)
     `)
     .in('status', ['open', 'full'])
     .order('scheduled_date', { ascending: true })
@@ -102,7 +105,7 @@ export async function getOpenGame(gameId: string) {
       *,
       facility:facilities(id, name, slug, logo_url, sport_type),
       resource:resource_units(id, name, unit_type),
-      participants:open_game_participants(id, player_name, player_phone, joined_at)
+      participants:open_game_participants(id, player_name, player_phone, player_user_id, status, joined_at)
     `)
     .eq('id', gameId)
     .single()
@@ -112,7 +115,7 @@ export async function getOpenGame(gameId: string) {
 }
 
 // ═══════════════════════════════════════════
-//  CREATE: Post a "Looking for Players" game
+//  CREATE: Post a "Looking for Players" game (Logged in only)
 // ═══════════════════════════════════════════
 export async function createOpenGame(data: {
   facility_id: string
@@ -128,28 +131,48 @@ export async function createOpenGame(data: {
   notes?: string
   additional_players?: string[] // Optional players host already has
 }) {
-  // Validation
-  if (!data.host_name || data.host_name.trim().length < 2) {
-    return { error: "Name must be at least 2 characters." }
+  const session = await auth()
+  if (!session?.user?.id) {
+    return { error: "You must be signed in to create an open game." }
   }
+
+  // Strict host name validation (characters only)
+  const hostNameTrimmed = data.host_name?.trim() || ""
+  if (!isAlphabeticName(hostNameTrimmed)) {
+    return { error: "Host name must contain only letters and spaces (min 2 characters)." }
+  }
+
+  // Strict phone validation (digits only if provided)
+  if (data.host_phone && !isValidPhone(data.host_phone.replace(/\D/g, ''))) {
+    return { error: "Contact phone must be a valid 10-digit number." }
+  }
+
   if (!data.facility_id) {
     return { error: "Please select a venue." }
   }
   if (!data.scheduled_date || !data.start_time || !data.end_time) {
     return { error: "Please select date and time." }
   }
-  if (data.max_players < 2 || data.max_players > 30) {
-    return { error: "Players must be between 2 and 30." }
+
+  // Max players validation (strict numeric range)
+  const maxPlayersNum = Number(data.max_players)
+  if (isNaN(maxPlayersNum) || maxPlayersNum < 2 || maxPlayersNum > 30) {
+    return { error: "Max players must be a number between 2 and 30." }
   }
 
-  // Filter and sanitize additional players
-  const extraPlayers = (data.additional_players || [])
-    .map(p => sanitize(p, 80))
-    .filter(p => p.length >= 2)
+  // Filter and sanitize additional players with character validation
+  const extraPlayers: string[] = []
+  for (const rawName of (data.additional_players || [])) {
+    const trimmed = rawName.trim()
+    if (!isAlphabeticName(trimmed)) {
+      return { error: `Player name "${trimmed}" must contain only letters and spaces.` }
+    }
+    extraPlayers.push(sanitize(trimmed, 80))
+  }
 
   const totalStartingPlayers = 1 + extraPlayers.length
-  if (totalStartingPlayers > data.max_players) {
-    return { error: `Starting players (${totalStartingPlayers}) cannot exceed max player limit (${data.max_players}).` }
+  if (totalStartingPlayers > maxPlayersNum) {
+    return { error: `Starting players (${totalStartingPlayers}) cannot exceed max player limit (${maxPlayersNum}).` }
   }
 
   // Check date is not in the past
@@ -165,18 +188,19 @@ export async function createOpenGame(data: {
     return { error: "End time must be after start time." }
   }
 
-  const initialStatus = totalStartingPlayers >= data.max_players ? 'full' : 'open'
+  const initialStatus = totalStartingPlayers >= maxPlayersNum ? 'full' : 'open'
 
   const insertData = {
     facility_id: data.facility_id,
     resource_id: data.resource_id || null,
-    host_name: sanitize(data.host_name, 80),
-    host_phone: data.host_phone ? sanitize(data.host_phone, 20) : null,
+    host_name: sanitize(hostNameTrimmed, 80),
+    host_phone: data.host_phone ? data.host_phone.replace(/\D/g, '').slice(0, 10) : null,
+    host_user_id: session.user.id,
     sport_type: data.sport_type || 'football',
     scheduled_date: data.scheduled_date,
     start_time: data.start_time,
     end_time: data.end_time,
-    max_players: data.max_players,
+    max_players: maxPlayersNum,
     current_players: totalStartingPlayers,
     skill_level: data.skill_level || 'any',
     notes: data.notes ? sanitize(data.notes, 500) : null,
@@ -191,18 +215,22 @@ export async function createOpenGame(data: {
 
   if (error) return { error: error.message }
 
-  // Add host and any initial players to participants
+  // Add host and initial players to participants
   if (game) {
     const participantsToInsert = [
       {
         game_id: game.id,
         player_name: insertData.host_name,
         player_phone: insertData.host_phone,
+        player_user_id: session.user.id,
+        status: 'approved',
       },
-      ...extraPlayers.map((name, idx) => ({
+      ...extraPlayers.map((name) => ({
         game_id: game.id,
         player_name: name,
         player_phone: null,
+        player_user_id: null,
+        status: 'approved',
       }))
     ]
 
@@ -210,6 +238,7 @@ export async function createOpenGame(data: {
   }
 
   revalidatePath("/open-games")
+  revalidatePath("/player")
   return { success: true, game }
 }
 
@@ -220,14 +249,24 @@ export async function joinOpenGame(gameId: string, player: {
   player_name: string
   player_phone?: string
 }) {
-  if (!player.player_name || player.player_name.trim().length < 2) {
-    return { error: "Name must be at least 2 characters." }
+  const session = await auth()
+  const playerName = player.player_name?.trim() || ""
+
+  // Character-only name validation
+  if (!isAlphabeticName(playerName)) {
+    return { error: "Player name must contain only letters and spaces (min 2 characters)." }
+  }
+
+  // Number-only phone validation if provided
+  const cleanPhone = player.player_phone ? player.player_phone.replace(/\D/g, '') : null
+  if (cleanPhone && !isValidPhone(cleanPhone)) {
+    return { error: "Contact phone must be a valid 10-digit number." }
   }
 
   // Fetch the game
   const { data: game, error: fetchError } = await supabase
     .from('open_games')
-    .select('id, max_players, current_players, status')
+    .select('id, host_user_id, host_phone, max_players, current_players, status')
     .eq('id', gameId)
     .single()
 
@@ -235,31 +274,49 @@ export async function joinOpenGame(gameId: string, player: {
   if (game.status !== 'open') return { error: "This game is no longer accepting players." }
   if (game.current_players >= game.max_players) return { error: "This game is already full." }
 
-  // Check if player already joined (by phone)
-  if (player.player_phone) {
-    const { data: existing } = await supabase
+  // Check if player is already the host
+  if (session?.user?.id && game.host_user_id === session.user.id) {
+    return { error: "You are already the host of this game." }
+  }
+
+  // Check if already joined (by user ID or phone)
+  if (session?.user?.id) {
+    const { data: existingUser } = await supabase
       .from('open_game_participants')
       .select('id')
       .eq('game_id', gameId)
-      .eq('player_phone', player.player_phone)
+      .eq('player_user_id', session.user.id)
       .maybeSingle()
 
-    if (existing) return { error: "You have already joined this game." }
+    if (existingUser) return { error: "You have already joined this game." }
   }
 
-  // Add participant
+  if (cleanPhone) {
+    const { data: existingPhone } = await supabase
+      .from('open_game_participants')
+      .select('id')
+      .eq('game_id', gameId)
+      .eq('player_phone', cleanPhone)
+      .maybeSingle()
+
+    if (existingPhone) return { error: "You have already joined this game." }
+  }
+
+  // Insert participant as approved (or pending join)
   const { error: joinError } = await supabase
     .from('open_game_participants')
     .insert({
       game_id: gameId,
-      player_name: sanitize(player.player_name, 80),
-      player_phone: player.player_phone ? sanitize(player.player_phone, 20) : null,
+      player_name: sanitize(playerName, 80),
+      player_phone: cleanPhone,
+      player_user_id: session?.user?.id || null,
+      status: 'approved',
     })
 
   if (joinError) return { error: joinError.message }
 
   // Update player count
-  const newCount = game.current_players + 1
+  const newCount = (game.current_players || 0) + 1
   const newStatus = newCount >= game.max_players ? 'full' : 'open'
 
   await supabase
@@ -272,21 +329,160 @@ export async function joinOpenGame(gameId: string, player: {
     .eq('id', gameId)
 
   revalidatePath("/open-games")
+  revalidatePath("/player")
   return { success: true, current_players: newCount, status: newStatus }
+}
+
+// ═══════════════════════════════════════════
+//  HOST MANAGEMENT: Verify Host Authorization
+// ═══════════════════════════════════════════
+async function verifyGameHost(gameId: string, hostPhoneVerify?: string): Promise<{ isHost: boolean; game: any; error?: string }> {
+  const session = await auth()
+  const { data: game, error } = await supabase
+    .from('open_games')
+    .select('*, participants:open_game_participants(*)')
+    .eq('id', gameId)
+    .single()
+
+  if (error || !game) return { isHost: false, game: null, error: "Game not found." }
+
+  // Check by logged-in user id or verified host phone
+  const isHost = (session?.user?.id && game.host_user_id === session.user.id) ||
+    (hostPhoneVerify && game.host_phone === hostPhoneVerify.replace(/\D/g, ''))
+
+  if (!isHost) {
+    return { isHost: false, game, error: "Only the host can manage players in this match." }
+  }
+
+  return { isHost: true, game }
+}
+
+// ═══════════════════════════════════════════
+//  HOST: Approve Pending Participant
+// ═══════════════════════════════════════════
+export async function approveParticipant(gameId: string, participantId: string, hostPhoneVerify?: string) {
+  const { isHost, game, error: authError } = await verifyGameHost(gameId, hostPhoneVerify)
+  if (!isHost || !game) return { error: authError || "Unauthorized" }
+
+  const participant = game.participants?.find((p: any) => p.id === participantId)
+  if (!participant) return { error: "Player request not found." }
+
+  if (participant.status === 'approved') {
+    return { success: true, message: "Player already approved." }
+  }
+
+  if (game.current_players >= game.max_players) {
+    return { error: "Match is already at maximum capacity." }
+  }
+
+  // Mark as approved
+  const { error: updateError } = await supabase
+    .from('open_game_participants')
+    .update({ status: 'approved' })
+    .eq('id', participantId)
+
+  if (updateError) return { error: updateError.message }
+
+  // Increment current players
+  const nextCount = game.current_players + 1
+  await supabase
+    .from('open_games')
+    .update({
+      current_players: nextCount,
+      status: nextCount >= game.max_players ? 'full' : 'open',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', gameId)
+
+  revalidatePath("/open-games")
+  revalidatePath("/player")
+  return { success: true }
+}
+
+// ═══════════════════════════════════════════
+//  HOST: Remove / Reject Participant
+// ═══════════════════════════════════════════
+export async function removeParticipant(gameId: string, participantId: string, hostPhoneVerify?: string) {
+  const { isHost, game, error: authError } = await verifyGameHost(gameId, hostPhoneVerify)
+  if (!isHost || !game) return { error: authError || "Unauthorized" }
+
+  const participant = game.participants?.find((p: any) => p.id === participantId)
+  if (!participant) return { error: "Player not found." }
+
+  // Prevent host from removing themselves
+  if (game.host_user_id && participant.player_user_id === game.host_user_id) {
+    return { error: "Host cannot be removed from the game. You can cancel the game instead." }
+  }
+
+  // Delete participant
+  const { error: deleteError } = await supabase
+    .from('open_game_participants')
+    .delete()
+    .eq('id', participantId)
+
+  if (deleteError) return { error: deleteError.message }
+
+  // Decrement current player count if was approved
+  const wasApproved = participant.status !== 'rejected' && participant.status !== 'pending'
+  const newCount = wasApproved ? Math.max(1, game.current_players - 1) : game.current_players
+
+  await supabase
+    .from('open_games')
+    .update({
+      current_players: newCount,
+      status: 'open',
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', gameId)
+
+  revalidatePath("/open-games")
+  revalidatePath("/player")
+  return { success: true }
+}
+
+// ═══════════════════════════════════════════
+//  HOST: Update Game Status (Cancel / Complete)
+// ═══════════════════════════════════════════
+export async function updateGameStatus(
+  gameId: string, 
+  status: 'open' | 'full' | 'cancelled' | 'completed',
+  hostPhoneVerify?: string
+) {
+  const { isHost, error: authError } = await verifyGameHost(gameId, hostPhoneVerify)
+  if (!isHost) return { error: authError || "Unauthorized" }
+
+  const { error } = await supabase
+    .from('open_games')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', gameId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath("/open-games")
+  revalidatePath("/player")
+  return { success: true }
 }
 
 // ═══════════════════════════════════════════
 //  LEAVE: Player leaves an open game
 // ═══════════════════════════════════════════
-export async function leaveOpenGame(gameId: string, playerPhone: string) {
-  if (!playerPhone) return { error: "Phone number required to leave." }
+export async function leaveOpenGame(gameId: string, playerPhone?: string) {
+  const session = await auth()
+  const userId = session?.user?.id
+  const cleanPhone = playerPhone ? playerPhone.replace(/\D/g, '') : null
 
-  const { data: participant, error: findError } = await supabase
-    .from('open_game_participants')
-    .select('id')
-    .eq('game_id', gameId)
-    .eq('player_phone', playerPhone)
-    .maybeSingle()
+  if (!userId && !cleanPhone) {
+    return { error: "Phone number or login required to leave." }
+  }
+
+  let query = supabase.from('open_game_participants').select('id, status').eq('game_id', gameId)
+  if (userId) {
+    query = query.eq('player_user_id', userId)
+  } else if (cleanPhone) {
+    query = query.eq('player_phone', cleanPhone)
+  }
+
+  const { data: participant, error: findError } = await query.maybeSingle()
 
   if (findError || !participant) return { error: "You are not in this game." }
 
@@ -296,7 +492,7 @@ export async function leaveOpenGame(gameId: string, playerPhone: string) {
     .delete()
     .eq('id', participant.id)
 
-  // Decrement count
+  // Decrement count if approved
   const { data: game } = await supabase
     .from('open_games')
     .select('current_players')
@@ -304,7 +500,7 @@ export async function leaveOpenGame(gameId: string, playerPhone: string) {
     .single()
 
   if (game) {
-    const newCount = Math.max(0, game.current_players - 1)
+    const newCount = Math.max(1, (game.current_players || 1) - 1)
     await supabase
       .from('open_games')
       .update({
@@ -316,32 +512,15 @@ export async function leaveOpenGame(gameId: string, playerPhone: string) {
   }
 
   revalidatePath("/open-games")
+  revalidatePath("/player")
   return { success: true }
 }
 
 // ═══════════════════════════════════════════
 //  CANCEL: Host cancels an open game
 // ═══════════════════════════════════════════
-export async function cancelOpenGame(gameId: string, hostPhone: string) {
-  // Verify the caller is the host
-  const { data: game } = await supabase
-    .from('open_games')
-    .select('host_phone')
-    .eq('id', gameId)
-    .single()
-
-  if (!game) return { error: "Game not found." }
-  if (game.host_phone !== hostPhone) return { error: "Only the host can cancel this game." }
-
-  const { error } = await supabase
-    .from('open_games')
-    .update({ status: 'cancelled', updated_at: new Date().toISOString() })
-    .eq('id', gameId)
-
-  if (error) return { error: error.message }
-
-  revalidatePath("/open-games")
-  return { success: true }
+export async function cancelOpenGame(gameId: string, hostPhone?: string) {
+  return updateGameStatus(gameId, 'cancelled', hostPhone)
 }
 
 // ═══════════════════════════════════════════

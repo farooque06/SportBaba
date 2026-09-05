@@ -9,15 +9,21 @@ import { Button } from "@/components/ui/Button"
 import { Portal } from "@/components/ui/Portal"
 import { createOpenGame, getMatchmakingFacilities, getMatchmakingResources } from "@/lib/actions/matchmaking"
 import { getPublicAvailability } from "@/lib/actions/public"
+import { isAlphabeticName, sanitizeNumericInput } from "@/lib/utils"
 
 interface CreateOpenGameModalProps {
   isOpen: boolean
   onClose: () => void
   onCreated: () => void
   preselectedFacilityId?: string
+  currentUser?: {
+    id: string
+    name: string | null
+    email: string | null
+  } | null
 }
 
-export function CreateOpenGameModal({ isOpen, onClose, onCreated, preselectedFacilityId }: CreateOpenGameModalProps) {
+export function CreateOpenGameModal({ isOpen, onClose, onCreated, preselectedFacilityId, currentUser }: CreateOpenGameModalProps) {
   // ─── Facilities & Resources ───
   const [facilities, setFacilities] = useState<any[]>([])
   const [resources, setResources] = useState<any[]>([])
@@ -39,11 +45,18 @@ export function CreateOpenGameModal({ isOpen, onClose, onCreated, preselectedFac
   const [selectedSlot, setSelectedSlot] = useState<{ hour: number; minute: number } | null>(null)
 
   // Step 2 Details State
-  const [hostName, setHostName] = useState("")
+  const [hostName, setHostName] = useState(currentUser?.name || "")
   const [hostPhone, setHostPhone] = useState("")
   const [maxPlayers, setMaxPlayers] = useState(10)
   const [skillLevel, setSkillLevel] = useState("any")
   const [notes, setNotes] = useState("")
+
+  // Auto-sync hostName if currentUser changes
+  useEffect(() => {
+    if (currentUser?.name && !hostName) {
+      setHostName(currentUser.name)
+    }
+  }, [currentUser])
 
   // Additional starting players added by host
   const [additionalPlayers, setAdditionalPlayers] = useState<string[]>([])
@@ -219,11 +232,15 @@ export function CreateOpenGameModal({ isOpen, onClose, onCreated, preselectedFac
   const handleAddPlayer = () => {
     const trimmed = newPlayerInput.trim()
     if (!trimmed) return
+    if (!isAlphabeticName(trimmed)) {
+      setError("Player name must contain only letters and spaces (2-80 chars).")
+      return
+    }
     if (1 + additionalPlayers.length >= maxPlayers) {
       setError(`Cannot add more players than the max limit (${maxPlayers}).`)
       return
     }
-    if (additionalPlayers.includes(trimmed)) {
+    if (additionalPlayers.some(p => p.toLowerCase() === trimmed.toLowerCase())) {
       setError("Player already in the list.")
       return
     }
@@ -559,11 +576,20 @@ export function CreateOpenGameModal({ isOpen, onClose, onCreated, preselectedFac
                       Total Match Capacity *
                     </label>
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       min={Math.max(2, currentTotalStartingPlayers)}
                       max={30}
                       value={maxPlayers}
-                      onChange={(e) => setMaxPlayers(Math.max(currentTotalStartingPlayers, parseInt(e.target.value) || 10))}
+                      onChange={(e) => {
+                        const digitsOnly = sanitizeNumericInput(e.target.value, 2)
+                        const parsed = parseInt(digitsOnly, 10)
+                        if (!digitsOnly) {
+                          setMaxPlayers(Math.max(2, currentTotalStartingPlayers))
+                        } else {
+                          setMaxPlayers(Math.min(30, Math.max(currentTotalStartingPlayers, parsed)))
+                        }
+                      }}
                       className="w-full h-12 px-4 rounded-xl border border-border/60 bg-muted/30 text-sm font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all"
                     />
                     <span className="text-[10px] text-muted-foreground mt-1 block">
@@ -598,7 +624,11 @@ export function CreateOpenGameModal({ isOpen, onClose, onCreated, preselectedFac
                       type="text"
                       required
                       value={hostName}
-                      onChange={(e) => setHostName(e.target.value)}
+                      onChange={(e) => {
+                        // Allow only letters, spaces, hyphens, and apostrophes
+                        const filtered = e.target.value.replace(/[^a-zA-Z\s.'-]/g, "")
+                        setHostName(filtered)
+                      }}
                       placeholder="e.g. Alex"
                       className="w-full h-12 px-4 rounded-xl border border-border/60 bg-muted/30 text-sm font-medium text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all"
                     />
@@ -610,8 +640,9 @@ export function CreateOpenGameModal({ isOpen, onClose, onCreated, preselectedFac
                     </label>
                     <input
                       type="tel"
+                      inputMode="numeric"
                       value={hostPhone}
-                      onChange={(e) => setHostPhone(e.target.value)}
+                      onChange={(e) => setHostPhone(sanitizeNumericInput(e.target.value, 10))}
                       placeholder="e.g. 98XXXXXXXX"
                       className="w-full h-12 px-4 rounded-xl border border-border/60 bg-muted/30 text-sm font-medium text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/40 transition-all"
                     />
@@ -640,7 +671,10 @@ export function CreateOpenGameModal({ isOpen, onClose, onCreated, preselectedFac
                     <input
                       type="text"
                       value={newPlayerInput}
-                      onChange={(e) => setNewPlayerInput(e.target.value)}
+                      onChange={(e) => {
+                        const filtered = e.target.value.replace(/[^a-zA-Z\s.'-]/g, "")
+                        setNewPlayerInput(filtered)
+                      }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault()

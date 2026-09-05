@@ -220,6 +220,7 @@ export async function quickJoinGame(gameId: string) {
       game_id: gameId,
       player_name: session.user.name || "Player",
       player_user_id: session.user.id,
+      status: 'approved',
       joined_at: new Date().toISOString(),
     })
 
